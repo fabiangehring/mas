@@ -1,24 +1,96 @@
 # Einleitung {#intro}
 
+## Motivation
+Aktienoptionen sind derivative Finanzinstrumente, welche dem Inhaber das Recht (nicht aber die Pflicht) geben, die zugrunde liegende Aktie (auch Basiswert oder Underlying) zu einem im Voraus festgelegten Ausübungspreis (auch Strike) zu kaufen oder zu verkaufen. Wie sich der Preis einer Option entwickelt ist dabei von verschiedenen Faktoren abhängig. Dazu gehören unter anderem der Preis des Basiswertes, dessen Volatilität oder die Restlaufzeit der Option.
 
-You can label chapter and section titles using `{#label}` after them, e.g., we can reference Chapter \@ref(intro). If you do not manually label them, there will be automatic labels anyway, e.g., Chapter \@ref(methods).
+Der Zusammenhang zwischen Preis des Underlyings und Preis der Option ist dabei nicht perfekt linear (Delta), sondern nimmt bei steigendem Preis zu (Kaufoption), resp. ab (Verkaufsoption). Diese nicht-Linearität wird mit Hilfe der Kennzahl Gamma beschrieben. Im profesionellen Optionenhandel ist es üblich, den linearen Teil der Veränderung durch Kauf oder Verkauf des Underlyings abzusichern. Damit lassen sich Strategien verfolgen, welche von der Richtung der Preisbewegung unabhängig sind (Delta-Neutral Trading). Der Nicht-lineare Zusammenhang führt allerdings dazu, dass die Delta-Neutralität mit sich ändernden Preisen wieder verloren geht. 
 
-Figures and tables with captions will be placed in `figure` and `table` environments, respectively.
+Dies lässt sich an einem Beispiel illiustrieren. Sei dafür angenommen, dass es eine Aktie zum Preis von 10 gehandelt werde. Betrachten wir dazu sowohl eine Kaufoption (Call) und Verkaufsoption (Put), welche es dem Besitzer erlaubt, die Aktie in genau 6 Monaten zu 10 zu kaufen oder zu verkaufen. In diesem Beispiel entspricht der Aktienkurs dem Strike. Solche Optionen bezeichnet man als "at-the-money (atm)". Bei Veränderung des Basispreises werden diese entsprechend zu "in-the-money (itm)" oder "out-of-the-money (otm)" Optionen.
 
-```{r nice-fig, fig.cap='Here is a nice figure!', out.width='80%', fig.asp=.75, fig.align='center'}
+
+```{r call-put, fig.cap='Nichtlinearität zwischen Option- und Underlyingpreis', fig.asp=0.6, fig.pos = '!H', echo=FALSE}
+t <- 0
+S <- seq(5, 15, 0.01)
+r <- 0.01
+sigma = 0.5
+K = 10
+T = 0.5
+move = 0.2
+
+delta_atm_call <- qrmtools::Black_Scholes(t, K, r, sigma, K, T, "call")
+delta_atm_put <- qrmtools::Black_Scholes(t, K, r, sigma, K, T, "put")
+
 par(mfrow = c(1, 2))
-plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.4, move = 0.2, type = "call")
-plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.4, move = 0.2, type = "put")
+plot_call_price(t, S, r, sigma, K, T, move, "call")
+plot_call_price(t, S, r, sigma, K, T, move, "put")
 par(mfrow = c(1, 1))
 ```
 
-Reference a figure by its code chunk label with the `fig:` prefix, e.g., see Figure \@ref(fig:nice-fig). Similarly, you can reference tables generated from `knitr::kable()`, e.g., see Table \@ref(tab:nice-tab).
+Der Wert der Optionen in Abhängigkeit zum Aktienpreis ist in Abbildung \@ref(fig:call-put) durch die durchgezogene Linie gekennzeichnet. Die gestrichelten Linien bilden die Tangenten beim Strikepreis der Optionen. Deren Steigungen (resp. Delta) betragen `r round(delta_atm_call, 2)` und im Falle des Calls, und `r round(-delta_atm_put, 2)` im Falle des Puts. Der Besitzer der Option kann sich gegen Preisbewegungen absichern (hegden), indem diese Zahl an Aktien verkauft (Call), resp. kauft (Put). Steigt beispielsweise der Preis des Underlyings, so verliert die Put-Option an Wert, die gekauften Aktien andererseits gewinnen an Wert und machen den Verlust gerade wieder weg. Genau umgekehrt verhält es sich im Falle des Calls. Dieses Delta-Hedging funkioniert allerdings nur für kleine Abweichungen. Bei grösseren Veränderungen des Preises führt die Konvexität des Optionspreises bzgl. Underlyingpreis zu einem Fehler. Diese Fehler sind in Abbildung \@ref(fig:call-put) mit roten Linien dargestellt. Es mag auf den ersten Blick erstaunen, dass dieser Fehler immer zugunsten des Optionsbesitzers ausfällt (sowohl für Call- als auch Put-Option verlaufen die Tangenten unterhalb des Optionspreises). Dass es sich dabei aber nicht eine Geldmaschine handelt liegt daran, dass die beschriebenen Preisbewegungen nicht sofort, sondern im Laufe der Zeit erfolgen. Damit nimmt auch die Restlaufzeit der Option ab, welche sie gleichzeitig weniger wertvoll macht. 
 
-```{r nice-tab, tidy=FALSE}
-knitr::kable(
-  head(iris, 20), caption = 'Here is a nice table!',
-  booktabs = TRUE
-)
-```
+Eine solche Strategie ist damit grundsätzlich dann interessant, wenn die Bewegungen des Preises gross genug sind, um den Wertverlust aufgrund der Zeit zu übertreffen. Sie als Gamma-Scalping bezeichnet, und verankt ihrem Namen der zweiten Ableitung des Optionspreises nach dem Underlyingpreis - dem Gamma - welches die Nichtlinearität der Beziehung beschreibt.
 
-You can write citations, too. For example, we are using the **bookdown** package [@R-bookdown] in this sample book, which was built on top of R Markdown and **knitr** [@xie2015].
+Möchte sich der Händler nicht auf diese Wette einlassen, kann er die Delta-Neutralität durch erneutes Kaufen oder Verkaufen des Underlyings wieder herstellen. Grafisch entspricht dies der Einnahme einer Position, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen resp. positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.
+
+Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden.
+
+
+
+## Forschungsfrage
+Kann mit Hilfe datengestützter Methoden eine Strategie gefunden werden, welche einen Händler von Aktienoptionen unterstützt, die idealen (intraday) Preise zum Kauf / Verkauf von aufgelaufenem Delta zu finden? 
+
+Die Strategie umfasst die Voraussage jeweils eines Verkaufs- und eines Kaufpreises bei welchen aufgelaufenes Delta neutralisiert wird. Diese Prognose erfolgt am Morgen des Arbeitstages bei Markteröffnung. Bei Tagesende noch vorhandenes Delta (aufgrund nicht erreichter Kaufs- oder Verkaufspreise oder neu aufgelaufenes Delta bis Tagesende) werden zum Tagesschlusskurs ausgeglichen. 
+
+Mathematisch lässt sich dies als Optimierung des folgendes Payoffs ausdrücken:
+
+\begin{equation}
+\begin{aligned}
+Payoff ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{sell_{intra}}{close_{t-1}}\right)}^2 \cdot I_{sell} + \\
+            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{sell_{intra}}\right)}^2 \cdot I_{sell} + \\
+            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{buy_{intra}}{close_{t-1}}\right)}^2 \cdot I_{buy} + \\
+            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{buy_{intra}}\right)}^2 \cdot I_{buy} + \\
+            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2 \cdot I_{noHedge}
+\end{aligned}
+\end{equation}
+
+Dieser Strategie soll eine einfachere Strategie gegenübergestellt werden, bei welcher der Ausgleich komplett am Tagesende zum Schlusskurs erfolgt:
+
+\begin{equation}
+\begin{aligned}
+Payoff ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_{t}}{close_{t-1}}\right)}^2
+\end{aligned}
+\end{equation}
+
+## Abgrenzung
+Die Arbeit untersucht nicht explizit, welche Optionen sich für diese Stategie am besten eignen (kein Options-Picker). Ebenfalls ist keine Aussage darüber geplant, ob die Strategie insgesamt profitabel ist, wenn berücksichtig wird, dass mit Ablauf jeden Tages eine Option aufgrund der verkürzten Restlaufzeit (ceteris paribus) etwas weniger Wert ist (Theta-Effekt).
+
+## Einbettung in der Literatur
+Verschiedene Beiträge in der Literatur haben sich mit der Voraussage von Aktienpreisen beschäftigt. Viele von ihnen mit dem Ziel Punktvoraussagen zu machen. Dabei versuchen einige Studien die Daten aufgrund zugrundeliegender Fundamentaldaten zu schätzen, andere Studien legen ihren Fokus auf eine chartistische Betrachtung des bisherigen Kursverlaufs der zu betrachtenden Aktie.
+
+Eine zweite Gruppe von Studien hat sich mit der Voraussage der (realisierten) Volatilität beschäftigt. Dabei haben sich für die praktische Anwendung insbesondere autoregressive Modelle durchgesetzt. 
+
+Die vorliegende Arbeit kombiniert beide Ansätze. Ziel ist es nicht, Punktschätzungen des Aktienpreises abzugeben. Ebenso greift auch die (symmetrische) Vorhersage der Volatilität zu kurz. Viel mehr ist es das Ziel die (allenfalls asymmetrische) Verteilung des Aktienkurses über den kommenden Tag (genauer, einen unter Berücksichtigung von Ausführungswahrscheinlichkeit und Höhe) optimalen Kaufs- und Verkaufskurs zu prognostizieren.
+
+Die gefundenen Erkenntnisse lassen sich auch mit in der Literatur beschriebenen "Stylized Facts" wie "Momentum" oder "Mean Reversion" vergleichen. 
+
+## Daten
+Als Datengrundlage stehen historische Open-, Low-, High- und Close- (adjustiert wie unadjustiert) Aktienpreise zur Verfügung. Diese sind öffentlich und können von Yahoo Finance bezogen werden. Zu Testzwecken wurden 9.5 Mio. historische Datenpunkte für die grössten rund 1600 Unternehmen weltweit angezogen. Die Datenqualität scheint auf den ersten Blick gut. Gewisse Datenbereinigungsschritte sind nötig. 
+
+Die Verwendung bankinterner Daten ist aktuell nicht geplant. Dies hat den grossen Vorteil, dass die Daten auch problemlos auf Cloud-Infrastruktur (bsp. unabdingbar im Falle des Einsatzes von Neuronalen Netzen / Deep Learning Techniken) prozessiert werden kann. Obwohl dies zum jetzigen Zeitpunkt nicht geplant ist, ist je nach Verlauf des Projektes und nach Rücksprache (Geheimhaltungserklärung) punktuell auch eine Anreicherung um bankinterne Daten denkbar.
+
+## Methoden
+Ziel ist es, die eingesetzten Methoden zusammen mit dem betreuenden Dozenten festzulegen. Dabei sollen verschiedene Ansätze versucht und gegeneinander verglichen werden. Anbei aber eine Sammlung von denkbaren Ansätzen:
+
+* Clusteranalysen mit Hilfe diverser Disanzmasse (Manhattan Distance, Cosine Similarity): Lassen sich um den aktuellen Kursverlauf in Verbindung zur Vergangenheit (des aktuellen oder anderer Titel) bringen und darüber allfällige Rückschlüsse auf die Zukunft zu machen.
+* k-means: Lassen sich in der Historie ähnliche / sich wiederholende Patterns von Kursverläufen / -verteilungen finden, welche Rückschlüsse auf die Zukunft ermöglichen?
+* Welche Aussagen können "klassische" autoregressive statistische Modelle (G)ARCH machen?
+* Können Neuronale Netze (z.B. LSTM) chartistische Muster erkennen?
+* Deep Learing Methoden: Können anhand visualisierter Kursverläufe / -verteilungen Muster erkennen/gelernt werden?
+* Weitere zusammen mit dem Betreuer festgelegte Methoden
+
+
+## Disclaimer
+Etliche Untersuchungen haben sich bereits damit beschäftigt, kursrelevante Informationen vorauszusagen. Viele der dabei gefundenen Erkenntnisse sind nicht oder nur unter speziellen Voraussetzungen anwendbar. Es sei deshalb an dieser Stelle erwähnt, dass sich dem sowohl der Autor als auch dessen Auftraggeber bewusst ist. Der oben beschriebene Setup ist allerdings so gelagert, dass interessante Ergebnisse denkbar sind. Auch wenn diese ausbleiben bietet diese Arbeit sowohl für den Autoren wie auch dessen Arbeitgeber die Chance, verschiedene moderne Analysetechniken/ -methoden an Finanzdaten anzuwenden, welche auch für andere Projekte wertvoll sein können.
+
+
+

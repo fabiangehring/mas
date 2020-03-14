@@ -14,8 +14,8 @@
 #'
 #' @examples
 #' par(mfrow = c(1, 2))
-#' plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.4, move = 0.2, type = "call")
-#' plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.4, move = 0.2, type = "put")
+#' plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.5, move = 0.2, type = "call")
+#' plot_call_price(t = 0, S = seq(5, 15, 0.01), r = 0.01, sigma = 0.5, K = 10, T = 0.5, move = 0.2, type = "put")
 #' par(mfrow = c(1, 1))
 plot_call_price <- function(t, S, r, sigma, K, T, move, type = c("call", "put")) {
   option_price <- qrmtools::Black_Scholes(t, S, r, sigma, K, T, type)
@@ -23,12 +23,13 @@ plot_call_price <- function(t, S, r, sigma, K, T, move, type = c("call", "put"))
   plot(
     x = S,
     y = option_price,
-    main = paste0(str_to_title(type,), " Option"),
+    main = paste0(stringr::str_to_title(type,), " Option"),
     type = "l",
     xlab = "Underlying Price",
     ylab = "Option Price",
     lty = "solid"
   )
+  points(K, qrmtools::Black_Scholes(t, K, r, sigma, K, T, type), pch = 4)
   # lines(S, pmax(0, S-K), lty  = "dashed")
   
   # tangent of atm option

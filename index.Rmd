@@ -2,11 +2,12 @@
 title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden"
 author: "Fabian Gehring, Zürcher Hochschule für Angewandte Wissenschaften"
 site: bookdown::bookdown_site
-documentclass: book
+documentclass: scrartcl
 biblio-style: apalike
 link-citations: yes
 header-includes:
   - \usepackage[ngerman]{babel}
+  - \usepackage{float}
 ---
 
 
