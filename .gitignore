@@ -1,0 +1,12 @@
+# Project / IDE configs
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Data
+data/stocks.rds
+
+# Temporary bookdown files
+_book
+Masterarbeit.log

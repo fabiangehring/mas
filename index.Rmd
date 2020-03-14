@@ -1,0 +1,53 @@
+---
+title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden"
+author: "Fabian Gehring, Zürcher Hochschule für Angewandte Wissenschaften"
+site: bookdown::bookdown_site
+documentclass: book
+biblio-style: apalike
+link-citations: yes
+header-includes:
+  - \usepackage[ngerman]{babel}
+---
+
+
+```{r setup_index, include = FALSE}
+packages <- c(
+  "bookdown",
+  "dplyr",
+  "here",
+  "jsonlite",
+  "magrittr",
+  "purrr",
+  "quantmod",
+  "qrmtools",
+  "renv",
+  "roxygen2",
+  "stringr",
+  "tibble"
+)
+
+# load packages
+suppressMessages({
+  for (pkg in packages) {
+    library(pkg, character.only = TRUE)
+  }
+})
+
+# load sources
+for (file in list.files(here("R"), full.names = TRUE)) source(file)
+
+# load data
+if (file.exists(here("data/stocks.rds"))) {
+  stocks <- readRDS(here("data/stocks.rds"))
+} else {
+  stop("Stock data not found, please fetch data locally by executing the script 'fetch_data' available in the folder 
+       'data-raw'.")
+}
+
+```
+
+
+# Management Summary {-#summary}
+
+TODO
+

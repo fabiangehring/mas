@@ -1,0 +1,22 @@
+book_filename: "Masterarbeit"
+language:
+  label:
+    fig: 'Abbildung '
+    tab: 'Tabelle '
+    eq: 'Gleichung '
+    thm: 'Theorem '
+    lem: 'Lemma '
+    cor: 'Corollary '
+    prp: 'Proposition '
+    cnj: 'Conjecture '
+    def: 'Definition '
+    exm: 'Beispiel '
+    exr: 'Übung '
+    proof: 'Beweis. '
+    remark: 'Bemerkung. '
+    solution: 'Lösung. '
+  ui:
+    edit: Edit
+    chapter_name: 'Kapitel '
+    appendix_name: 'Anhang '
+delete_merged_file: true
