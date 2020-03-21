@@ -5,7 +5,7 @@
 .Ruserdata
 
 # Data
-data/stocks.rds
+data/*.rds
 
 # Temporary bookdown files
 _book

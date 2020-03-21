@@ -2,7 +2,7 @@
 #'
 #' @return
 #' Function does not return a value but is used because of its sideeffect of saving a dataframe "stocks" into the 
-#' data folder.
+#' data folder containing all listed equity constitutents of the iShares MSCI World ETF as of 02.03.2020.
 #' @export
 #'
 #' @examples
@@ -10,30 +10,44 @@
 download_stocks <- function() {
   
   # get listed equity constiutents of big msci world etf
-  url <- "https://www.ishares.com/ch/individual/en/products/251881/ishares-msci-world-ucits-etf-inc-fund/1495092304805.ajax?tab=all&fileType=json&asOfDate=20200228&_=1584099817640"
+  url <- "https://www.ishares.com/ch/individual/en/products/251881/ishares-msci-world-ucits-etf-inc-fund/1495092304805.ajax?tab=all&fileType=json&asOfDate=20200302&_=1584800705312"
   raw_json <- jsonlite::fromJSON(url)
   col_names <- c("Ticker", "Name", "Asset Class", "Weight (%)", "Price", "Shares", "Market Value", "Notional Value", "Sector", "ISIN", "Exchange", "Location", "Market Currency")
-  constituents <- raw_json %$% aaData %>% map(~set_names(map(., ~last(.)), col_names)) %>% bind_rows()
-  constituents <- filter(constituents, `Asset Class` == "Equity" & Exchange != "NO MARKET (E.G. UNLISTED)")
+  constituents <- raw_json %$% aaData %>% purrr::map(~rlang::set_names(purrr::map(., ~last(.)), col_names)) %>% bind_rows()
+  stocks <- dplyr::filter(constituents, `Asset Class` == "Equity" & Exchange != "NO MARKET (E.G. UNLISTED)")
+  return(stocks)
+}
+
+
+#' Download stock data
+#'
+#' @param stocks A data.frame with the columns "Ticker" and "Exchange" of the stocks to download.
+#'
+#' @return
+#' Downloads the history of daily available quote for the given stocks from yahoo finance until 02.03.2020 and safes them to the data folder.
+#' @export
+#'
+#' @examples
+#' # Not Run
+#' # download_quotes(tibble(Ticker = "AAPL", Exchange = "NASDAQ"))
+download_quotes <- function(stocks) {
   
-  # tfetch prices from yahoo finance
+  # fetch prices from yahoo finance
   quotes <- new.env()
-  source("data-raw/eval_yahoo_ticker.R")
-  Symbols <- unique(eval_yahoo_ticker(constituents$Ticker, constituents$Exchange))
-  quantmod::getSymbols(Symbols, env = quotes, auto.assign = TRUE, src = 'yahoo', from = '1950-01-01', to = as.Date("2019-02-28"), verbose=TRUE)
-
+  Symbols <- unique(eval_yahoo_ticker(stocks$Ticker, stocks$Exchange))
+  quantmod::getSymbols(Symbols, env = quotes, auto.assign = TRUE, src = 'yahoo', from = '1950-01-01', to = as.Date("2020-03-02"), verbose=TRUE)
+  
   # consolidate data into one single data.frame
-  stocks <- as.list(quotes) %>%
-    map2(., names(.), function(x, y) {
-      as_tibble(x) %>%
+  quotes <- as.list(quotes) %>%
+    purrr::map2(., names(.), function(x, y) {
+      tibble::as_tibble(x) %>%
         set_names(c("Open", "High", "Low", "Close", "Volume", "Adjusted")) %>%
-        mutate(Date = index(x), Ticker = y)
+        mutate(Date = zoo::index(x), Ticker = y)
     }) %>%
-    bind_rows() %>%
-    select("Ticker", "Date", "Open", "Low", "High", "Close", "Adjusted", "Volume")
-
-  # save locally
-  saveRDS(stocks, "data/stocks.rds")
+    dplyr::bind_rows() %>%
+    dplyr::select("Ticker", "Date", "Open", "Low", "High", "Close", "Adjusted", "Volume")
+  
+  return(quotes)
 }
 
 
