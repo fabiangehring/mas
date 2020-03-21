@@ -3,11 +3,14 @@ title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wa
 author: "Fabian Gehring, Zürcher Hochschule für Angewandte Wissenschaften"
 site: bookdown::bookdown_site
 documentclass: scrartcl
+bibliography: ["mas.bib"]
 biblio-style: apalike
 link-citations: yes
 header-includes:
   - \usepackage[ngerman]{babel}
   - \usepackage{float}
+#  - \floatplacement{figure}{H} 
+
 ---
 
 
@@ -36,15 +39,6 @@ suppressMessages({
 
 # load sources
 for (file in list.files(here("R"), full.names = TRUE)) source(file)
-
-# load data
-if (file.exists(here("data/stocks.rds"))) {
-  stocks <- readRDS(here("data/stocks.rds"))
-} else {
-  stop("Stock data not found, please fetch data locally by executing the script 'fetch_data' available in the folder 
-       'data-raw'.")
-}
-
 ```
 
 
