@@ -1,0 +1,13 @@
+# Analyse
+
+Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
+
+- KLassifikationsverfahren (bsp. KNN):
+- Neuronale Netzwerke (bsp. RNN, LTSM):
+- Autogressive Modelle (bsp. GARCH)
+
+## Klassifikationsverfahren
+
+## Neuronale Netzwerke
+
+## Autoregressive Modelle
