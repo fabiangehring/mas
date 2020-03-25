@@ -3,9 +3,17 @@
 ## Motivation
 Aktienoptionen sind derivative Finanzinstrumente, welche dem Inhaber das Recht (nicht aber die Pflicht) geben, die zugrunde liegende Aktie (auch Basiswert oder Underlying) zu einem im Voraus festgelegten Ausübungspreis (auch Strike) zu kaufen oder zu verkaufen. Wie sich der Preis einer Option entwickelt ist dabei von verschiedenen Faktoren abhängig. Dazu gehören unter anderem der Preis des Basiswertes, dessen Volatilität oder die Restlaufzeit der Option.
 
-Der Zusammenhang zwischen Preis des Underlyings und Preis der Option ist dabei nicht perfekt linear (Delta), sondern nimmt bei steigendem Preis zu (Kaufoption), resp. ab (Verkaufsoption). Diese nicht-Linearität wird mit Hilfe der Kennzahl Gamma beschrieben. Im profesionellen Optionenhandel ist es üblich, den linearen Teil der Veränderung durch Kauf oder Verkauf des Underlyings abzusichern. Damit lassen sich Strategien verfolgen, welche von der Richtung der Preisbewegung unabhängig sind (Delta-Neutral Trading). Der Nicht-lineare Zusammenhang führt allerdings dazu, dass die Delta-Neutralität mit sich ändernden Preisen wieder verloren geht. 
+Der Zusammenhang zwischen Preis des Underlyings und Preis der Option ist dabei nicht perfekt linear (Delta, auch $\Delta$), sondern nimmt bei steigendem Preis zu (Kaufoption), resp. ab (Verkaufsoption). Diese nicht-Linearität wird mit Hilfe der Kennzahl Gamma ($\Gamma$) beschrieben. Im profesionellen Optionenhandel ist es üblich, den linearen Teil der Veränderung durch Kauf oder Verkauf des Underlyings abzusichern. Damit lassen sich Strategien verfolgen, welche von der Richtung der Preisbewegung unabhängig sind (Delta-Neutral Trading). Der Nicht-lineare Zusammenhang führt allerdings dazu, dass die Delta-Neutralität mit sich ändernden Preisen wieder verloren geht. 
 
 Dies lässt sich an einem Beispiel illiustrieren. Sei dafür angenommen, dass es eine Aktie zum Preis von 10 gehandelt werde. Betrachten wir dazu sowohl eine Kaufoption (Call) und Verkaufsoption (Put), welche es dem Besitzer erlaubt, die Aktie in genau 6 Monaten zu 10 zu kaufen oder zu verkaufen. In diesem Beispiel entspricht der Aktienkurs dem Strike. Solche Optionen bezeichnet man als "at-the-money (atm)". Bei Veränderung des Basispreises werden diese entsprechend zu "in-the-money (itm)" oder "out-of-the-money (otm)" Optionen.
+
+
+``` {r, setup_intro, echo=FALSE}
+
+suppressPackageStartupMessages({
+  source("R/01-intro.R")
+})
+```
 
 
 ```{r call-put, fig.cap='Nichtlinearität zwischen Option- und Underlyingpreis', fig.asp=0.6, fig.pos = '!H', echo=FALSE}
@@ -26,11 +34,22 @@ plot_call_price(t, S, r, sigma, K, T, move, "put")
 par(mfrow = c(1, 1))
 ```
 
-Der Wert der Optionen in Abhängigkeit zum Aktienpreis ist in Abbildung \@ref(fig:call-put) durch die durchgezogene Linie gekennzeichnet. Die gestrichelten Linien bilden die Tangenten beim Strikepreis der Optionen. Deren Steigungen (resp. Delta) betragen `r round(delta_atm_call, 2)` und im Falle des Calls, und `r round(-delta_atm_put, 2)` im Falle des Puts. Der Besitzer der Option kann sich gegen Preisbewegungen absichern (hegden), indem diese Zahl an Aktien verkauft (Call), resp. kauft (Put). Steigt beispielsweise der Preis des Underlyings, so verliert die Put-Option an Wert, die gekauften Aktien andererseits gewinnen an Wert und machen den Verlust gerade wieder weg. Genau umgekehrt verhält es sich im Falle des Calls. Dieses Delta-Hedging funkioniert allerdings nur für kleine Abweichungen. Bei grösseren Veränderungen des Preises führt die Konvexität des Optionspreises bzgl. Underlyingpreis zu einem Fehler. Diese Fehler sind in Abbildung \@ref(fig:call-put) mit roten Linien dargestellt. Es mag auf den ersten Blick erstaunen, dass dieser Fehler immer zugunsten des Optionsbesitzers ausfällt (sowohl für Call- als auch Put-Option verlaufen die Tangenten unterhalb des Optionspreises). Dass es sich dabei aber nicht eine Geldmaschine handelt liegt daran, dass die beschriebenen Preisbewegungen nicht sofort, sondern im Laufe der Zeit erfolgen. Damit nimmt auch die Restlaufzeit der Option ab, welche sie gleichzeitig weniger wertvoll macht. 
+Der Wert der Optionen in Abhängigkeit zum Aktienpreis ist in Abbildung \@ref(fig:call-put) durch die durchgezogene Linie gekennzeichnet. Die gestrichelten Linien bilden die Tangenten beim Strikepreis der Optionen. Deren Steigungen ($\Delta$) betragen `r round(delta_atm_call, 2)` und im Falle des Calls, und `r round(-delta_atm_put, 2)` im Falle des Puts. Der Besitzer der Option kann sich gegen Preisbewegungen absichern (hegden), indem diese Zahl an Aktien verkauft (Call), resp. kauft (Put). Steigt beispielsweise der Preis des Underlyings, so verliert die Put-Option an Wert, die gekauften Aktien andererseits gewinnen an Wert und machen den Verlust gerade wieder weg. Genau umgekehrt verhält es sich im Falle des Calls. Dieses Delta-Hedging funkioniert allerdings nur für kleine Abweichungen. Bei grösseren Veränderungen des Preises führt die Konvexität des Optionspreises bzgl. Underlyingpreis zu einem Fehler. Diese Fehler sind in Abbildung \@ref(fig:call-put) mit roten Linien dargestellt. Es mag auf den ersten Blick erstaunen, dass dieser Fehler immer zugunsten des Optionsbesitzers ausfällt (sowohl für Call- als auch Put-Option verlaufen die Tangenten unterhalb des Optionspreises). Dass es sich dabei aber nicht eine Geldmaschine handelt liegt daran, dass die beschriebenen Preisbewegungen nicht sofort, sondern im Laufe der Zeit erfolgen. Damit nimmt auch die Restlaufzeit der Option ab, welche sie gleichzeitig weniger wertvoll macht. 
 
-Eine solche Strategie ist damit grundsätzlich dann interessant, wenn die Bewegungen des Preises gross genug sind, um den Wertverlust aufgrund der Zeit zu übertreffen. Sie als Gamma-Scalping bezeichnet, und verankt ihrem Namen der zweiten Ableitung des Optionspreises nach dem Underlyingpreis - dem Gamma - welches die Nichtlinearität der Beziehung beschreibt.
+Eine solche Strategie ist damit grundsätzlich dann interessant, wenn die Bewegungen des Preises gross genug sind, um den Wertverlust aufgrund der Zeit zu übertreffen. Sie als Gamma-Scalping bezeichnet, und verankt ihrem Namen der zweiten Ableitung des Optionspreises nach dem Underlyingpreis - dem Gamma ($\Gamma$) - welches die Nichtlinearität der Beziehung beschreibt.
 
 Möchte sich der Händler nicht auf diese Wette einlassen, kann er die Delta-Neutralität durch erneutes Kaufen oder Verkaufen des Underlyings wieder herstellen. Grafisch entspricht dies der Einnahme einer Position, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen resp. positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.
+
+Die Höhe des Gewinnes lässt sich auch mathematisch fomulieren. Bezeichnen dazu $S_0$ den Preis des Underlying und $P_0$ den Preis der Option zu Beginn und $S_1$ sowie $P_1$ die jeweiligen Preise nach einer Preisbewegung des Unerlyings um $d_S$. $\Delta_0$ und $\Gamma_0$ bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als $\Delta_{Cash} = \Delta \times S$ der Wert des Hedge Portfolio bezeichnet und $\Gamma_{Cash} = \Gamma \times S²/100$ bezeichne die Veränderung des $\Delta_Cash$ bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich anhand folgender Überlegungen herleiten: Verändert sich der Underlying-Preis um 1% $S => S + S / 100$, verändert sich auch das Delta $\Delta => \Delta + \Gamma \times S/100$. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash $\Delta_Cash => \Delta_{Cash} + \Gamma \times S²/100$.
+
+Mit Hilfe diese Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten: 
+1. Veränderung des Underlying Preises $S_1 = S_0 + dS$
+1. Veränderung des Delta $\Delta_1 = \Delta_0 + \Gamma_0 \times dS$
+1. Durchschnittliches Delta $\Delta_{Avg} = (\Delta_0 + \Delta_1) / 2 = \Delta_0 + \Gamma_0 \times dS / 2$
+1. Neuer Optionspreis $P_1 = P_0 + \Delta_{Avg} \times dS = P_0 + \Delta_0 \times dS + \Gamma_0 \times dS² / 2$ 
+1. Gewinn als Summe der Veränderungen des Optionspreis und des Hedge-Portfolios: $\Delta_0 \times dS + \Gamma_0 \times dS² / 2 - \Delta_0 \times dS = \Gamma_0 \times dS² / 2$
+1. Etwas umgeformt lässt sich der Gewinn schreiben als: $\Gamma_0 \times dS² / 2 = \Gamma_0 \times S² /100 * dS² / S² * 100 = \Gamma_{Cash} \times (dS/S)² \times 100$ 
+
 
 Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden.
 
@@ -46,12 +65,15 @@ Mathematisch lässt sich dies als Optimierung des folgendes Payoffs ausdrücken:
 \begin{equation}
 \begin{aligned}
 Payoff ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{sell_{intra}}{close_{t-1}}\right)}^2 \cdot I_{sell} + \\
-            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{sell_{intra}}\right)}^2 \cdot I_{sell} + \\
-            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{buy_{intra}}{close_{t-1}}\right)}^2 \cdot I_{buy} + \\
-            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{buy_{intra}}\right)}^2 \cdot I_{buy} + \\
-            & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2 \cdot I_{noHedge}
+& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{sell_{intra}}\right)}^2 \cdot I_{sell} + \\
+& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{buy_{intra}}{close_{t-1}}\right)}^2 \cdot I_{buy} + \\
+& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{buy_{intra}}\right)}^2 \cdot I_{buy} + \\
+& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2 \cdot I_{noHedge}
 \end{aligned}
 \end{equation}
+
+<!-- Herleitung  -->
+<!-- http://sp-finance.e-monsite.com/pages/the-greeks/gamma/delta-hedging-gamma-and-dollar-gamma.html -->
 
 Dieser Strategie soll eine einfachere Strategie gegenübergestellt werden, bei welcher der Ausgleich komplett am Tagesende zum Schlusskurs erfolgt:
 

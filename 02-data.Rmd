@@ -1,12 +1,15 @@
 # Daten
 
 ```{r, setup_data, echo=FALSE, warning=FALSE, message=FALSE}
-library(digest)
-library(here)
-library(dplyr)
-library(stringr)
-library(kableExtra)
-library(purrr)
+
+suppressPackageStartupMessages({
+  library(digest)
+  library(here)
+  library(dplyr)
+  library(stringr)
+  library(kableExtra)
+  library(purrr)
+})
 
 source("data/download_scripts.R")
 
@@ -22,7 +25,7 @@ if (!file.exists(file_stocks)) {
 stocks <- readRDS(file_stocks)
 
 # load quotes
-quotes_hash <- "f33aa810ad31cef7421216640a8d534b"
+quotes_hash <- "c76afe21111af673a0316e24412f2f75"
 file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
 if (!file.exists(file_quotes)) {
   quotes <- download_quotes(stocks) # takes about 35mins
@@ -57,7 +60,7 @@ knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption
 ```
 
 
-Für all diese Titel werden - sofern verfügbar - werden die täglichen historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten sind via Yahoo Finance frei verfügbar [vgl. @yahoo]. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Unternehmen zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Titel können keine Werte gefunden werden. Tabelle \@ref(tab:nestle-quote) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. Dieser Tag ist insofern speziell als dass es der letzte Börsentag vor Ex-Dividend, d.h. der letzte Tag, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wird. Diese betrug CHF 2.45 [@nestle] und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Zu beachten gilt es ferner, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben.
+Für all diese Titel werden - sofern verfügbar - werden die täglichen historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten sind via Yahoo Finance frei verfügbar [vgl. @yahoo_finance]. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Unternehmen zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Titel können keine Werte gefunden werden. Tabelle \@ref(tab:nestle-quote) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. Dieser Tag ist insofern speziell als dass es der letzte Börsentag vor Ex-Dividend, d.h. der letzte Tag, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wird. Diese betrug CHF 2.45 [@nestle] und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Zu beachten gilt es ferner, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben.
 
 ``` {r nestle-quote, echo=FALSE}
 quote_nesn <- dplyr::filter(quotes, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
@@ -75,8 +78,9 @@ knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption
 <!-- * **Adjusted:** Schlussstand des jeweiligen Tages unter Berücksichtigung von "Corporate Actions" wie bsp. Dividendenzahlungen, Aktiensplits, etc. -->
 <!-- * **Volumne:** Anzahl der am jeweiligen Tag gehandelten Aktien -->
 
-```{r, analyse_data}
 
-# dplyr::filter(data, stringr::str_detect(Ticker, "^NESN"))
+Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein. 
 
+```{r, analyse_data, echo=FALSE}
+summary(quotes)
 ```
