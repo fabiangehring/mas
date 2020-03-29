@@ -79,7 +79,7 @@ filter_intraday_changes <- function(quotes_ticker, cols = c("Low", "High")) {
 #' @examples
 #' reorganize_to_one_line(tibble(Adjusted = 1:3))
 reorganize_to_one_line <- function(quotes_ticker) {
-  slice(quotes_ticker, -1) %>% mutate(Adjusted_t-1 = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
+  slice(quotes_ticker, -1) %>% mutate(`Adjusted_t-1` = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
 }
 
 
@@ -100,12 +100,12 @@ adjust_quotes <- function(quotes) {
 }
 
 
-test <- quotes %>% 
-  adjust_quotes() %>%
-  group_by(Ticker) %>%
-  dplyr::group_modify(~filter_unbroken_history(.)) %>%
-  dplyr::group_modify(~filter_daily_changes(.)) %>%
-  dplyr::group_modify(~filter_intraday_changes(.)) %>%
-  dplyr::group_modify(~reorganize_to_one_line(.)) %>%
-  ungroup()
+# test <- quotes %>% 
+#   adjust_quotes() %>%
+#   group_by(Ticker) %>%
+#   dplyr::group_modify(~filter_unbroken_history(.)) %>%
+#   dplyr::group_modify(~filter_daily_changes(.)) %>%
+#   dplyr::group_modify(~filter_intraday_changes(.)) %>%
+#   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
+#   ungroup()
 
