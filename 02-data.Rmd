@@ -14,7 +14,7 @@ suppressPackageStartupMessages({
 source("data/download_scripts.R")
 
 # load stocks
-stocks_hash <- "146b5d05c4667f424e3aa799510d6a33"
+stocks_hash <- "a2ea2a17f87576c2bf28c0e2ff80f30e"
 file_stocks <- here::here(paste0("data/stocks_", stocks_hash,".rds"))
 if (!file.exists(file_stocks)) {
   stocks <- download_stocks() 
@@ -25,7 +25,7 @@ if (!file.exists(file_stocks)) {
 stocks <- readRDS(file_stocks)
 
 # load quotes
-quotes_hash <- "c76afe21111af673a0316e24412f2f75"
+quotes_hash <- "6175759dd4876b820a6457a4c341e9cd"
 file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
 if (!file.exists(file_quotes)) {
   quotes <- download_quotes(stocks) # takes about 35mins
@@ -84,3 +84,19 @@ Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen 
 ```{r, analyse_data, echo=FALSE}
 summary(quotes)
 ```
+
+
+```{r, analyse_data, echo=FALSE}
+quotes_line <- quotes %>% 
+  adjust_quotes() %>%
+  group_by(Ticker) %>%
+  dplyr::group_modify(~filter_unbroken_history(.)) %>%
+  dplyr::group_modify(~filter_daily_changes(.)) %>%
+  dplyr::group_modify(~filter_intraday_changes(.)) %>%
+  dplyr::group_modify(~reorganize_to_one_line(.)) %>%
+  ungroup()
+```
+
+
+
+

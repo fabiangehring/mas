@@ -43,6 +43,7 @@ Möchte sich der Händler nicht auf diese Wette einlassen, kann er die Delta-Neu
 Die Höhe des Gewinnes lässt sich auch mathematisch fomulieren. Bezeichnen dazu $S_0$ den Preis des Underlying und $P_0$ den Preis der Option zu Beginn und $S_1$ sowie $P_1$ die jeweiligen Preise nach einer Preisbewegung des Unerlyings um $d_S$. $\Delta_0$ und $\Gamma_0$ bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als $\Delta_{Cash} = \Delta \times S$ der Wert des Hedge Portfolio bezeichnet und $\Gamma_{Cash} = \Gamma \times S²/100$ bezeichne die Veränderung des $\Delta_{Cash}$ bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich anhand folgender Überlegungen herleiten: Verändert sich der Underlying-Preis um 1% $S => S + S / 100$, verändert sich auch das Delta $\Delta => \Delta + \Gamma \times S/100$. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash $\Delta_{Cash} => \Delta_{Cash} + \Gamma \times S²/100$.
 
 Mit Hilfe diese Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten: 
+
 1. Veränderung des Underlying Preises $S_1 = S_0 + dS$
 1. Veränderung des Delta $\Delta_1 = \Delta_0 + \Gamma_0 \times dS$
 1. Durchschnittliches Delta $\Delta_{Avg} = (\Delta_0 + \Delta_1) / 2 = \Delta_0 + \Gamma_0 \times dS / 2$
@@ -64,7 +65,7 @@ Mathematisch lässt sich dies als Optimierung des folgendes Payoffs ausdrücken:
 
 \begin{equation}
 \begin{aligned}
-Payoff ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{sell_{intra}}{close_{t-1}}\right)}^2 \cdot I_{sell} + \\
+{Payoff} ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{sell_{intra}}{close_{t-1}}\right)}^2 \cdot I_{sell} + \\
 & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{sell_{intra}}\right)}^2 \cdot I_{sell} + \\
 & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{buy_{intra}}{close_{t-1}}\right)}^2 \cdot I_{buy} + \\
 & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{buy_{intra}}\right)}^2 \cdot I_{buy} + \\

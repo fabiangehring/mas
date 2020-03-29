@@ -100,12 +100,3 @@ adjust_quotes <- function(quotes) {
 }
 
 
-# test <- quotes %>% 
-#   adjust_quotes() %>%
-#   group_by(Ticker) %>%
-#   dplyr::group_modify(~filter_unbroken_history(.)) %>%
-#   dplyr::group_modify(~filter_daily_changes(.)) %>%
-#   dplyr::group_modify(~filter_intraday_changes(.)) %>%
-#   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
-#   ungroup()
-
