@@ -8,6 +8,4 @@
 data/*.rds
 
 # Temporary bookdown files
-_book
-_bookdown_files
 Masterarbeit.log
