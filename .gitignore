@@ -9,3 +9,6 @@ data/*.rds
 
 # Temporary bookdown files
 Masterarbeit.log
+
+# tmp folder
+tmp
