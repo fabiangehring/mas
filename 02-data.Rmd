@@ -12,6 +12,7 @@ suppressPackageStartupMessages({
 })
 
 source("data/download_scripts.R")
+source("R/02-data.R")
 
 # load stocks
 stocks_hash <- "a2ea2a17f87576c2bf28c0e2ff80f30e"
@@ -81,12 +82,12 @@ knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption
 
 Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein. 
 
-```{r, analyse_data, echo=FALSE}
+```{r, echo=FALSE}
 summary(quotes)
 ```
 
 
-```{r, analyse_data, echo=FALSE}
+```{r, echo=FALSE}
 quotes_line <- quotes %>% 
   adjust_quotes() %>%
   group_by(Ticker) %>%
@@ -95,6 +96,10 @@ quotes_line <- quotes %>%
   dplyr::group_modify(~filter_intraday_changes(.)) %>%
   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
   ungroup()
+
+
+# TODO: remove
+# saveRDS(quotes_line, "tmp/quotes_line.rds")
 ```
 
 

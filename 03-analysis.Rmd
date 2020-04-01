@@ -1,12 +1,63 @@
 # Analyse
 
+
+```{r, setup_analysis, echo=FALSE, warning=FALSE, message=FALSE}
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+  library(purrr)
+})
+
+source("R/03-analysis.R")
+
+# TODO: remove
+quotes_line <- readRDS("tmp/quotes_line.rds")
+
+```
+
 Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
 
+- Einfache Optimierungen
 - KLassifikationsverfahren (bsp. KNN):
 - Neuronale Netzwerke (bsp. RNN, LTSM):
 - Autogressive Modelle (bsp. GARCH)
 
+
+## Einfache Optimierungen
+
+Eine einfache Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als optimierte prozentuale Bewegungen vom aktuellen Preis zu ermitteln. Dies lässt sich sowohl symmetrische wie auch asymmetrisch machen. 
+
+```{r, echo=FALSE}
+
+opt_payoff_sym <- function(move, quotes_line) {
+  calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+}
+optim(0.03, opt_payoff_sym, quotes_line = quotes_line, lower = 0, upper = 0.5, control = list(fnscale = -1))
+
+move <- 0.5
+calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+
+move <- 0.1
+calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+
+
+move <- 0.03
+calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+
+move <- 0
+calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+
+
+```
+
+
 ## Klassifikationsverfahren
+
+
+```{r, echo=FALSE}
+
+```
 
 ## Neuronale Netzwerke
 

@@ -72,14 +72,14 @@ filter_intraday_changes <- function(quotes_ticker, cols = c("Low", "High")) {
 #'
 #' @param quotes_ticker A data.frame with at least the column "Adjusted"
 #'
-#' @return A data.frame where previous entry of adjusted is added on line as "Adjusted_t-1" and "Adjusted" is renamed to "Adjusted_t". The first entry is 
+#' @return A data.frame where previous entry of adjusted is added on line as "Adjusted_t_1" and "Adjusted" is renamed to "Adjusted_t". The first entry is 
 #' removed, since no previous adjusted price is available.
 #' @export
 #'
 #' @examples
 #' reorganize_to_one_line(tibble(Adjusted = 1:3))
 reorganize_to_one_line <- function(quotes_ticker) {
-  slice(quotes_ticker, -1) %>% mutate(`Adjusted_t-1` = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
+  slice(quotes_ticker, -1) %>% mutate(`Adjusted_t_1` = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
 }
 
 

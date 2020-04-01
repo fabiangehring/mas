@@ -40,7 +40,7 @@ Eine solche Strategie ist damit grundsätzlich dann interessant, wenn die Bewegu
 
 Möchte sich der Händler nicht auf diese Wette einlassen, kann er die Delta-Neutralität durch erneutes Kaufen oder Verkaufen des Underlyings wieder herstellen. Grafisch entspricht dies der Einnahme einer Position, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen resp. positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.
 
-Die Höhe des Gewinnes lässt sich auch mathematisch fomulieren. Bezeichnen dazu $S_0$ den Preis des Underlying und $P_0$ den Preis der Option zu Beginn und $S_1$ sowie $P_1$ die jeweiligen Preise nach einer Preisbewegung des Unerlyings um $d_S$. $\Delta_0$ und $\Gamma_0$ bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als $\Delta_{Cash} = \Delta \times S$ der Wert des Hedge Portfolio bezeichnet und $\Gamma_{Cash} = \Gamma \times S²/100$ bezeichne die Veränderung des $\Delta_{Cash}$ bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich anhand folgender Überlegungen herleiten: Verändert sich der Underlying-Preis um 1% $S => S + S / 100$, verändert sich auch das Delta $\Delta => \Delta + \Gamma \times S/100$. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash $\Delta_{Cash} => \Delta_{Cash} + \Gamma \times S²/100$.
+Die Höhe des Gewinnes lässt sich auch mathematisch fomulieren. Bezeichnen dazu $S_0$ den Preis des Underlying und $P_0$ den Preis der Option zu Beginn und $S_1$ sowie $P_1$ die jeweiligen Preise nach einer Preisbewegung des Unerlyings um $d_S$. $\Delta_0$ und $\Gamma_0$ bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als $\$\Delta = \Delta \times S$ der Wert des Hedge Portfolio bezeichnet und $\$\Gamma = \Gamma \times S²/100$ bezeichne die Veränderung des $\$\Delta$ bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich anhand folgender Überlegungen herleiten: Verändert sich der Underlying-Preis um 1% $S => S + S / 100$, verändert sich auch das Delta $\Delta => \Delta + \Gamma \times S/100$. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash $\$\Delta => \$\Delta + \Gamma \times S²/100$.
 
 Mit Hilfe diese Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten: 
 
@@ -49,7 +49,7 @@ Mit Hilfe diese Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgt
 1. Durchschnittliches Delta $\Delta_{Avg} = (\Delta_0 + \Delta_1) / 2 = \Delta_0 + \Gamma_0 \times dS / 2$
 1. Neuer Optionspreis $P_1 = P_0 + \Delta_{Avg} \times dS = P_0 + \Delta_0 \times dS + \Gamma_0 \times dS² / 2$ 
 1. Gewinn als Summe der Veränderungen des Optionspreis und des Hedge-Portfolios: $\Delta_0 \times dS + \Gamma_0 \times dS² / 2 - \Delta_0 \times dS = \Gamma_0 \times dS² / 2$
-1. Etwas umgeformt lässt sich der Gewinn schreiben als: $\Gamma_0 \times dS² / 2 = \Gamma_0 \times S² /100 * dS² / S² * 100 = \Gamma_{Cash} \times (dS/S)² \times 100$ 
+1. Etwas umgeformt lässt sich der Gewinn schreiben als: $\Gamma_0 \times dS² / 2 = \Gamma_0 \times S² /100 * dS² / S² * 100 = \$\Gamma \times (dS/S)² \times 100$ 
 
 
 Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden.
@@ -65,22 +65,45 @@ Mathematisch lässt sich dies als Optimierung des folgendes Payoffs ausdrücken:
 
 \begin{equation}
 \begin{aligned}
-{Payoff} ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{sell_{intra}}{close_{t-1}}\right)}^2 \cdot I_{sell} + \\
-& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{sell_{intra}}\right)}^2 \cdot I_{sell} + \\
-& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{buy_{intra}}{close_{t-1}}\right)}^2 \cdot I_{buy} + \\
-& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{buy_{intra}}\right)}^2 \cdot I_{buy} + \\
-& 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2 \cdot I_{noHedge}
+{Payoff} ={} & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{sell}{close_{t-1}}\right)}^2  \times I_{sell} \ + \\
+& \frac{1}{2}  \times 100 \times \$\Gamma_{sell}  \times \ln{\left(\frac{close_t}{sell}\right)}^2  \times I_{sell} \ + \\
+& \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{buy}{close_{t-1}}\right)}^2  \times I_{buy} \ + \\
+& \frac{1}{2}  \times 100 \times \$\Gamma_{buy}  \times \ln{\left(\frac{close_t}{buy}\right)}^2  \times I_{buy} \ + \\
+& \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2  \times I_{noHedge}
 \end{aligned}
 \end{equation}
-
+  
 <!-- Herleitung  -->
 <!-- http://sp-finance.e-monsite.com/pages/the-greeks/gamma/delta-hedging-gamma-and-dollar-gamma.html -->
+    
+Alternativ soll bei erreichen der Kaufs- und Verkaufsgrenze innerhalb eines Tages auch dessen ganze Spannweite ausgeschöpft werden. Die  
+
+\begin{eqnarray}
+{Payoff} & = & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{close_t}{first}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
+
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{second}{close_{t-1}}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\\
+
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{second} \times I_{first} \ +\\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{second}{first}\right)}^2  \times I_{first} \times I_{second} \ +\\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times I_{first} \ +\\
+
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{close_t}{close_{t_1}}\right)}^2  \times (1 - I_{first}) \times (1 - I_{second})
+
+\end{eqnarray}
+
+wobei, 
+
+\begin{equation}
+\$\Gamma_i = \Gamma \times S_i^2 / 100
+\end{equation}
 
 Dieser Strategie soll eine einfachere Strategie gegenübergestellt werden, bei welcher der Ausgleich komplett am Tagesende zum Schlusskurs erfolgt:
 
 \begin{equation}
 \begin{aligned}
-Payoff ={} & 1/2 \cdot Gamma_{Cash} \cdot \ln{\left(\frac{close_{t}}{close_{t-1}}\right)}^2
+Payoff ={} & \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2
 \end{aligned}
 \end{equation}
 
