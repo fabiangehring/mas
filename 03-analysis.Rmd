@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(stringr)
   library(purrr)
+  library(pbmcapply)
 })
 
 source("R/03-analysis.R")
@@ -31,23 +32,57 @@ Eine einfache Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht
 ```{r, echo=FALSE}
 
 opt_payoff_sym <- function(move, quotes_line) {
-  calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+  sum(calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1))
 }
-optim(0.03, opt_payoff_sym, quotes_line = quotes_line, lower = 0, upper = 0.5, control = list(fnscale = -1))
 
-move <- 0.5
-calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
-
-move <- 0.1
-calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+sum(calc_payoff_const_gamma(quotes_line, buy = quotes_line$Low, sell = quotes_line$High)) / sum(calc_payoff_const_gamma(quotes_line))
+sum(calc_payoff_const_gamma(quotes_line, buy = quotes_line$Low, sell = quotes_line$High, both_first = "min")) / sum(calc_payoff_const_gamma(quotes_line))
 
 
-move <- 0.03
-calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+move <- seq(0, 1, 0.005)
+factor <- unlist(pbmclapply(move,  opt_payoff_sym, quotes_line = quotes_line, mc.cores = 1))/sum(calc_payoff_const_gamma(quotes_line))
+res <- tibble(move = move, factor = factor)
 
-move <- 0
-calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+plot(res$move, res$factor, type = "l")
 
+a <- calc_payoff_const_gamma(quotes_line)
+
+move <- 0.995
+b <- calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line$Adjusted_t_1, sell = (1 + move) * quotes_line$Adjusted_t_1)
+
+a < b
+quotes_line[a < b, ]
+(a-b)[a > b]
+
+cbind(quotes_line[a > b, ], (a-b)[a > b])
+
+
+quotes_line[which((a-b) > 1930), ]
+
+
+
+res
+
+# why the sudden decrease
+res <- tibble(move = seq(0, 1, 0.005), factor = unlist(res) / sum(calc_payoff_const_gamma(quotes_line)))
+plot(res$move, res$factor, type = "l")
+
+move_max <- res$move[which.max(res$factor)]
+payoff_max <- calc_payoff_const_gamma(quotes_line, buy = (1 - move_max) * quotes_line$Adjusted_t_1, sell = (1 + move_max) * quotes_line$Adjusted_t_1)
+
+move_after_max <- res$move[which.max(res$factor) + 1]
+payoff_after_max <- calc_payoff_const_gamma(quotes_line, buy = (1 - move_after_max) * quotes_line$Adjusted_t_1, sell = (1 + move_after_max) * quotes_line$Adjusted_t_1)
+
+sum(payoff_max)
+sum(payoff_after_max)
+
+summary(payoff_max - payoff_after_max)
+
+which.max(payoff_max - payoff_after_max)
+
+quotes_line[which.max(payoff_max - payoff_after_max), ]
+
+371445.1/422361.2
 
 ```
 

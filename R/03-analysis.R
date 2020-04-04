@@ -119,7 +119,7 @@ gamma_cash <- function(price, gamma) {
 #' c("buy", "sell", "min", "max"). "buy" indicates that the buy event was reached first. "sell" indicates that the sell event was reached first.
 #' "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event first that least to highest pnl.
 #'
-#' @return The pnl
+#' @return The pnl for every row
 #' @export
 #'
 #' @examples
@@ -154,8 +154,6 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
 
   calc_payoff_per_title <- function(first, second, low, high) {
     
-    browser()
-    
     buy_first_sell_second <- first < second
     sell_first_buy_second <- !buy_first_sell_second
     
@@ -174,8 +172,6 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
       r_first_close_t_1 <- log(first/close_t_1)
       r_first_close_t <- log(first/close_t)
       r_second_close_t_1 <- log(second/close_t_1)
-      r_close_t_second <- log(close_t/second)
-      r_first_close_t_1 <- log(first/close_t_1)
       r_second_first <- log(second/first)
       r_close_t_second <- log(close_t/second)
       r_close_t_close_t_1 <- log(close_t/close_t_1)
@@ -183,8 +179,6 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
       r_first_close_t_1 <- first/close_t_1-1
       r_first_close_t <- first/close_t-1
       r_second_close_t_1 <- second/close_t_1-1
-      r_close_t_second <- close_t/second-1
-      r_first_close_t_1 <- first/close_t_1-1
       r_second_first <- second/first-1
       r_close_t_second <- close_t/second-1
       r_close_t_close_t_1 <- close_t/close_t_1-1
@@ -228,7 +222,7 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
     }
   }
   
-  sum(calc_payoff_per_title(first, second, low, high))
+  calc_payoff_per_title(first, second, low, high)
 }
 
 

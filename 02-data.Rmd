@@ -88,7 +88,11 @@ summary(quotes)
 
 
 ```{r, echo=FALSE}
-quotes_line <- quotes %>% 
+quotes_line <- quotes %>%
+  filter_wrong_corporate_actions() %>% # should be first
+  filter_positive_values() %>%
+  filter_unreasonable_measure_order() %>%
+  filter_typos() %>%
   adjust_quotes() %>%
   group_by(Ticker) %>%
   dplyr::group_modify(~filter_unbroken_history(.)) %>%
@@ -97,11 +101,25 @@ quotes_line <- quotes %>%
   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
   ungroup()
 
-
-# TODO: remove
-# saveRDS(quotes_line, "tmp/quotes_line.rds")
 ```
 
 
+Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.
 
+```{r, echo=FALSE}
+norm_factor <- 100 / quotes_line$Adjusted_t_1
+quotes_line <- mutate_at(quotes_line, c("Open", "Low", "High", "Close", "Adjusted_t", "Adjusted_t_1"),  ~norm_factor * .)
+
+```
+
+
+```{r, echo=FALSE}
+quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
+```
+
+
+```{r, echo=FALSE}
+# TODO: remove
+saveRDS(quotes_line, "tmp/quotes_line.rds")
+```
 
