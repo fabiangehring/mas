@@ -115,9 +115,10 @@ gamma_cash <- function(price, gamma) {
 #' @param sell The upper price at which the the delta hedge should be "rebalanced"
 #' @param buy The lower price at which the the delta hedge should be "rebalanced"
 #' @param gamma The gamma value (assumed constant)
-#' @param both_first Character indicating what price movement is assumed first in cases where both, the buy and sell prices are reaches. One of 
-#' c("buy", "sell", "min", "max"). "buy" indicates that the buy event was reached first. "sell" indicates that the sell event was reached first.
-#' "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event first that least to highest pnl.
+#' @param both_first Character or numeric indicating what price movement is assumed first in cases where both, the buy and sell prices are reaches. One of 
+#' c("buy", "sell", "min", "max") or a integer value. "buy" indicates that the buy event was reached first. "sell" indicates that the sell event was reached first.
+#' "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event first that least to highest pnl. If an numeric is given
+#' a random number (with seed of that number) is used to evaluate if there was a buy or sell event first with equal probability of 50%.
 #'
 #' @return The pnl for every row
 #' @export
@@ -143,15 +144,15 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "sell")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "max")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
-calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, sell = quotes_line$Adjusted_t, gamma = 0.2, both_first = "buy", return = "disc") {
-
+calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, sell = quotes_line$Adjusted_t, gamma = 0.2, both_first = 123456, return = "disc") {
+  
   stopifnot(all(buy <= sell))
   
   low <- quotes_line$Low
   high <- quotes_line$High
   close_t_1 <- quotes_line$Adjusted_t_1
   close_t <- quotes_line$Adjusted_t
-
+  
   calc_payoff_per_title <- function(first, second, low, high) {
     
     buy_first_sell_second <- first < second
@@ -201,7 +202,14 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
   }
   
   # evaluate first and second
-  if (both_first %in% "buy") {
+  if (is.numeric(both_first))  {
+    old <- .Random.seed
+    set.seed(both_first)
+    buy_first_bool <- sample(c(TRUE, FALSE), nrow(quotes_line), TRUE)
+    .Random.seed <<- old
+    first <- ifelse(buy_first_bool, buy, 0) + ifelse(!buy_first_bool, sell, 0)
+    second <- ifelse(!buy_first_bool, buy, 0) + ifelse(buy_first_bool, sell, 0)
+  } else if (both_first %in% "buy") {
     first <- buy
     second <- sell
   } else if (both_first == "sell") {
@@ -220,9 +228,67 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
       first[sell_first > buy_first] <- sell[sell_first > buy_first]
       second[sell_first > buy_first] <- buy[sell_first > buy_first]
     }
+  } else {
+    stop("Expected input for argument both_first.")
   }
   
   calc_payoff_per_title(first, second, low, high)
 }
+
+
+#' Title
+#'
+#' @param data 
+#' @param col 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' data <- tibble(a = 1:23, b = 11:33)
+#' widen(data, 7)
+widen <- function(data, window, feature_cols = names(data), target_col = tail(names(data), 1)) {
+  
+  values_fn <- map(feature_cols, ~list) %>% set_names(feature_cols)
+  
+  data_fill <- data[seq_len(window), ] 
+  data_fill[seq_len(dim(data_fill)[1]), seq_len(dim(data_fill)[2])] <- NA
+  data <- bind_rows(data_fill, data)
+  
+  widened_data <- map_df(seq_len(window), function(i) {
+    max_row <- (nrow(data) - (nrow(data) - (i-1)) %% window)
+    # make sure target for last series is available
+    if (max_row == nrow(data)) {
+      max_row <- max_row - window
+    }
+    
+    if ((max_row - i + 1) < window) return(NULL)
+
+    curr_data <- data[i:max_row, feature_cols]
+    curr_data <- cbind(group_id = seq_len(window), curr_data)
+    
+    widened_features <- tidyr::pivot_wider(
+      data = curr_data, 
+      names_from = group_id, 
+      values_from = all_of(feature_cols), 
+      values_fn = values_fn
+    ) %>% 
+      unnest(cols = names(.)) 
+    
+    if (length(feature_cols) == 1) names(widened_features) <- paste0(feature_cols, "_", names(widened_features))
+
+    target_id <- seq_len(nrow(data))[i:(max_row+1)][seq_len(nrow(widened_features)) * window + 1]
+    
+    curr_data <- mutate(ID = target_id, widened_features)
+    if (!is.null(target_col)) {
+      target <- data[[target_col]][i:(max_row+1)][seq_len(nrow(widened_features)) * window + 1]
+      curr_data <- mutate(curr_data, !!sym(target_col) := target)
+    } 
+    curr_data
+  })
+  
+  arrange(widened_data, ID) %>% select(-ID)
+}
+
 
 
