@@ -99,6 +99,12 @@ wobei,
 \$\Gamma_i = \Gamma \times S_i^2 / 100
 \end{equation}
 
+Eine Transaktion wird dabei ausgeführt ($I_{first}$, resp. $I_{second}$) wenn beide der folgenden Bedingungen erfüllt sind:
+
+a) der Preis im Laufe des Tages erreicht wird
+b) die jeweils vorangegangene Transaktion bei einem höheren Preis (Kauf), resp. tieferen Preis (Verkauf) stattgefunden hat.
+
+
 Dieser Strategie soll eine einfachere Strategie gegenübergestellt werden, bei welcher der Ausgleich komplett am Tagesende zum Schlusskurs erfolgt:
 
 \begin{equation}

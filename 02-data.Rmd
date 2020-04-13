@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(stringr)
   library(kableExtra)
   library(purrr)
+  library(tidyr)
 })
 
 source("data/download_scripts.R")
@@ -87,21 +88,34 @@ summary(quotes)
 ```
 
 
-```{r, echo=FALSE}
-quotes_line <- quotes %>%
-  filter_wrong_corporate_actions() %>% # should be first
-  filter_positive_values() %>%
-  filter_unreasonable_measure_order() %>%
-  filter_typos() %>%
-  adjust_quotes() %>%
+```{r, filter_data, echo=FALSE}
+quotes <- quotes %>%
+  na_wrong_corporate_actions() %>% # should be first
+  na_negative_values() %>%
+  na_unreasonable_measure_order() %>%
+  na_typos() %>%
+  na_no_intraday_moves() %>%
   group_by(Ticker) %>%
-  dplyr::group_modify(~filter_unbroken_history(.)) %>%
-  dplyr::group_modify(~filter_daily_changes(.)) %>%
-  dplyr::group_modify(~filter_intraday_changes(.)) %>%
-  dplyr::group_modify(~reorganize_to_one_line(.)) %>%
+  dplyr::group_modify(~na_no_daily_changes(.)) %>%
+  dplyr::group_modify(~na_too_large_daily_changes(.)) %>%
+  # dplyr::group_modify(~filter_unbroken_history(.)) %>%
   ungroup()
 
 ```
+
+```{r, adjust_prices, echo=FALSE}
+quotes <- adjust_quotes(quotes)
+```
+
+
+
+```{r, reorganize_one_line, echo=FALSE}
+quotes_line <- quotes %>%
+  group_by(Ticker) %>%
+  dplyr::group_modify(~reorganize_to_one_line(.)) %>%
+  ungroup()
+```
+
 
 
 Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.
@@ -112,14 +126,19 @@ quotes_line <- mutate_at(quotes_line, c("Open", "Low", "High", "Close", "Adjuste
 
 ```
 
+``` {r, remove_quanitles}
+quotes_line <- na_extremes(quotes_line, col = c("Open", "Low", "High", "Close", "Adjusted_t"), tail = 0.01)
 
-```{r, echo=FALSE}
+```
+
+
+```{r, round_data, echo=FALSE}
 quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
 ```
 
 
 ```{r, echo=FALSE}
 # TODO: remove
-saveRDS(quotes_line, "tmp/quotes_line.rds")
+# saveRDS(quotes_line, "tmp/quotes_line.rds")
 ```
 
