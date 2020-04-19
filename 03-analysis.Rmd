@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(pbmcapply)
   library(kknn)
   library(tidyr)
+  library(ggplot2)
 })
 
 source("R/03-analysis.R")
@@ -33,14 +34,16 @@ Eine einfache Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht
 
 ```{r, echo=FALSE}
 # 
-dat <- drop_na(quotes_line)
+
 
 #' opt_payoff_sym(0, quotes_test)
 opt_payoff_sym <- function(move, quotes_line, col = "Open", scale_fct = 1) {
   sum(calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line[[col]], sell = (1 + move) * quotes_line[[col]], both_first = "buy")) / scale_fct
 }
 
-opt_payoff_sym(move = 0.01, quotes_line = dat, col = "Adjusted_t_1", scale_fct = sum(calc_payoff_const_gamma(dat, both_first = "buy")))
+dat <- drop_na(quotes_line)
+
+opt_payoff_sym(move = 0.01, quotes_line = quotes_line, scale_fct = sum(calc_payoff_const_gamma(quotes_line, both_first = "buy")))
 
 
 move <- seq(0, 0.2, 0.0025)
@@ -57,72 +60,105 @@ plot(res$move, res$factor, type = "l")
 
 
 
-
 ## Klassifikationsverfahren
-
 ```{r, train_test_split, echo=FALSE}
-set.seed(1234)
-train_idx <- sample(seq_len(nrow(quotes_line)), floor(0.2 * nrow(quotes_line)))
-test_idx <- sample(setdiff(seq_len(nrow(quotes_line)), train_idx), floor(0.01 * nrow(quotes_line)))
 
-data_wide <- widen(quotes_line, 5, feature_cols = c("Low"), target_col = NULL)
-date <- quotes_line$Date
+quotes_line <- tidyr::drop_na(quotes_line)
+
+      # out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "euclidean", mc.cores = 3)
+# saveRDS(out, "tmp/knn_olhc_3_euc.rds")
+# rm(out)
+
+#out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "manhattan", mc.cores = 3)
+# saveRDS(out, "tmp/knn_olhc_3_man.rds")
 
 
+knn_olhc_3_euc <- readRDS("tmp/knn_olhc_3_euc.rds")
+knn_olhc_3_man <- readRDS("tmp/knn_olhc_3_man.rds")
 
 
+plot_history <- function(id, data, window, nn_idx) {
 
 
-low_train <- low_all[train_idx, ]
-low_test <- low_all[test_idx, ]
+  
+  
+  comp %>%
+    mutate(entry = seq_len(n())) %>%
+    tidyr::pivot_longer(-entry, names_to = "type")
 
-high_all <- widen(quotes_line, 10, feature_cols = c("Open", "Low", "High", "Close"), target_col = "High")
-high_train <- high_all[train_idx, ]
-high_test <- high_all[test_idx, ]
+  
+  cols_all <- paste0(cols, "_", seq_len(ncol(data) / length(cols)))
+  data_id <- map(seq_len(ncol(data) / length(cols)), ~select_at(data, paste0(cols, "_", .)))
+  
+  
+cols_all <- do.call(function(...) paste(..., sep = "_"), expand.grid(cols, seq_len(ncol(data) / length(cols))))
 
+  curr_data <- data_id[[1]] %>% 
+    mutate(id = seq_len(n())) %>%
+    tidyr::pivot_longer(-id, names_to = "type") %>%
+    mutate_at("type", ~factor(., levels = cols_all)) %>%
+    filter(id < 10)
+    
+    
+
+  ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
+
+  
+  ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
+  geom_point() + 
+  geom_line() +
+  theme_bw()
+  
+  
+
+}
+
+
+x <- quotes_line[123456, ]
+foo <- knn_olhc_3_euc$nn.idx[123456, ]
+foo <- knn_olhc_3_man$nn.idx[123456, ]
+
+test <- arrange(quotes_line, Ticker, Date)
+
+data_wide_123456 <- data_query$data_wide
+
+quotes_line[123453:123455,]
+
+data_wide_123456[foo, ]
+
+quotes_line[21352,]
+
+
+dat <- x %>%
+  bind_rows(quotes_line[foo, ]) %>%
+  select("Open", "Low", "High", "Close") %>%
+  mutate(ID = seq_len(n())) %>% 
+  tidyr::pivot_longer(-ID, names_to = "type")
+
+ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
+  geom_point() + 
+  geom_line() +
+  theme_bw()
+  
+  
 ```
+
 
 
 
 ```{r, kknn, echo=FALSE}
 
-start <- Sys.time()
-model_low <- kknn(Low~., low_train, low_test)
-end <- Sys.time()
-end - start
+data_wide_0 <- quotes_line %>%
+  group_by(Ticker) %>%
+  widen(window = 3, cols = c("Open", "Low", "High", "Close"), include_current = TRUE)
 
-# model_low_hash <- digest::digest(model_low)
-# file_model_low <- here::here(paste0("tmp/model_low_", model_low_hash,".rds"))
-# saveRDS(model_low, file_model_low)
+id <- 1234
+quotes_line[id, ]
+data_wide_0[id, ]
 
-start <- Sys.time()
-model_high <- kknn(High~., high_train, high_test)
-end <- Sys.time()
-end - start
+out <- find_nn(data_wide_0[1:10000, setdiff(names(data_wide_0), paste0(c("Open", "Low", "High", "Close"), "_", 0))], dates = quotes_line$Date[1:10000])
 
-# model_high_hash <- digest::digest(model_high)
-# file_model_high <- here::here(paste0("tmp/model_high_", model_high_hash,".rds"))
-# saveRDS(model_high, file_model_high)
-
-
-### some quick tests
-
-var(high_test$High - mean(fitted(model_high)))
-var(high_test$High - fitted(model_high))
-
-var(low_test$Low - mean(fitted(model_low)))
-var(low_test$Low - fitted(model_low))
-
-
-a <- calc_payoff_const_gamma(quotes_line[test_idx, ])
-sum(a)
-
-b <- calc_payoff_const_gamma(quotes_line[test_idx, ], buy = fitted(model_low), sell = fitted(model_high), both_first = "max")
-factor <- sum(b) / sum(a)
-
-control_group <- calc_payoff_const_gamma(quotes_line[test_idx, ], buy = quotes_line$Low[test_idx], sell = quotes_line$High[test_idx], both_first = "min")
-sum(control_group)
-
+plot_nn(data_wide_0[id, ], data_wide_0[out$nn.idx[id, 1:10], ])
 
 ```
 
