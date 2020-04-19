@@ -340,7 +340,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
   date_order <- order(dates)
   dates_ordered <- dates[date_order]
   data_wide_ordered <- data_wide[date_order, ]
-  # rm(data_wide)
+  rm(data_wide)
   
 
   #  choose correct nearest neighbor search distance
@@ -362,14 +362,16 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
 
   na_row_bool <- rowSums(is.na(data_wide_ordered)) > 0
   data_wide_filtered <- data_wide_ordered[!na_row_bool, ]
+  rm(data_wide_ordered)
+  
   dates_filtered <- dates_ordered[!na_row_bool]
-
+  rm(dates_ordered)
+  
   unique_dates <- sort(unique(dates_filtered))
   knn_output <- pbmcapply::pbmclapply(seq_along(unique_dates), function(i) {
-
     curr_date <- unique_dates[i]
     data_query <- split_data_query(curr_date, dates_filtered, data_wide_filtered)
-    # rm(data_wide_ordered, dates)
+    rm(data_wide_filtered)
 
     if (i == 1) {
       out <- create_dummy_return(k, nrow(data_query$query))
@@ -384,6 +386,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
       tmp$nn.dists[, seq_len(nrow(data_query$data_wide))] <- out[["nn.dists"]]
       out <- tmp
     }
+    rm(data_query)
     return(out)
   }, mc.cores = mc.cores)
   
@@ -394,7 +397,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
   nn[["nn.idx"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.idx"]]) %>% do.call(rbind, .)
   
   # take into account in indices that there were excluded rows
-  nn[["nn.idx"]] <- matrix(seq_len(nrow(data_wide_ordered))[!na_row_bool][nn[["nn.idx"]]], ncol = k)
+  nn[["nn.idx"]] <- matrix(seq_len(n)[!na_row_bool][nn[["nn.idx"]]], ncol = k)
   
   nn[["nn.dists"]] <- matrix(rep(NA_real_, k * n), ncol = k)
   nn[["nn.dists"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.dists"]]) %>% do.call(rbind, .)

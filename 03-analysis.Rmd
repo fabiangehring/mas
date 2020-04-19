@@ -153,12 +153,13 @@ data_wide_0 <- quotes_line %>%
   widen(window = 3, cols = c("Open", "Low", "High", "Close"), include_current = TRUE)
 
 id <- 1234
-quotes_line[id, ]
-data_wide_0[id, ]
+test_data <- data_wide_0[1:3000000, setdiff(names(data_wide_0), paste0(c("Open", "Low", "High", "Close"), "_", 0))] 
+test_dates <- quotes_line$Date[1:3000000]
+rm(data_wide_0, quotes_line)
 
-out <- find_nn(data_wide_0[1:10000, setdiff(names(data_wide_0), paste0(c("Open", "Low", "High", "Close"), "_", 0))], dates = quotes_line$Date[1:10000])
+out <- find_nn(test_data, dates = test_dates, mc.cores = 4)
 
-plot_nn(data_wide_0[id, ], data_wide_0[out$nn.idx[id, 1:10], ])
+# plot_nn(data_wide_0[id, ], data_wide_0[out$nn.idx[id, 1:10], ])
 
 ```
 
