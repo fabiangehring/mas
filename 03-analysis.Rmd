@@ -145,25 +145,46 @@ ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) 
 
 
 
-
-```{r, kknn, echo=FALSE}
-
+```{r, knn-calculation, echo=FALSE}
 data_wide_0 <- quotes_line %>%
   group_by(Ticker) %>%
   widen(window = 3, cols = c("Open", "Low", "High", "Close"), include_current = TRUE)
 
-id <- 1234
-test_data <- data_wide_0[1:3000000, setdiff(names(data_wide_0), paste0(c("Open", "Low", "High", "Close"), "_", 0))] 
-test_dates <- quotes_line$Date[1:3000000]
-rm(data_wide_0, quotes_line)
+# exclude all columns (also when _0 value is not available)
+na_rows_bool <- rowSums(is.na(data_wide_0)) > 0
+n <- 400000
+knn_data <- data_wide_0 %>%
+  mutate(Date = quotes_line$Date) %>%
+  mutate_all(~ifelse(na_rows_bool, NA, .)) %>%
+  slice(seq_len(n))
 
-out <- find_nn(test_data, dates = test_dates, mc.cores = 4)
-
-# plot_nn(data_wide_0[id, ], data_wide_0[out$nn.idx[id, 1:10], ])
+gc()
+nn <- find_nn(select(knn_data, !c(ends_with("_0"), any_of("Date"))), dates = knn_data$Date, mc.cores = 3)
+saveRDS(nn, "tmp/nn_1000000.rds")
 
 ```
 
-```{r, fnn, echo=FALSE}
+
+```{r, knn-history-plot, echo=FALSE}
+id <- 280000
+valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0]
+
+k <- 10
+plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_len(k)],])
+
+```
+
+```{r, knn-prediction-power, echo=FALSE}
+nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn$nn.idx)
+na_row_bool <- rowSums(is.na(nn_pred)) > 0
+
+nn_pred_sample <- nn_pred[!na_row_bool, ]
+
+quotes_line_sample <- quotes_line[seq_len(n), ][!na_row_bool, ]
+
+sum(calc_payoff_const_gamma(quotes_line_sample, buy = quotes_line_sample$Close, sell = quotes_line_sample$Close, both_first = 123456))
+sum(calc_payoff_const_gamma(quotes_line_sample, buy = nn_pred_sample$Low_0, sell = nn_pred_sample$High_0, both_first = 123456))
+sum(calc_payoff_const_gamma(quotes_line_sample, buy = quotes_line_sample$Low, sell = quotes_line_sample$High, both_first = 123456))
 
 
 ```

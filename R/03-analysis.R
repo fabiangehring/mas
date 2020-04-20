@@ -1,4 +1,3 @@
-
 #' Calulate Gamma Cash
 #'
 #' @param price The price of the underlying
@@ -308,14 +307,11 @@ split_data_query <- function(curr_date, all_dates, data_wide) {
 
 #' Find quote histories in the past that resembles the current the most
 #'
-#' @param quotes_line A data.frame with quote information
-#' @param cols The colum names of the values that should be compared their historical counteroparts
-#' @param window The size of the window that should be compared
+#' @param data_wide A data.frame with all columns that need to be used to find the nearest neighbors
+#' @param dates The dates for each row of data_wide
 #' @param k The number of closest neighbors that should be looked for
-#' @param chunk_size The size of dates that should be looked at at once. A higher number is faster but if >1 it is not guaranteed that all neigbors found are
-#' from the past. Dates with same date as query or later will be returned as NA.
-#' @param One of "euclidean" or "manhattan".
-#' @param treetype 
+#' @param norm The distance measure to use, of "euclidean" or "manhattan".
+#' @param mc.cores The number of cores to use for the calculation. 
 #'
 #' @return
 #' @export
@@ -331,7 +327,6 @@ split_data_query <- function(curr_date, all_dates, data_wide) {
 #'   Close_0 = c(98, 99, 103)
 #' )
 #' find_nn(data_wide, dates)
-#' widen(quotes_line, )
 find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = parallel::detectCores() - 1) {
   
   n <- nrow(data_wide)
@@ -342,7 +337,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
   data_wide_ordered <- data_wide[date_order, ]
   rm(data_wide)
   
-
+  
   #  choose correct nearest neighbor search distance
   if (norm == "euclidean") {
     nn_fct <- RANN::nn2
@@ -359,7 +354,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
     out$nn.dists <- tmp
     out
   }
-
+  
   na_row_bool <- rowSums(is.na(data_wide_ordered)) > 0
   data_wide_filtered <- data_wide_ordered[!na_row_bool, ]
   rm(data_wide_ordered)
@@ -372,7 +367,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
     curr_date <- unique_dates[i]
     data_query <- split_data_query(curr_date, dates_filtered, data_wide_filtered)
     rm(data_wide_filtered)
-
+    
     if (i == 1) {
       out <- create_dummy_return(k, nrow(data_query$query))
       return(out)
@@ -407,11 +402,9 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
   nn[["nn.idx"]] <- matrix(date_order[nn[["nn.idx"]]], ncol = k)
   
   nn[["nn.dists"]] <- nn[["nn.dists"]][order(date_order), ]
-
+  
   nn
 }
-
-
 
 
 #' Plot price movements for window and current time frame inkl. prediction
@@ -420,6 +413,7 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
 #' a window suffix (i.e "Close_3")
 #' @param data_wide_nn A data.frame with the history of quotes for the nearest neighboars. Includes at least the columns given in cols followed by a window 
 #' suffix (i.e "Close_3")
+#' @param method Methodology to predict value, see nn_apply
 #'
 #' @return A ggplot2 object
 #' @export
@@ -427,12 +421,19 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
 #' @examples
 #' data_wide_curr <- tibble(Open_2 = 94, Open_1 = 99, Open_0 = 104, Close_2 = 101, Close_1 = 102, Close_0 = 99)
 #' data_wide_nn <- tibble(Open_2 = c(93, 103), Open_1 = c(99, 98), Open_0 = c(103, 98), Close_2 = c(102, 105), Close_1 = c(102, 103), Close_0 = c(98, 99))
-#' plot_nn(data_wide_curr, data_wide_nn, cols = c("Open", "Close"))
-#' widen(quotes_line, 10, feature_cols = c("Open", "Low", "High", "Close"), target_col = "High")
-plot_nn <- function(data_wide_curr, data_wide_nn, cols = c("Open", "Low", "High", "Close")) {  
+#' plot_nn(data_wide_curr, data_wide_nn, title = "Some Test")
+#' plot_nn(select(data_wide_curr, !ends_with("_0")), select(data_wide_nn, !ends_with("_0")))
+plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean") {  
+  
+  stopifnot(sort(names(data_wide_curr)) == sort(names(data_wide_nn)))
+  col_types <- unique(stringr::str_extract(names(data_wide_curr), ".*(?=_[0-9]+$)"))
+  
+  # predict values
+  data_wide_pred <- pred_nn(select(data_wide_nn, ends_with("_0")), method = method)
   
   plot_data <- mutate(data_wide_nn, src = "nn") %>%
     bind_rows(mutate(data_wide_curr, src = "curr")) %>%
+    bind_rows(mutate(data_wide_pred, src = "pred")) %>%
     mutate(entry = seq_len(n())) %>%
     tidyr::pivot_longer(-c("entry", "src"), names_to = "type") %>%
     separate(type, sep = "_", into = c("type", "window"))
@@ -440,41 +441,95 @@ plot_nn <- function(data_wide_curr, data_wide_nn, cols = c("Open", "Low", "High"
   # factor to ensure order
   window_string <- ifelse(plot_data$window == 0, "t", paste0("t-", plot_data$window))
   window_levels <- ifelse(sort(unique(plot_data$window), decreasing = TRUE) == 0, "t", paste0("t-", sort(unique(plot_data$window), decreasing = TRUE)))
+  
   plot_data <- plot_data %>%
     mutate_at("window", ~factor(window_string, window_levels)) %>%
-    mutate_at("type", ~factor(., levels = cols))
+    mutate_at("type", ~factor(., levels = col_types))
   
   plot_data_nn <- plot_data %>% 
     filter(src == "nn") %>%
     mutate_at("entry", ~factor(., levels = sort(unique(entry))))
   
   plot_data_curr <- plot_data %>% filter(src == "curr")
-
-  plot_data_pred <- plot_data_nn %>%
-    filter(window == "t") %>%
-    group_by(type, window) %>%
-    summarise(value = mean(value)) %>%
-    ungroup() %>%
-    mutate(entry = max(plot_data$entry) + 1)
+  plot_data_pred <- plot_data %>% filter(src == "pred" & !is.na(value))
   
   ggplot2::ggplot(mapping = ggplot2::aes(x = type, y = value, group = entry)) +
     
     # t-x
     ggplot2::geom_point(data = plot_data_nn) +
     ggplot2::geom_line(data = plot_data_nn) +
-
+    
     # t
     ggplot2::geom_point(data = plot_data_curr, color = "red", size = 1.5) +
     ggplot2::geom_line(data = plot_data_curr, color = "red", linetype = "solid") +
-
+    
     # pred t
     ggplot2::geom_point(data = plot_data_pred, color = "red", alpha = 1) + 
     ggplot2::geom_line(data = plot_data_pred, color = "red", linetype = "dashed", alpha = 1) + 
-     
+    
     ggplot2::theme_bw() +
     ggplot2::facet_grid(rows = ~window) +
-    ggplot2::ggtitle("Dies ist ein Testtitel") + 
+    ggplot2::ggtitle(title) + 
     ggplot2::xlab(NULL) + 
     ggplot2::ylab(NULL)
-  
 }
+
+
+#' Predict a value based on the values of the nearest neoighbors in the past
+#'
+#' @param data_wide_pred A data.frame with the columns to predict (including at least all row indices included in nn_idx)
+#' @param nn_idx A matrix of indizes of the nearest neighbors, if left empty as default the method is applied to all entries in the column, this is handy if
+#' already all neighbors of an entry are given in data_wide
+#' @param method Methodology to predict value, see nn_apply 
+#'
+#' @return A data.frame with same dimensionality and cols as data_wide_pred with the prediced values
+#' @export
+#'
+#' @examples
+#' data_wide <- data.frame(Low = c(100, 101, 104, 105), High = c(102, 103, 105, 106))
+#' nn_pred(data_wide, method = "mean")
+#' 
+#' nn_pred(data_wide[0, ], method = "mean")
+#' 
+#' nn_idx <- matrix(c(2, 3, 4, 1, 3, 4, 1, 2, 4, 1, 2, 3), ncol = 3, byrow = TRUE)
+#' nn_pred(data_wide, nn_idx, method = "mean")
+pred_nn <- function(data_wide, nn_idx = matrix(seq_len(nrow(data_wide)), ncol = nrow(data_wide)), method = "mean") {
+  map_dfc(names(data_wide), function(col) {
+    data_wide_nn <- matrix(data_wide[[col]][nn_idx], ncol = ncol(nn_idx))
+    if (method == "mean") {
+      return(apply(data_wide_nn, 1, mean))
+    }
+  }) %>% set_names(names(data_wide))
+}
+
+
+plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first = 1234) {
+  
+  stopifnot(nrow(quotes_line) == nrow(data_pred))
+  data <- bind_cols(quotes_line, data_pred)
+  
+  payoff_base <- sum(calc_payoff_const_gamma(data, both_first = both_first))
+  
+  unique_sorted_dates <- sort(unique(data$Date))
+  
+  data_per_date <- arrange(data, Date) %>% split(data$Date)
+  
+  payoffs <- map_df(seq_along(data_per_date), function(i) {
+    curr_data <- data_per_date[[i]]
+    payoff_base_curr <- sum(calc_payoff_const_gamma(curr_data, both_first = both_first))
+    payoff_curr <- sum(calc_payoff_const_gamma(curr_data, buy = curr_data$Buy, sell = curr_data$Sell, both_first = both_first))
+    list(date = unique_sorted_dates[i], payoff_curr = payoff_curr, payoff_base = payoff_base_curr, n = nrow(curr_data))
+  })
+  
+  payoffs$ratio <- payoffs$payoff_curr / payoffs$payoff_base
+  payoffs$ratio_cum <- cumsum(payoffs$payoff_curr) / cumsum(payoffs$payoff_base)
+  
+  ggplot2::ggplot(payoffs, aes(x = date, y = ratio_cum)) +
+    ggplot2::geom_line() +
+    ggplot2::xlab("Zeit") +
+    ggplot2::ylab("Verhältnis Payoff Passives / Aktives Szenario") +
+    ggplot2::ggtitle(title) + 
+    ggplot2::theme_bw()
+
+}
+
