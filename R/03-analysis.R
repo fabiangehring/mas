@@ -50,7 +50,8 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
 calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, sell = quotes_line$Adjusted_t, gamma = 0.2, both_first = 123456, return = "disc") {
   
-  stopifnot(all(buy <= sell))
+  print("hier")
+  stopifnot(all(buy <= sell, na.rm = TRUE))
   
   low <- quotes_line$Low
   high <- quotes_line$High
@@ -530,6 +531,147 @@ plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first 
     ggplot2::ylab("Verhältnis Payoff Passives / Aktives Szenario") +
     ggplot2::ggtitle(title) + 
     ggplot2::theme_bw()
-
+  
 }
 
+
+#' Sort nearest neighbor index matrix according to another variable. This functions also guarantees the correctness of the self references of the content.
+#'
+#' @param nn_idx A matrix of integers self row refercences (i.e. nearest neighbor indizes)
+#' @param x A vector for which nn_idx needs to be sorted
+#' @param reverse A logical. If FALSE nn_idx is sorted accoding to x. If TRUE it is assumed that nn_idx is already sorted accoriding to x and should be 
+#' reverted to the order of x.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' nn_idx <- matrix(c(2, 1, 1, 1, 3, 3, 2, 2), ncol = 2)
+#' x <- c(5, 3, 4, 6)
+#' sort_nn_idx(nn_idx, x, TRUE)
+#' test_values <- c(10, 20, 30, 40)
+#' all(matrix(test_values[nn_idx], ncol = ncol(nn_idx)) == matrix(test_values[order(x)][sort_nn_idx(nn_idx, x, FALSE)], ncol = ncol(nn_idx))[order(order(x)), ])
+#' all(sort_nn_idx(sort_nn_idx(nn_idx, x, FALSE), x, TRUE) == nn_idx)
+#' 
+#' # Do Not Run
+#' # all(sort_nn_idx(sort_nn_idx(nn$nn.idx, quotes_line$Date, FALSE), quotes_line$Date, TRUE) == nn$nn.idx, na.rm = TRUE)
+sort_nn_idx <- function(nn_idx, x, reverse = FALSE) {
+  stopifnot(nrow(nn_idx) == length(x))
+  orig_order <- order(x)
+  if (reverse) {
+    return(matrix(orig_order[nn_idx], ncol = ncol(nn_idx))[order(orig_order), ])
+  } else {
+    # nothing to do
+    if (all(orig_order == seq_along(x))) return(nn_idx)
+    return(matrix(order(orig_order)[nn_idx], ncol = ncol(nn_idx))[orig_order, ])
+  }
+}
+
+# dates <- quotes_line$Date
+# nn_idx <- nn$nn.idx
+# na_row_bool <- rowSums(nn_idx, is.na(nn_idx)) == 0
+# nn_idx[!na_row_bool, ]
+# 
+# which(rowSums(is.na(a)) > 30 & rowSums(is.na(a)) < 50)
+# a[10689, ]
+# nn_idx[4418184, ]
+# quotes_line[4418184, ]
+
+#' a <- bootstrap_nn(dates, nn_idx)
+bootstrap_nn <- function(dates, nn_idx, k = ncol(nn_idx)) {
+  
+  k <- min(k, ncol(nn_idx))
+  already_sorted <- all(order(dates) == seq_len(length(dates)))
+  
+  # sort accoring to dates
+  if (!already_sorted) {
+    date_order <- order(dates)
+    nn_idx <- sort_nn_idx(nn_idx, dates)
+    dates_ordered <- dates[date_order]
+  } else {
+    dates_ordered <- dates
+  }
+  
+  unique_dates <- unique(dates_ordered)
+  
+  # fast way to count dates (faster than table)
+  date_count <- dates_ordered %>%
+    as.integer() %>%
+    split(., .) %>%
+    map_int(~length(.)) %>%  
+    unname() %>%
+    tibble(Date = unique_dates, Freq = ., Cum_Freq = cumsum(.))
+  
+  bootstrap_idx <- map(seq_along(unique_dates), function(i) {
+    
+    cum_sum <- date_count$Cum_Freq[i]
+    size <- date_count$Freq[i]
+    
+    if (cum_sum == size) {
+      return(matrix(rep(NA, k * size), ncol = k))
+    } 
+    
+    curr_nn_idx <- nn_idx[seq(cum_sum - size + 1, cum_sum), ]
+    idx_count <- rbinom(sum(!is.na(curr_nn_idx)), cum_sum - size, 1 / (cum_sum - size))
+    idx <- which(!is.na(curr_nn_idx), arr.ind = TRUE)
+
+    if (is.null(dim(idx))) {
+      dim(idx) <- c(length(idx)/2, 2)
+    }
+
+    # create new matrix indizes to insert values
+    rows <- rep(idx[, 1], idx_count)
+    cols <- ave(rep(1, length(rows)), rows, FUN = cumsum)
+
+    idx_new <- c(rows, cols)
+    dim(idx_new) <- c(length(rows), 2)
+    idx_new <- idx_new[cols <= k , ]
+
+    # create new matrix and fill
+    curr_nn_idx_boot <- matrix(rep(NA, size * k), ncol = k)
+    curr_nn_idx_boot[idx_new] <- rep(curr_nn_idx[!is.na(curr_nn_idx)], idx_count)[cols <= k]
+    curr_nn_idx_boot
+  })
+  
+  nn_idx_boot <- do.call(rbind, bootstrap_idx)
+  if (!already_sorted) {
+    date_order <- order(dates)
+    nn_idx_boot <- sort_nn_idx(nn_idx_boot, dates, reverse = TRUE)
+  }
+  
+  nn_idx_boot
+}
+
+
+
+# nn <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds")
+# na_row_bool <- rowSums(is.na( nn$nn.idx)) > 0
+# nn_idx_sample <-  nn$nn.idx[!na_row_bool, ]
+# rm(na_row_bool)
+# 
+# smpls <- sample_bootstrap(1, nrow(nn_idx_sample), 123456)
+# bootstrap_idx <- smpls[[1]]
+# rm(smpls)
+# gc()
+# 
+# 
+
+bootstrap_nn_idx <- function(bootstrap_idx, nn_idx) {
+  curr_nn_idx <- nn_idx_sample[bootstrap_idx, ]
+  curr_nn_idx[!curr_nn_idx %in% bootstrap_idx] <- NA
+  bootstraped_nn_idx <- matrix(rep(NA, length(curr_nn_idx)), ncol = ncol(curr_nn_idx))
+  idx <- which(!is.na(curr_nn_idx), arr.ind = TRUE)
+  orig_order <- order(idx[,1])
+  idx <- idx[orig_order, ]
+  idx[, 2] <- ave(rep(1, nrow(idx)), idx[, 1], FUN = cumsum)
+  idx <- idx[order(orig_order), ]
+  bootstraped_nn_idx[idx] <- curr_nn_idx[!is.na(curr_nn_idx)]
+  bootstraped_nn_idx
+}
+
+# 
+# test <- bootstrap_nn_idx(bootstrap_idx, nn_idx_sample)
+# pred_nn(data_wide = , nn_idx = test[, seq_len(k)])
+# 
+# 
+# 
