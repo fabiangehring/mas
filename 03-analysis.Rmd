@@ -11,12 +11,17 @@ suppressPackageStartupMessages({
   library(kknn)
   library(tidyr)
   library(ggplot2)
+  library(data.table)
+  library(dtplyr)
+  library(arrow)
+  library(microbenchmark)
+  library(profvis)
 })
 
 source("R/03-analysis.R")
 
 # TODO: remove
-quotes_line <- readRDS("tmp/quotes_line.rds")
+quotes_line <- arrow::read_feather("tmp/quotes_line.feather") 
 
 ```
 
@@ -79,6 +84,8 @@ knn_olhc_3_man <- readRDS("tmp/knn_olhc_3_man.rds")
 
 plot_history <- function(id, data, window, nn_idx) {
   
+  
+  test <- sample(1000:2000, 15000, replace = TRUE)
   
   
   
@@ -163,6 +170,9 @@ nn <- find_nn(select(knn_data, !c(ends_with("_0"), any_of("Date"))), dates = knn
 
 nn <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds")
 
+nn <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds")
+
+
 
 
 ```
@@ -204,12 +214,16 @@ plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample)
 k <- 20
 quotes_line <- readRDS("tmp/quotes_line.rds")
 quotes_line_sorted <- quotes_line %>% arrange(Date)
+
+nn_idx <- arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather")
+
 nn_idx_sorted <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds") %>% .[["nn.idx"]] %>% sort_nn_idx(quotes_line$Date)
+
 
 set.seed(123456)
 boot_pred <- map(seq_len(100), function(i) {
   print(i)
-  curr_nn_idx_boot <- bootstrap_nn(quotes_line_sorted$Date, nn_idx_sorted, k = k)
+  curr_nn_idx_boot <- bootstrap_nn(sort(quotes_line$Date), sort_nn_idx(nn_idx_sorted), k = k)
   pred_nn(select(quotes_line_sorted, c("Low", "High")), nn_idx = curr_nn_idx_boot)
 })
 # saveRDS(boot_pred, "tmp/boot_pred.rds")
