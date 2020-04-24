@@ -8,7 +8,6 @@ suppressPackageStartupMessages({
   library(stringr)
   library(purrr)
   library(pbmcapply)
-  library(kknn)
   library(tidyr)
   library(ggplot2)
   library(data.table)
