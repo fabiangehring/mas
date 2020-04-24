@@ -6,6 +6,7 @@
 
 # Data
 data/*.rds
+data/*.feather
 
 # Temporary bookdown files
 Masterarbeit.log
