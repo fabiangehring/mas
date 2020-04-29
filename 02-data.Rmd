@@ -38,22 +38,9 @@ if (!file.exists(file_quotes)) {
 quotes <- readRDS(file_quotes)
 ```
 
+## Bezug und Umfang
 
-Für die Analyse die Aktien grosser Unternehmen weltweit herangezogen - konkret alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Insgesamt enthält dieser ETF `r nrow(stocks)` Titel. Für diese stehen verschiedene Attribute zur Verfügung, welche für die Aktie von "Nestlé" wie folgt lauten:
-
-<!-- * **Ticker:** Eindeutige Bezeichung des Titels ohne Länderendung -->
-<!-- * **Name:** Name der Unternehmung -->
-<!-- * **Asset Class** Anlageklasse (hier stets "Equity") -->
-<!-- * **Weight (%):** Gewichtung des Titels innerhalb des ETF -->
-<!-- * **Price:** Preis per 28.02.2020 -->
-<!-- * **Shares:** Anzahl ausstehender Aktien -->
-<!-- * **Market Value:** Marktkapitalisierung -->
-<!-- * **Notional Value:** Nominalwert (entspricht bei Aktien der Marktkapitalisierung) -->
-<!-- * **Sector:** Tätigkeitsbereich des Unternehmens -->
-<!-- * **ISIN:** International Wertpapierkennnummer -->
-<!-- * **Exchange:** Primärer Börsenplatz -->
-<!-- * **Location:** Land -->
-<!-- * **Market Currency:** Währung des Titels -->
+Für die Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret verwendet die Arbeit alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks)` Komponenten, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:
 
 ``` {r nestle-stock, echo=FALSE}
 stock_nesn <- dplyr::filter(stocks, Ticker == "NESN")
@@ -62,7 +49,7 @@ knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption
 ```
 
 
-Für all diese Titel werden - sofern verfügbar - werden die täglichen historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten sind via Yahoo Finance frei verfügbar [vgl. @yahoo_finance]. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Unternehmen zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Titel können keine Werte gefunden werden. Tabelle \@ref(tab:nestle-quote) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. Dieser Tag ist insofern speziell als dass es der letzte Börsentag vor Ex-Dividend, d.h. der letzte Tag, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wird. Diese betrug CHF 2.45 [@nestle] und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Zu beachten gilt es ferner, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben.
+Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen auf Yahoo Finance zur freien Nutzung auf täglicher Basis zur Verfügung [vgl. @yahoo_finance] und lassen sich mit entsprechedem API automatisiert abfragen. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:nestle-quote) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
 
 ``` {r nestle-quote, echo=FALSE}
 quote_nesn <- dplyr::filter(quotes, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
@@ -70,22 +57,27 @@ knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption
   kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
-<!-- Im Datensatz befinden sich folgende Werte: -->
 
-<!-- * **Ticker:** Eindeutige Bezeichung des Titels inkl. Länderendung -->
-<!-- * **Date:** Datum des Datensatzes -->
-<!-- * **Open:** Aktienkurs zum Börsenstart des jeweiligen Tages -->
-<!-- * **High:** Höchster erreichter Kursstand des jeweiligen Tages -->
-<!-- * **Close:** Schlusstand des Kurses des jeweiligen Tages -->
-<!-- * **Adjusted:** Schlussstand des jeweiligen Tages unter Berücksichtigung von "Corporate Actions" wie bsp. Dividendenzahlungen, Aktiensplits, etc. -->
-<!-- * **Volumne:** Anzahl der am jeweiligen Tag gehandelten Aktien -->
+## Datenaufbreitung
 
-
-Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein. 
+### Bereinigung und Normalisierung
+Obwohl es sich bei den verwendeten Daten um sehr häufig verwendete Werte handelt und mit Yahoo Finance ein erfahrener Datenanbieter gewählt wurde, zeigt ein erster Blick auf die bezogenen Rohdaten gewisse Probleme und Datenmängel.
 
 ```{r, echo=FALSE}
 summary(quotes)
 ```
+
+Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schitten:
+
+1. Entfernen von Datenfehlern bei Corporate Actions
+1. Entfernen von negativen Preisen
+1. Entfernen von Einträgen mit unerwarterer Reihenfolge der vorhandenen Kennzahlen
+1. Erkennen und Ausschluss offensichtlicher Tipfehler
+1. Unplausible Preisbewegungen innerhalb des Tages
+  
+
+Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein. 
+
 
 
 ```{r, filter_data, echo=FALSE}
@@ -103,9 +95,19 @@ quotes <- quotes %>%
 
 ```
 
+
+
+### Preisadjustierung aufgrund von Corporate Actions
+
+Die Werte in Tabelle \@ref(tab:nestle-quote) sind insofern speziell, als dass sie den Ex-Dividend Tag von Nestlé für 2019 betreffen. Das heisst es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug für dieses Jahr CHF 2.45 [@nestle]. und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. 
+
+
+
 ```{r, adjust_prices, echo=FALSE}
 quotes <- adjust_quotes(quotes)
 ```
+
+
 
 
 

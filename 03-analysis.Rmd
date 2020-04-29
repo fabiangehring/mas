@@ -16,11 +16,11 @@ suppressPackageStartupMessages({
   library(microbenchmark)
   library(profvis)
 })
-
+Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
 source("R/03-analysis.R")
 
 # TODO: remove
-quotes_line <- arrow::read_feather("tmp/quotes_line.feather") 
+quotes_line <- arrow::read_feather("tmp/quotes_line.feather")
 
 ```
 
@@ -37,31 +37,67 @@ Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu 
 Eine einfache Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als optimierte prozentuale Bewegungen vom aktuellen Preis zu ermitteln. Dies lässt sich sowohl symmetrische wie auch asymmetrisch machen. 
 
 ```{r, echo=FALSE}
-# 
-
 
 #' opt_payoff_sym(0, quotes_test)
-opt_payoff_sym <- function(move, quotes_line, col = "Open", scale_fct = 1) {
-  sum(calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line[[col]], sell = (1 + move) * quotes_line[[col]], both_first = "buy")) / scale_fct
+opt_payoff_sym <- function(move, quotes_line, col, both_first, scale_fct = 1) {
+  sum(calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line[[col]], sell = (1 + move) * quotes_line[[col]], both_first = both_first)) / scale_fct
 }
 
+both_first <- 123456
 dat <- drop_na(quotes_line)
+opt_payoff_sym(move = 0.01, quotes_line = dat, col = "Open", both_first = both_first, scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)))
 
-opt_payoff_sym(move = 0.01, quotes_line = quotes_line, scale_fct = sum(calc_payoff_const_gamma(quotes_line, both_first = "buy")))
+move <- seq(0, 0.1, 0.0025)
+
+factor_open <- map(
+  .x = move, 
+  .f = opt_payoff_sym, 
+  quotes_line = dat,
+  col = "Open", 
+  both_first = both_first,
+  scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first))
+)
+
+optimum_open <- optimize(
+  f = opt_payoff_sym,
+  interval = c(0, 0.2), 
+  quotes_line = dat, 
+  col = "Open", 
+  both_first = both_first, 
+  scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)),
+  maximum = TRUE
+)
+
+res_open <- tibble(move = move, factor = unlist(factor_open))
+plot(res_open$move, res_open$factor, type = "l")
 
 
-move <- seq(0, 0.2, 0.0025)
-factor_open <- unlist(pbmclapply(X = move, FUN = opt_payoff_sym, quotes_line = dat, mc.cores = 2, col ="Open", scale_fct = sum(calc_payoff_const_gamma(dat, both_first = "buy"))))
-factor_adjusted_t_1 <- unlist(pbmclapply(X = move, FUN = opt_payoff_sym, quotes_line = dat, mc.cores = 2, col ="Adjusted_t_1", scale_fct = sum(calc_payoff_const_gamma(dat, both_first = "buy"))))
+factor_adjusted_t_1 <- map(
+  .x = move, 
+  .f = opt_payoff_sym, 
+  quotes_line = dat,
+  col = "Adjusted_t_1", 
+  both_first = both_first,
+  scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first))
+)
 
-res <- tibble(move = move, factor = factor_adjusted_t_1)
+optimum_adjusted_t_1 <- optimize(
+  f = opt_payoff_sym,
+  interval = c(0, 0.2), 
+  quotes_line = dat, 
+  col = "Adjusted_t_1", 
+  both_first = both_first, 
+  scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)),
+  maximum = TRUE
+)
 
-plot(res$move, res$factor, type = "l")
+res_adjusted_t_1 <- tibble(move = move, factor = unlist(factor_adjusted_t_1))
+plot(res_adjusted_t_1$move, res_adjusted_t_1$factor, type = "l")
+
+
+
+
 ```
-
-
-
-
 
 
 ## Klassifikationsverfahren
@@ -153,12 +189,12 @@ ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) 
 
 ```{r, knn-calculation, echo=FALSE}
 data_wide_0 <- quotes_line %>%
+  as_tibble() %>%
   group_by(Ticker) %>%
   widen(window = 3, cols = c("Open", "Low", "High", "Close"), include_current = TRUE)
 
 # exclude all columns (also when _0 value is not available)
 na_rows_bool <- rowSums(is.na(data_wide_0)) > 0
-n <- 400000
 knn_data <- data_wide_0 %>%
   mutate(Date = quotes_line$Date) %>%
   mutate_all(~ifelse(na_rows_bool, NA, .)) 
@@ -188,21 +224,39 @@ plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_l
 
 ```{r, knn-prediction-power, echo=FALSE}
 k <- 20
-nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn$nn.idx[, seq_len(k)])
+
+nn_idx <- as.matrix(arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather"))
+
+nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn_idx[, seq_len(k)])
 na_row_bool <- rowSums(is.na(nn_pred)) > 0
 
 nn_pred_sample <- nn_pred[!na_row_bool, ] %>% rename(Buy = Low_0, Sell = High_0)
 quotes_line_sample <- quotes_line[!na_row_bool, ]
 
-
-sample <- sample(seq_len(nrow(quotes_line_sample)), nrow(quotes_line_sample), replace = TRUE)
-
-
-sum(calc_payoff_const_gamma(quotes_line_sample, buy = quotes_line_sample$Close, sell = quotes_line_sample$Close, both_first = 123456))
-sum(calc_payoff_const_gamma(quotes_line_sample, buy = nn_pred_sample$Low_0, sell = nn_pred_sample$High_0, both_first = 123456))
-sum(calc_payoff_const_gamma(quotes_line_sample, buy = quotes_line_sample$Low, sell = quotes_line_sample$High, both_first = 123456))
-
 plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample)
+
+
+### perform bootstraping
+size_map <- quotes_line %>%
+  select(Date) %>%
+  group_by(Date) %>% 
+  summarize(count = n()) %>% 
+  ungroup() %>% 
+  mutate(size = cumsum(count) - count) %>% 
+  select(-count)
+size <- quotes_line %>% select(Date) %>% left_join(size_map, by = "Date") %>% .[["size"]]
+###
+
+boot_nn_idx_1 <- bootstrap_nn_idx(nn_idx, size, 20, 123456)
+
+nn_pred_boot <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = boot_nn_idx_1)
+na_row_bool_boot <- rowSums(is.na(nn_pred_boot)) > 0
+
+nn_pred_boot_sample <- nn_pred_boot[!na_row_bool_boot, ] %>% rename(Buy = Low_0, Sell = High_0)
+quotes_line_boot_sample <- quotes_line[!na_row_bool_boot, ]
+
+plot_ratio_history(quotes_line = quotes_line_boot_sample, data_pred = nn_pred_boot_sample)
+
 
 
 ```

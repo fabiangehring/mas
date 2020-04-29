@@ -25,8 +25,8 @@ plot_call_price <- function(t, S, r, sigma, K, T, move, type = c("call", "put"))
     y = option_price,
     main = paste0(stringr::str_to_title(type,), " Option"),
     type = "l",
-    xlab = "Underlying Price",
-    ylab = "Option Price",
+    xlab = "Preis Underlying",
+    ylab = "Preis Option",
     lty = "solid"
   )
   points(K, qrmtools::Black_Scholes(t, K, r, sigma, K, T, type), pch = 4)

@@ -68,11 +68,9 @@
 <li class="chapter" data-level="2" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>2</b> Einleitung</a><ul>
 <li class="chapter" data-level="2.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>2.1</b> Motivation</a></li>
 <li class="chapter" data-level="2.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>2.2</b> Forschungsfrage</a></li>
-<li class="chapter" data-level="2.3" data-path="intro.html"><a href="intro.html#abgrenzung"><i class="fa fa-check"></i><b>2.3</b> Abgrenzung</a></li>
-<li class="chapter" data-level="2.4" data-path="intro.html"><a href="intro.html#einbettung-in-der-literatur"><i class="fa fa-check"></i><b>2.4</b> Einbettung in der Literatur</a></li>
-<li class="chapter" data-level="2.5" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>2.5</b> Daten</a></li>
-<li class="chapter" data-level="2.6" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>2.6</b> Methoden</a></li>
-<li class="chapter" data-level="2.7" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>2.7</b> Disclaimer</a></li>
+<li class="chapter" data-level="2.3" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>2.3</b> Daten</a></li>
+<li class="chapter" data-level="2.4" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>2.4</b> Methoden</a></li>
+<li class="chapter" data-level="2.5" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>2.5</b> Disclaimer</a></li>
 </ul></li>
 <li class="chapter" data-level="3" data-path="daten-1.html"><a href="daten-1.html"><i class="fa fa-check"></i><b>3</b> Daten</a></li>
 <li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
@@ -102,50 +100,44 @@
 <h1><span class="header-section-number">Kapitel 2</span> Einleitung</h1>
 <div id="motivation" class="section level2">
 <h2><span class="header-section-number">2.1</span> Motivation</h2>
-<p>Aktienoptionen sind derivative Finanzinstrumente, welche dem Inhaber das Recht (nicht aber die Pflicht) geben, die zugrunde liegende Aktie (auch Basiswert oder Underlying) zu einem im Voraus festgelegten Ausübungspreis (auch Strike) zu kaufen oder zu verkaufen. Wie sich der Preis einer Option entwickelt ist dabei von verschiedenen Faktoren abhängig. Dazu gehören unter anderem der Preis des Basiswertes, dessen Volatilität oder die Restlaufzeit der Option.</p>
-<p>Der Zusammenhang zwischen Preis des Underlyings und Preis der Option ist dabei nicht perfekt linear (Delta, auch <span class="math inline">\(\Delta\)</span>), sondern nimmt bei steigendem Preis zu (Kaufoption), resp. ab (Verkaufsoption). Diese nicht-Linearität wird mit Hilfe der Kennzahl Gamma (<span class="math inline">\(\Gamma\)</span>) beschrieben. Im profesionellen Optionenhandel ist es üblich, den linearen Teil der Veränderung durch Kauf oder Verkauf des Underlyings abzusichern. Damit lassen sich Strategien verfolgen, welche von der Richtung der Preisbewegung unabhängig sind (Delta-Neutral Trading). Der Nicht-lineare Zusammenhang führt allerdings dazu, dass die Delta-Neutralität mit sich ändernden Preisen wieder verloren geht.</p>
-<p>Dies lässt sich an einem Beispiel illiustrieren. Sei dafür angenommen, dass es eine Aktie zum Preis von 10 gehandelt werde. Betrachten wir dazu sowohl eine Kaufoption (Call) und Verkaufsoption (Put), welche es dem Besitzer erlaubt, die Aktie in genau 6 Monaten zu 10 zu kaufen oder zu verkaufen. In diesem Beispiel entspricht der Aktienkurs dem Strike. Solche Optionen bezeichnet man als “at-the-money (atm)”. Bei Veränderung des Basispreises werden diese entsprechend zu “in-the-money (itm)” oder “out-of-the-money (otm)” Optionen.</p>
-<pre><code>## Registered S3 method overwritten by &#39;quantmod&#39;:
-##   method            from
-##   as.zoo.data.frame zoo</code></pre>
+<p>Aktienoptionen sind derivative Finanzinstrumente, welche dem Inhaber das Recht (nicht aber die Pflicht) geben, die zugrunde liegende Aktie (auch Basiswert oder Underlying) zu einem im Voraus festgelegten Ausübungspreis (auch Strike) zu kaufen oder zu verkaufen. Wie sich der Preis einer Option entwickelt, ist dabei von verschiedenen Faktoren abhängig. Dazu gehören unter anderem der Preis des Basiswertes, dessen Volatilität oder die Restlaufzeit der Option.</p>
+<p>Der Zusammenhang zwischen Preis des Underlyings und Preis der Option ist nicht linear, sondern nimmt bei steigendem Preis zu (Kaufoption), resp. ab (Verkaufsoption). Diese nicht-Linearität wird mit Hilfe der Kennzahl Gamma (<span class="math inline">\(\Gamma\)</span>) beschrieben. Im profesionellen Optionenhandel ist es üblich, den linearen Teil der Veränderung (Delta, auch <span class="math inline">\(\Delta\)</span>) durch Kauf oder Verkauf des Underlyings abzusichern. Damit lassen sich Strategien verfolgen, welche von der Richtung der Preisbewegung unabhängig sind (Delta-Neutral Trading). Der Nicht-lineare Zusammenhang führt allerdings dazu, dass die Delta-Neutralität mit sich ändernden Preisen wieder verloren geht. Dies sein an einem Beispiel demonstriert.</p>
+<p>Sei dafür angenommen, dass es eine Aktie zum Preis von 10 gehandelt wird, welche als Basiswert sowohl für eine Kaufoption (Call) wie auch eine Verkaufsoption (Put) dient. Die Laufzeit betrage 6 Monate, der Strike ebenfalls 10. Mit dem Kauf der Option erwirbt der Besitzer damit das Recht, die Aktie in 6 Monaten zu 10 zu kaufen (im Fall des Calls) oder zu verkaufen (im Falle des Puts). In diesem Beispiel entspricht der Aktienkurs dem Strike. Solche Optionen bezeichnet man als “at-the-money (atm)”. Bei Veränderung des Basispreises werden diese zu “in-the-money (itm)” oder “out-of-the-money (otm)” Optionen.</p>
 <div class="figure"><span id="fig:call-put"></span>
-<img src="Masterarbeit_files/figure-html/call-put-1.png" alt="Nichtlinearität zwischen Option- und Underlyingpreis" width="672" />
+<img src="Masterarbeit_files/figure-html/call-put-1.png" alt="Zusammenhang zwischen Preis der Underlyings und Preis der Option." width="672" />
 <p class="caption">
-Abbildung 2.1: Nichtlinearität zwischen Option- und Underlyingpreis
+Abbildung 2.1: Zusammenhang zwischen Preis der Underlyings und Preis der Option.
 </p>
 </div>
-<p>Der Wert der Optionen in Abhängigkeit zum Aktienpreis ist in Abbildung <a href="intro.html#fig:call-put">2.1</a> durch die durchgezogene Linie gekennzeichnet. Die gestrichelten Linien bilden die Tangenten beim Strikepreis der Optionen. Deren Steigungen (<span class="math inline">\(\Delta\)</span>) betragen 1.42 und im Falle des Calls, und -1.37 im Falle des Puts. Der Besitzer der Option kann sich gegen Preisbewegungen absichern (hegden), indem diese Zahl an Aktien verkauft (Call), resp. kauft (Put). Steigt beispielsweise der Preis des Underlyings, so verliert die Put-Option an Wert, die gekauften Aktien andererseits gewinnen an Wert und machen den Verlust gerade wieder weg. Genau umgekehrt verhält es sich im Falle des Calls. Dieses Delta-Hedging funkioniert allerdings nur für kleine Abweichungen. Bei grösseren Veränderungen des Preises führt die Konvexität des Optionspreises bzgl. Underlyingpreis zu einem Fehler. Diese Fehler sind in Abbildung <a href="intro.html#fig:call-put">2.1</a> mit roten Linien dargestellt. Es mag auf den ersten Blick erstaunen, dass dieser Fehler immer zugunsten des Optionsbesitzers ausfällt (sowohl für Call- als auch Put-Option verlaufen die Tangenten unterhalb des Optionspreises). Dass es sich dabei aber nicht eine Geldmaschine handelt liegt daran, dass die beschriebenen Preisbewegungen nicht sofort, sondern im Laufe der Zeit erfolgen. Damit nimmt auch die Restlaufzeit der Option ab, welche sie gleichzeitig weniger wertvoll macht.</p>
-<p>Eine solche Strategie ist damit grundsätzlich dann interessant, wenn die Bewegungen des Preises gross genug sind, um den Wertverlust aufgrund der Zeit zu übertreffen. Sie als Gamma-Scalping bezeichnet, und verankt ihrem Namen der zweiten Ableitung des Optionspreises nach dem Underlyingpreis - dem Gamma (<span class="math inline">\(\Gamma\)</span>) - welches die Nichtlinearität der Beziehung beschreibt.</p>
-<p>Möchte sich der Händler nicht auf diese Wette einlassen, kann er die Delta-Neutralität durch erneutes Kaufen oder Verkaufen des Underlyings wieder herstellen. Grafisch entspricht dies der Einnahme einer Position, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen resp. positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.</p>
-<p>Die Höhe des Gewinnes lässt sich auch mathematisch fomulieren. Bezeichnen dazu <span class="math inline">\(S_0\)</span> den Preis des Underlying und <span class="math inline">\(P_0\)</span> den Preis der Option zu Beginn und <span class="math inline">\(S_1\)</span> sowie <span class="math inline">\(P_1\)</span> die jeweiligen Preise nach einer Preisbewegung des Unerlyings um <span class="math inline">\(d_S\)</span>. <span class="math inline">\(\Delta_0\)</span> und <span class="math inline">\(\Gamma_0\)</span> bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als <span class="math inline">\(\$\Delta = \Delta \times S\)</span> der Wert des Hedge Portfolio bezeichnet und <span class="math inline">\(\$\Gamma = \Gamma \times S²/100\)</span> bezeichne die Veränderung des <span class="math inline">\(\$\Delta\)</span> bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich anhand folgender Überlegungen herleiten: Verändert sich der Underlying-Preis um 1% <span class="math inline">\(S =&gt; S + S / 100\)</span>, verändert sich auch das Delta <span class="math inline">\(\Delta =&gt; \Delta + \Gamma \times S/100\)</span>. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash <span class="math inline">\(\$\Delta =&gt; \$\Delta + \Gamma \times S²/100\)</span>.</p>
-<p>Mit Hilfe diese Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten:</p>
+<p>Den Zusammenhang zwischen Preis der Option und Preis des Underlyings ist in <a href="intro.html#fig:call-put">2.1</a> abgebildet. Die gestrichelten Linien bilden die Tangenten am Strikepreis der Optionen. Deren Steigungen (<span class="math inline">\(\Delta\)</span>) betragen 1.42 und im Falle des Calls, und -1.37 im Falle des Puts. Dies bedeutet, dass sich der Besitzer der Option sich gegen Preisbewegungen absichern (hegden) kann, indem zusätzlich zum Besitz der Option diese Anzahl an Aktien verkauft (Call), resp. kauft (Put). Wertänderungen der Option werden dann durch die entgegenläufige Wertenwicklung in der Aktienposition ausgeglichen. Eine solche Position wird “deltaneutral” genannt. Bei grösseren Preisbewegungen führt die Konvexität des Optionspreises allerdings dazu, dass es trotz Absicherung zu einer Abweichung kommt. Diese Fehler sind in Abbildung <a href="intro.html#fig:call-put">2.1</a> mit roten Linien dargestellt. Es mag auf den ersten Blick erstaunen, dass diese Abweichung immer zugunsten des Optionsbesitzers ausfällt (sowohl für Call- als auch Put-Option verlaufen die Tangenten unterhalb des Optionspreises). Dass es sich dabei aber nicht eine Geldmaschine handelt liegt daran, dass die beschriebenen Preisbewegungen erst im Laufe der Zeit erfolgen und die Restlaufzeit der Option kleiner wird (Theta, auch <span class="math inline">\(\Theta\)</span>). Mit sinkender Restlaufzeit auch der Wert der Option ab. In effizienten Märkten gleichen sich diese Effekte im Durchschnitt aus.</p>
+<p>Wenn die zukünftigen Bewegungen des Preises aber grösser sind, als dies durch den Markt mit dem Wertverlust aufgrund der Zeit einpreist, kann die Verfolgung einer solchen Handelsstrategie allerdings durchaus lukrativ sein. Die Schwierigkeit liegt hier natürlich bei der Auswahl der richtigen Titel. Diese Strategie wird als Gamma-Scalping bezeichnet. Sie verdankt ihren Namen der zweiten Ableitung des Optionspreises nach dem Underlyingpreis - dem Gamma (<span class="math inline">\(\Gamma\)</span>) - welches die Nichtlinearität der Beziehung beschreibt.</p>
+<p>Der Einfluss des Gammas ist aber nicht nur zu Spekulationszwecken interessant. Dessen Bewirtschaftung ist auch für die Steuerung des eingegangenen Risikos von Relevanz. Soll nämlich die Delta-Neutralität nach Preisbewegungen wieder hergestellt werden, müssen laufend neue Titel des Underlyings gekauft oder verkauft werden. Grafisch entspricht dies der Einnahme einer Aktienposition, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen resp. positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.</p>
+</div>
+<div id="forschungsfrage" class="section level2">
+<h2><span class="header-section-number">2.2</span> Forschungsfrage</h2>
+<p>Als Forschungsfrage der vorliegenden Arbeit ergibt sich damit folgende Forschungsfrage:</p>
+<p>Kann mit Hilfe datengestützter Methoden eine Strategie gefunden werden, welche einen Händler von Aktienoptionen unterstützt, die idealen (intraday) Preise zum Kauf / Verkauf von aufgelaufenem Delta zu finden?</p>
+<p>Als Vergleich bietet sich dabei eine Strategie an, welche keine intraday Anpassungen vornimmt, sondern die aufgelaufene Delta-Position erst am Abend glattstellt. Die Voraussage jeweils eines Verkaufs- und eines Kaufpreises erfolgt dabei am Morgen des Arbeitstages bei Markteröffnung. Bei Tagesende noch vorhandenes Delta (aufgrund nicht erreichter Kaufs- oder Verkaufspreise oder neu aufgelaufenes Delta bis Tagesende) wird zum Tagesschlusskurs ausgeglichen.</p>
+<p>Als Vergleichsstrategie dient die Strategie, bei welchem aufgelaufenes Delta erst am Abend zum Börsenschlusskurs ausgeglichen wird.</p>
+<p>Mathematisch lässt sich beide Strategien mit Hilfe einer Payoff-Funkt ausdrücken.</p>
+<p>Für die einfachere Referenzstrategie, welche die Delta-Neutraliät erst bei Tagesende wieder herstellt, lautet diese wie folgt:</p>
+<p><span class="math display">\[\begin{equation}
+\begin{aligned}
+Payoff ={} &amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2
+\end{aligned}
+\end{equation}\]</span></p>
+<p>Für die Notation werden log-Returns verwendet. Diskrete Returns sind aber genauso möglich. Als <span class="math inline">\(close_i\)</span> wird der Tagesendkurs am Tag <span class="math inline">\(i\)</span> bezeichnet. Unter <span class="math inline">\(\$\Gamma_i\)</span> verstehen wir dabei das Gamma Cash (auch Dollar Cash). Die Herleitung des Payoffs ergibt sich aufgrund folgender Überlegungen:<span class="citation">(vgl. SP-Finance <a href="#ref-sp_finance">2020</a>)</span></p>
+<p>Bezeichne dazu <span class="math inline">\(S_0\)</span> den Preis des Underlying und <span class="math inline">\(P_0\)</span> den Preis der Option zu Beginn und <span class="math inline">\(S_1\)</span> sowie <span class="math inline">\(P_1\)</span> die jeweiligen Preise nach einer Preisbewegung des Underlyings um <span class="math inline">\(d_S\)</span>. <span class="math inline">\(\Delta_0\)</span> und <span class="math inline">\(\Gamma_0\)</span> bezeichnen die erste und zweite Ableitung des Optionspreises zum Ausgangszeitpunkt. Ferner sei als Delta Cash (<span class="math inline">\(\$\Delta = \Delta \times S\)</span>) der Wert des Hedge Portfolio bezeichnet und Gamma Cash (<span class="math inline">\(\$\Gamma = \Gamma \times S^2/100\)</span>) bezeichne die Veränderung des <span class="math inline">\(\$\Delta\)</span> bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich wie folgt herleiten: Verändert sich der Underlying-Preis um 1% <span class="math inline">\(S =&gt; S + S / 100\)</span>, verändert sich auch das Delta <span class="math inline">\(\Delta =&gt; \Delta + \Gamma \times S/100\)</span>. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash <span class="math inline">\(\$\Delta =&gt; \$\Delta + \Gamma \times S^2/100\)</span>.</p>
+<p>Mit Hilfe dieser Nomenklatur lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten:</p>
 <ol style="list-style-type: decimal">
 <li>Veränderung des Underlying Preises <span class="math inline">\(S_1 = S_0 + dS\)</span></li>
 <li>Veränderung des Delta <span class="math inline">\(\Delta_1 = \Delta_0 + \Gamma_0 \times dS\)</span></li>
 <li>Durchschnittliches Delta <span class="math inline">\(\Delta_{Avg} = (\Delta_0 + \Delta_1) / 2 = \Delta_0 + \Gamma_0 \times dS / 2\)</span></li>
 <li>Neuer Optionspreis <span class="math inline">\(P_1 = P_0 + \Delta_{Avg} \times dS = P_0 + \Delta_0 \times dS + \Gamma_0 \times dS² / 2\)</span></li>
-<li>Gewinn als Summe der Veränderungen des Optionspreis und des Hedge-Portfolios: <span class="math inline">\(\Delta_0 \times dS + \Gamma_0 \times dS² / 2 - \Delta_0 \times dS = \Gamma_0 \times dS² / 2\)</span></li>
-<li>Etwas umgeformt lässt sich der Gewinn schreiben als: <span class="math inline">\(\Gamma_0 \times dS² / 2 = \Gamma_0 \times S² /100 * dS² / S² * 100 = \$\Gamma \times (dS/S)² \times 100\)</span></li>
+<li>Gewinn als Summe der Veränderungen des Optionspreis und des Hedge-Portfolios: <span class="math inline">\(\Delta_0 \times dS + \Gamma_0 \times dS^2 / 2 - \Delta_0 \times dS = \Gamma_0 \times dS^2 / 2\)</span></li>
+<li>Etwas umgeformt lässt sich der Gewinn schreiben als: <span class="math inline">\(\Gamma_0 \times dS^2 / 2 = \Gamma_0 \times S^2 /100 * dS^2 / S^2 * 100 = \$\Gamma \times (dS/S)^2 \times 100\)</span></li>
 </ol>
-<p>Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden.</p>
-</div>
-<div id="forschungsfrage" class="section level2">
-<h2><span class="header-section-number">2.2</span> Forschungsfrage</h2>
-<p>Kann mit Hilfe datengestützter Methoden eine Strategie gefunden werden, welche einen Händler von Aktienoptionen unterstützt, die idealen (intraday) Preise zum Kauf / Verkauf von aufgelaufenem Delta zu finden?</p>
-<p>Die Strategie umfasst die Voraussage jeweils eines Verkaufs- und eines Kaufpreises bei welchen aufgelaufenes Delta neutralisiert wird. Diese Prognose erfolgt am Morgen des Arbeitstages bei Markteröffnung. Bei Tagesende noch vorhandenes Delta (aufgrund nicht erreichter Kaufs- oder Verkaufspreise oder neu aufgelaufenes Delta bis Tagesende) werden zum Tagesschlusskurs ausgeglichen.</p>
-<p>Mathematisch lässt sich dies als Optimierung des folgendes Payoffs ausdrücken:</p>
-<p><span class="math display">\[\begin{equation}
-\begin{aligned}
-{Payoff} ={} &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{sell}{close_{t-1}}\right)}^2  \times I_{sell} \ + \\
-&amp; \frac{1}{2}  \times 100 \times \$\Gamma_{sell}  \times \ln{\left(\frac{close_t}{sell}\right)}^2  \times I_{sell} \ + \\
-&amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{buy}{close_{t-1}}\right)}^2  \times I_{buy} \ + \\
-&amp; \frac{1}{2}  \times 100 \times \$\Gamma_{buy}  \times \ln{\left(\frac{close_t}{buy}\right)}^2  \times I_{buy} \ + \\
-&amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2  \times I_{noHedge}
-\end{aligned}
-\end{equation}\]</span></p>
-<!-- Herleitung  -->
-<!-- http://sp-finance.e-monsite.com/pages/the-greeks/gamma/delta-hedging-gamma-and-dollar-gamma.html -->
-<p>Alternativ soll bei erreichen der Kaufs- und Verkaufsgrenze innerhalb eines Tages auch dessen ganze Spannweite ausgeschöpft werden. Die</p>
+<p>Auch im Falle der etwas komplexeren Strategie mit der Möglichkeit von Käufen und Verkäufen innerhalb des Tages lässt sich diese Struktur wiederfinden:</p>
 <p><span class="math display">\[\begin{eqnarray}
 {Payoff} &amp; = &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
 &amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{close_t}{first}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
@@ -164,51 +156,46 @@ Abbildung 2.1: Nichtlinearität zwischen Option- und Underlyingpreis
 <p><span class="math display">\[\begin{equation}
 \$\Gamma_i = \Gamma \times S_i^2 / 100
 \end{equation}\]</span></p>
-<p>Eine Transaktion wird dabei ausgeführt (<span class="math inline">\(I_{first}\)</span>, resp. <span class="math inline">\(I_{second}\)</span>) wenn beide der folgenden Bedingungen erfüllt sind:</p>
+<p>Zu beachten gilt es insbesondere, dass der Payoff quadratisch auf Preisbewegungen reagiert. Dies führt dazu, dass es von Relevanz ist, ob zuerst der Kaufs- (untere Grenze) oder der Verkaufsschwelle erreicht wird. Die Ausführung zum jeweiligen Schwellenwert wird durch die Indikatorvariablen <span class="math inline">\(I_{first}\)</span> und <span class="math inline">\(I_{second}\)</span> modelliert. Damit es zu einer Ausfühung kommt müssen dabei folgende beiden Kriterien kumulativ erfüllt sein:</p>
 <ol style="list-style-type: lower-alpha">
-<li>der Preis im Laufe des Tages erreicht wird</li>
-<li>die jeweils vorangegangene Transaktion bei einem höheren Preis (Kauf), resp. tieferen Preis (Verkauf) stattgefunden hat.</li>
+<li>Der Schwellenwert wird erreicht.</li>
+<li>Die vorangegangene Transaktion hat bei einem höheren Preis für Aktion an unterer Schwelle, resp. tieferen Preis für eine Aktion an der oberen Schwelle stattgefunden.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></li>
 </ol>
-<p>Dieser Strategie soll eine einfachere Strategie gegenübergestellt werden, bei welcher der Ausgleich komplett am Tagesende zum Schlusskurs erfolgt:</p>
-<p><span class="math display">\[\begin{equation}
-\begin{aligned}
-Payoff ={} &amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2
-\end{aligned}
-\end{equation}\]</span></p>
-</div>
-<div id="abgrenzung" class="section level2">
-<h2><span class="header-section-number">2.3</span> Abgrenzung</h2>
-<p>Die Arbeit untersucht nicht explizit, welche Optionen sich für diese Stategie am besten eignen (kein Options-Picker). Ebenfalls ist keine Aussage darüber geplant, ob die Strategie insgesamt profitabel ist, wenn berücksichtig wird, dass mit Ablauf jeden Tages eine Option aufgrund der verkürzten Restlaufzeit (ceteris paribus) etwas weniger Wert ist (Theta-Effekt).</p>
-</div>
-<div id="einbettung-in-der-literatur" class="section level2">
-<h2><span class="header-section-number">2.4</span> Einbettung in der Literatur</h2>
-<p>Verschiedene Beiträge in der Literatur haben sich mit der Voraussage von Aktienpreisen beschäftigt. Viele von ihnen mit dem Ziel Punktvoraussagen zu machen. Dabei versuchen einige Studien die Daten aufgrund zugrundeliegender Fundamentaldaten zu schätzen, andere Studien legen ihren Fokus auf eine chartistische Betrachtung des bisherigen Kursverlaufs der zu betrachtenden Aktie.</p>
-<p>Eine zweite Gruppe von Studien hat sich mit der Voraussage der (realisierten) Volatilität beschäftigt. Dabei haben sich für die praktische Anwendung insbesondere autoregressive Modelle durchgesetzt.</p>
-<p>Die vorliegende Arbeit kombiniert beide Ansätze. Ziel ist es nicht, Punktschätzungen des Aktienpreises abzugeben. Ebenso greift auch die (symmetrische) Vorhersage der Volatilität zu kurz. Viel mehr ist es das Ziel die (allenfalls asymmetrische) Verteilung des Aktienkurses über den kommenden Tag (genauer, einen unter Berücksichtigung von Ausführungswahrscheinlichkeit und Höhe) optimalen Kaufs- und Verkaufskurs zu prognostizieren.</p>
-<p>Die gefundenen Erkenntnisse lassen sich auch mit in der Literatur beschriebenen “Stylized Facts” wie “Momentum” oder “Mean Reversion” vergleichen.</p>
+<!-- Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden. -->
 </div>
 <div id="daten" class="section level2">
-<h2><span class="header-section-number">2.5</span> Daten</h2>
+<h2><span class="header-section-number">2.3</span> Daten</h2>
 <p>Als Datengrundlage stehen historische Open-, Low-, High- und Close- (adjustiert wie unadjustiert) Aktienpreise zur Verfügung. Diese sind öffentlich und können von Yahoo Finance bezogen werden. Zu Testzwecken wurden 9.5 Mio. historische Datenpunkte für die grössten rund 1600 Unternehmen weltweit angezogen. Die Datenqualität scheint auf den ersten Blick gut. Gewisse Datenbereinigungsschritte sind nötig.</p>
-<p>Die Verwendung bankinterner Daten ist aktuell nicht geplant. Dies hat den grossen Vorteil, dass die Daten auch problemlos auf Cloud-Infrastruktur (bsp. unabdingbar im Falle des Einsatzes von Neuronalen Netzen / Deep Learning Techniken) prozessiert werden kann. Obwohl dies zum jetzigen Zeitpunkt nicht geplant ist, ist je nach Verlauf des Projektes und nach Rücksprache (Geheimhaltungserklärung) punktuell auch eine Anreicherung um bankinterne Daten denkbar.</p>
+<p>Die Verwendung bankinterner Daten ist aktuell nicht geplant. Dies hat den grossen Vorteil, dass die Daten auch problemlos auf Cloud-Infrastruktur (bsp. unabdingbar im Falle des Einsatzes von Neuronalen Netzen / Deep Learning Techniken) prozessiert werden kann.</p>
 </div>
 <div id="methoden" class="section level2">
-<h2><span class="header-section-number">2.6</span> Methoden</h2>
-<p>Ziel ist es, die eingesetzten Methoden zusammen mit dem betreuenden Dozenten festzulegen. Dabei sollen verschiedene Ansätze versucht und gegeneinander verglichen werden. Anbei aber eine Sammlung von denkbaren Ansätzen:</p>
-<ul>
-<li>Clusteranalysen mit Hilfe diverser Disanzmasse (Manhattan Distance, Cosine Similarity): Lassen sich um den aktuellen Kursverlauf in Verbindung zur Vergangenheit (des aktuellen oder anderer Titel) bringen und darüber allfällige Rückschlüsse auf die Zukunft zu machen.</li>
-<li>k-means: Lassen sich in der Historie ähnliche / sich wiederholende Patterns von Kursverläufen / -verteilungen finden, welche Rückschlüsse auf die Zukunft ermöglichen?</li>
-<li>Welche Aussagen können “klassische” autoregressive statistische Modelle (G)ARCH machen?</li>
-<li>Können Neuronale Netze (z.B. LSTM) chartistische Muster erkennen?</li>
-<li>Deep Learing Methoden: Können anhand visualisierter Kursverläufe / -verteilungen Muster erkennen/gelernt werden?</li>
-<li>Weitere zusammen mit dem Betreuer festgelegte Methoden</li>
-</ul>
+<h2><span class="header-section-number">2.4</span> Methoden</h2>
+<p>Es werden verschiedene Methoden versucht und gegeneinander verglichen. Diese sind:</p>
+<!-- Anbei aber eine Sammlung von denkbaren Ansätzen: -->
+<!-- * Clusteranalysen mit Hilfe diverser Disanzmasse (Manhattan Distance, Cosine Similarity): Lassen sich um den aktuellen Kursverlauf in Verbindung zur Vergangenheit (des aktuellen oder anderer Titel) bringen und darüber allfällige Rückschlüsse auf die Zukunft zu machen. -->
+<!-- * k-means: Lassen sich in der Historie ähnliche / sich wiederholende Patterns von Kursverläufen / -verteilungen finden, welche Rückschlüsse auf die Zukunft ermöglichen? -->
+<!-- * Welche Aussagen können "klassische" autoregressive statistische Modelle (G)ARCH machen? -->
+<!-- * Können Neuronale Netze (z.B. LSTM) chartistische Muster erkennen? -->
+<!-- * Deep Learing Methoden: Können anhand visualisierter Kursverläufe / -verteilungen Muster erkennen/gelernt werden? -->
+<!-- * Weitere zusammen mit dem Betreuer festgelegte Methoden -->
 </div>
 <div id="disclaimer" class="section level2">
-<h2><span class="header-section-number">2.7</span> Disclaimer</h2>
-<p>Etliche Untersuchungen haben sich bereits damit beschäftigt, kursrelevante Informationen vorauszusagen. Viele der dabei gefundenen Erkenntnisse sind nicht oder nur unter speziellen Voraussetzungen anwendbar. Es sei deshalb an dieser Stelle erwähnt, dass sich dem sowohl der Autor als auch dessen Auftraggeber bewusst ist. Der oben beschriebene Setup ist allerdings so gelagert, dass interessante Ergebnisse denkbar sind. Auch wenn diese ausbleiben bietet diese Arbeit sowohl für den Autoren wie auch dessen Arbeitgeber die Chance, verschiedene moderne Analysetechniken/ -methoden an Finanzdaten anzuwenden, welche auch für andere Projekte wertvoll sein können.</p>
+<h2><span class="header-section-number">2.5</span> Disclaimer</h2>
+<p>Etliche Untersuchungen haben sich bereits damit beschäftigt, kursrelevante Informationen vorauszusagen. Viele der dabei gefundenen Erkenntnisse sind nicht oder nur unter speziellen Voraussetzungen anwendbar. Es sei deshalb an dieser Stelle erwähnt, dass sich dem sowohl der Autor als auch dessen Auftraggeber bewusst ist. Auch wenn diese ausbleiben bietet diese Arbeit sowohl für den Autoren wie auch dessen Arbeitgeber die Chance, verschiedene moderne Analysetechniken/ -methoden an Finanzdaten anzuwenden, welche auch für andere Projekte wertvoll sein können.</p>
 
 </div>
+</div>
+<h3>References</h3>
+<div id="refs" class="references">
+<div id="ref-sp_finance">
+<p>SP-Finance. 2020. “<em>Delta Hedging, Gamma and Dollar Gamma</em>.”</p>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol start="1">
+<li id="fn1"><p>Dies hat dann Relevanz, wenn der Eröffnungspreis eine prognostizierte Schwelle überspringen kann. Effektiv sollte die obere, resp. untere Grenze in solchen Fällen allerdings auf den Eröffnungskurs gesetzt werden.<a href="intro.html#fnref1" class="footnote-back">↩</a></p></li>
+</ol>
 </div>
             </section>
 

@@ -4,11 +4,11 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Kapitel 2 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden</title>
-  <meta name="description" content="Kapitel 2 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <title>Kapitel 3 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden</title>
+  <meta name="description" content="Kapitel 3 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   <meta name="generator" content="bookdown 0.18 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Kapitel 2 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta property="og:title" content="Kapitel 3 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   <meta property="og:type" content="book" />
   
   
@@ -16,7 +16,7 @@
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Kapitel 2 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta name="twitter:title" content="Kapitel 3 Daten | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   
   
   
@@ -52,6 +52,68 @@
 <script src="libs/kePrint-0.0.1/kePrint.js"></script>
 
 
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
 
 </head>
 
@@ -65,22 +127,26 @@
       <nav role="navigation">
 
 <ul class="summary">
-<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Management Summary</a></li>
-<li class="chapter" data-level="1" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>1</b> Einleitung</a><ul>
-<li class="chapter" data-level="1.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>1.1</b> Motivation</a></li>
-<li class="chapter" data-level="1.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>1.2</b> Forschungsfrage</a></li>
-<li class="chapter" data-level="1.3" data-path="intro.html"><a href="intro.html#abgrenzung"><i class="fa fa-check"></i><b>1.3</b> Abgrenzung</a></li>
-<li class="chapter" data-level="1.4" data-path="intro.html"><a href="intro.html#einbettung-in-der-literatur"><i class="fa fa-check"></i><b>1.4</b> Einbettung in der Literatur</a></li>
-<li class="chapter" data-level="1.5" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>1.5</b> Daten</a></li>
-<li class="chapter" data-level="1.6" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>1.6</b> Methoden</a></li>
-<li class="chapter" data-level="1.7" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>1.7</b> Disclaimer</a></li>
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> - </a></li>
+<li class="chapter" data-level="2" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>2</b> Einleitung</a><ul>
+<li class="chapter" data-level="2.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>2.1</b> Motivation</a></li>
+<li class="chapter" data-level="2.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>2.2</b> Forschungsfrage</a></li>
+<li class="chapter" data-level="2.3" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>2.3</b> Daten</a></li>
+<li class="chapter" data-level="2.4" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>2.4</b> Methoden</a></li>
+<li class="chapter" data-level="2.5" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>2.5</b> Disclaimer</a></li>
 </ul></li>
-<li class="chapter" data-level="2" data-path="daten-1.html"><a href="daten-1.html"><i class="fa fa-check"></i><b>2</b> Daten</a></li>
-<li class="chapter" data-level="3" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>3</b> Analyse</a><ul>
-<li class="chapter" data-level="3.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>3.1</b> Einfache Optimierungen</a></li>
-<li class="chapter" data-level="3.2" data-path="analyse.html"><a href="analyse.html#klassifikationsverfahren"><i class="fa fa-check"></i><b>3.2</b> Klassifikationsverfahren</a></li>
-<li class="chapter" data-level="3.3" data-path="analyse.html"><a href="analyse.html#neuronale-netzwerke"><i class="fa fa-check"></i><b>3.3</b> Neuronale Netzwerke</a></li>
-<li class="chapter" data-level="3.4" data-path="analyse.html"><a href="analyse.html#autoregressive-modelle"><i class="fa fa-check"></i><b>3.4</b> Autoregressive Modelle</a></li>
+<li class="chapter" data-level="3" data-path="daten-1.html"><a href="daten-1.html"><i class="fa fa-check"></i><b>3</b> Daten</a><ul>
+<li class="chapter" data-level="3.1" data-path="daten-1.html"><a href="daten-1.html#bezug-und-umfang"><i class="fa fa-check"></i><b>3.1</b> Bezug und Umfang</a></li>
+<li class="chapter" data-level="3.2" data-path="daten-1.html"><a href="daten-1.html#datenaufbreitung"><i class="fa fa-check"></i><b>3.2</b> Datenaufbreitung</a><ul>
+<li class="chapter" data-level="3.2.1" data-path="daten-1.html"><a href="daten-1.html#bereinigung-und-normalisierung"><i class="fa fa-check"></i><b>3.2.1</b> Bereinigung und Normalisierung</a></li>
+<li class="chapter" data-level="3.2.2" data-path="daten-1.html"><a href="daten-1.html#preisadjustierung-aufgrund-von-corporate-actions"><i class="fa fa-check"></i><b>3.2.2</b> Preisadjustierung aufgrund von Corporate Actions</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
+<li class="chapter" data-level="4.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>4.1</b> Einfache Optimierungen</a></li>
+<li class="chapter" data-level="4.2" data-path="analyse.html"><a href="analyse.html#klassifikationsverfahren"><i class="fa fa-check"></i><b>4.2</b> Klassifikationsverfahren</a></li>
+<li class="chapter" data-level="4.3" data-path="analyse.html"><a href="analyse.html#neuronale-netzwerke"><i class="fa fa-check"></i><b>4.3</b> Neuronale Netzwerke</a></li>
+<li class="chapter" data-level="4.4" data-path="analyse.html"><a href="analyse.html#autoregressive-modelle"><i class="fa fa-check"></i><b>4.4</b> Autoregressive Modelle</a></li>
 </ul></li>
 </ul>
 
@@ -100,24 +166,13 @@
 
             <section class="normal" id="section-">
 <div id="daten-1" class="section level1">
-<h1><span class="header-section-number">Kapitel 2</span> Daten</h1>
-<p>Für die Analyse die Aktien grosser Unternehmen weltweit herangezogen - konkret alle Aktienkomponenten des “iShares MSCI World UCITS ETF” <span class="citation">(vgl. Blackrock <a href="#ref-blackrock">2020</a>)</span> per 28. Februar 2020<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> verwendet. Insgesamt enthält dieser ETF 1639 Titel. Für diese stehen verschiedene Attribute zur Verfügung, welche für die Aktie von “Nestlé” wie folgt lauten:</p>
-<!-- * **Ticker:** Eindeutige Bezeichung des Titels ohne Länderendung -->
-<!-- * **Name:** Name der Unternehmung -->
-<!-- * **Asset Class** Anlageklasse (hier stets "Equity") -->
-<!-- * **Weight (%):** Gewichtung des Titels innerhalb des ETF -->
-<!-- * **Price:** Preis per 28.02.2020 -->
-<!-- * **Shares:** Anzahl ausstehender Aktien -->
-<!-- * **Market Value:** Marktkapitalisierung -->
-<!-- * **Notional Value:** Nominalwert (entspricht bei Aktien der Marktkapitalisierung) -->
-<!-- * **Sector:** Tätigkeitsbereich des Unternehmens -->
-<!-- * **ISIN:** International Wertpapierkennnummer -->
-<!-- * **Exchange:** Primärer Börsenplatz -->
-<!-- * **Location:** Land -->
-<!-- * **Market Currency:** Währung des Titels -->
+<h1><span class="header-section-number">Kapitel 3</span> Daten</h1>
+<div id="bezug-und-umfang" class="section level2">
+<h2><span class="header-section-number">3.1</span> Bezug und Umfang</h2>
+<p>Für die Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret verwendet die Arbeit alle Aktienkomponenten des “iShares MSCI World UCITS ETF” <span class="citation">(vgl. Blackrock <a href="#ref-blackrock">2020</a>)</span> per 28. Februar 2020<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus 1639 Komponenten, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:nestle-stock">Tabelle 2.1: </span>Attribute der Nestlé Aktie per 28. Februar 2020
+<span id="tab:nestle-stock">Tabelle 3.1: </span>Attribute der Nestlé Aktie per 28. Februar 2020
 </caption>
 <thead>
 <tr>
@@ -236,10 +291,10 @@ CHF
 </tr>
 </tbody>
 </table>
-<p>Für all diese Titel werden - sofern verfügbar - werden die täglichen historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten sind via Yahoo Finance frei verfügbar <span class="citation">(vgl. Yahoo <a href="#ref-yahoo_finance">2020</a>)</span>. Für die Analyse kommen so 9’212’052 tägliche Datenwerte für 1’636 Unternehmen zusammen. Für 3 Titel können keine Werte gefunden werden. Tabelle <a href="daten-1.html#tab:nestle-quote">2.2</a> zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. Dieser Tag ist insofern speziell als dass es der letzte Börsentag vor Ex-Dividend, d.h. der letzte Tag, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wird. Diese betrug CHF 2.45 <span class="citation">(Nestle <a href="#ref-nestle">2020</a>)</span> und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Zu beachten gilt es ferner, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben.</p>
+<p>Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen auf Yahoo Finance zur freien Nutzung auf täglicher Basis zur Verfügung <span class="citation">(vgl. Yahoo <a href="#ref-yahoo_finance">2020</a>)</span> und lassen sich mit entsprechedem API automatisiert abfragen. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben. Für die Analyse kommen so 9’212’052 tägliche Datenwerte für 1’636 Titel zusammen. Für 3 Aktien können keine Werte gefunden werden. Tabelle <a href="daten-1.html#tab:nestle-quote">3.2</a> zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019.</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:nestle-quote">Tabelle 2.2: </span>Kursinformationen der Nesté Aktie per 12. April 2019
+<span id="tab:nestle-quote">Tabelle 3.2: </span>Kursinformationen der Nesté Aktie per 12. April 2019
 </caption>
 <thead>
 <tr>
@@ -318,15 +373,12 @@ Volume
 </tr>
 </tbody>
 </table>
-<!-- Im Datensatz befinden sich folgende Werte: -->
-<!-- * **Ticker:** Eindeutige Bezeichung des Titels inkl. Länderendung -->
-<!-- * **Date:** Datum des Datensatzes -->
-<!-- * **Open:** Aktienkurs zum Börsenstart des jeweiligen Tages -->
-<!-- * **High:** Höchster erreichter Kursstand des jeweiligen Tages -->
-<!-- * **Close:** Schlusstand des Kurses des jeweiligen Tages -->
-<!-- * **Adjusted:** Schlussstand des jeweiligen Tages unter Berücksichtigung von "Corporate Actions" wie bsp. Dividendenzahlungen, Aktiensplits, etc. -->
-<!-- * **Volumne:** Anzahl der am jeweiligen Tag gehandelten Aktien -->
-<p>Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein.</p>
+</div>
+<div id="datenaufbreitung" class="section level2">
+<h2><span class="header-section-number">3.2</span> Datenaufbreitung</h2>
+<div id="bereinigung-und-normalisierung" class="section level3">
+<h3><span class="header-section-number">3.2.1</span> Bereinigung und Normalisierung</h3>
+<p>Obwohl es sich bei den verwendeten Daten um sehr häufig verwendete Werte handelt und mit Yahoo Finance ein erfahrener Datenanbieter gewählt wurde, zeigt ein erster Blick auf die bezogenen Rohdaten gewisse Probleme und Datenmängel.</p>
 <pre><code>##     Ticker               Date                 Open              Low         
 ##  Length:9212052     Min.   :1962-01-02   Min.   :      0   Min.   :      0  
 ##  Class :character   1st Qu.:2000-08-21   1st Qu.:     12   1st Qu.:     12  
@@ -343,8 +395,16 @@ Volume
 ##  3rd Qu.:    158   3rd Qu.:    157   3rd Qu.: 1.220e+02   3rd Qu.:3.183e+06  
 ##  Max.   :9046660   Max.   :3656250   Max.   : 5.487e+22   Max.   :6.271e+11  
 ##  NA&#39;s   :135267    NA&#39;s   :135267    NA&#39;s   :135267       NA&#39;s   :135267</code></pre>
+<p>Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein.</p>
+</div>
+<div id="preisadjustierung-aufgrund-von-corporate-actions" class="section level3">
+<h3><span class="header-section-number">3.2.2</span> Preisadjustierung aufgrund von Corporate Actions</h3>
+<p>Die Werte in Tabelle <a href="daten-1.html#tab:nestle-quote">3.2</a> sind insofern speziell, als dass sie den Ex-Dividend Tag von Nestlé für 2019 betreffen. Das heisst es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug für dieses Jahr CHF 2.45 <span class="citation">(Nestle <a href="#ref-nestle">2020</a>)</span>. und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises.</p>
 <p>Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">quotes_line &lt;-<span class="st"> </span><span class="kw">na_extremes</span>(quotes_line, <span class="dt">col =</span> <span class="kw">c</span>(<span class="st">&quot;Open&quot;</span>, <span class="st">&quot;Low&quot;</span>, <span class="st">&quot;High&quot;</span>, <span class="st">&quot;Close&quot;</span>, <span class="st">&quot;Adjusted_t&quot;</span>), <span class="dt">tail =</span> <span class="fl">0.01</span>)</a></code></pre></div>
 
+</div>
+</div>
 </div>
 <h3>References</h3>
 <div id="refs" class="references">
@@ -420,20 +480,6 @@ gitbook.start({
 });
 </script>
 
-<!-- dynamically load mathjax for compatibility with self-contained -->
-<script>
-  (function () {
-    var script = document.createElement("script");
-    script.type = "text/javascript";
-    var src = "true";
-    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
-    if (location.protocol !== "file:")
-      if (/^https?:/.test(src))
-        src = src.replace(/^https?:/, '');
-    script.src = src;
-    document.getElementsByTagName("head")[0].appendChild(script);
-  })();
-</script>
 </body>
 
 </html>
