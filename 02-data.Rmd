@@ -1,7 +1,8 @@
 # Daten
+## Bezug und Umfang
+### Aktienuniversum
 
-```{r, setup_data, echo=FALSE, warning=FALSE, message=FALSE}
-
+```{r, retrieve-etf-data, echo=FALSE, warning=FALSE, message=FALSE}
 suppressPackageStartupMessages({
   library(digest)
   library(here)
@@ -24,8 +25,43 @@ if (!file.exists(file_stocks)) {
   file_stocks <- here::here(paste0("data/stocks_", stocks_hash,".rds"))
   saveRDS(stocks, file_stocks)
 }
-stocks <- readRDS(file_stocks)
+stocks <- readRDS(file_stocks) %>% unnest(cols = names(.))
+```
 
+Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret werden alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks)` Aktien, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:
+
+``` {r etf-data-nestle-stock, echo=FALSE}
+stock_nesn <- dplyr::filter(stocks, Ticker == "NESN")
+knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption = "Attribute der Nestlé Aktie per 28. Februar 2020") %>%
+  kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+Neben eindeutigen Identifiern wie "Ticker" und "ISIN" enthält der Datensatz auch Informationen zur "Asset Class" der Komponente. Für die vorliegende Analyse von Aktien ist hierbei lediglich die Ausprägung "Equity" zulässig. Die Kennzahlen "Weight", "Market Value" und "Notional Value" geben Auskunft über die Grösse der betachteten Unternehmung und eignen sich auch zum Vergleich ebendieser. Zu beachten gilt, dass im Falle von Aktien der "Notional Value" dem "Market Value" entspricht und sich dieser bis auf rundungsbedingte Differenzen auch aus der Anzahl ausgegebener Titel mal Tagesendkurs ("Shares" x "Price") ermitteln lässt. 
+
+Als weitere Unterscheidungsmerkmale sind der Hauptbörsenplatz "Exchange" (`r length(unique(stocks$Exchange))` unterschiedliche Ausprägungen), der Sitz "Location" (`r length(unique(stocks$Location))` Ausprägungen) sowie die Währung "Market Currency" (`r length(unique(stocks[["Market Currency"]]))` Ausprägungen) aufgeführt. Alle drei Attribute bilden stark verwandte Informationen ab. Geschlüsselt auf Kontinente ergeben sich für den Börsensitz folgende Anteile: 
+
+- Nordamerika: `r round(sum(stocks$Location %in% c("United States", "Canada"))/nrow(stocks) * 100, 0)`% 
+- Europa: `r round(sum(stocks$Location %in% c("Portugal", "Austria", "Ireland", "Norway", "Belgium", "Finland", "Israel", "Denmark", "Netherlands", "Spain", "Italy", "Sweden", "Switzerland", "Germany", "France", "United Kingdom"))/nrow(stocks) * 100, 0)`% 
+- Asien: `r round(sum(stocks$Location %in% c("Japan", "Hong Kong", "Singapore"))/nrow(stocks) * 100, 0)`% 
+- Australien: `r round(sum(stocks$Location %in% c("Australia", "New Zealand"))/nrow(stocks) * 100, 0)`%
+
+Als letzes Attribut enthält der Datensatz Angaben zum "Sector" in welchem die jeweilige Unternehmung tätigt ist. Bis auf die Kategorien "Energy" und "Other" ist jeder der `r length(unique(stocks$Sector))` aufgeführten Sektoren mit mindestens 5 Anteil vorhanden. Die beiden Sektoren mit dem höchsten Anteil sind "Industrials" und "Financials".
+
+
+``` {r, fig.cap='Anzahl im Datensatz vorhandene Titel je Sektor', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
+table(stocks$Sector) %>%
+  sort(decreasing = FALSE) %>%
+  tibble(Sektor = factor(names(.), levels = unique(names(.))), Anteil = . / sum(.) ) %>%
+  ggplot2::ggplot(ggplot2::aes(x = Sektor, y = Anteil)) + 
+  ggplot2::geom_bar(stat = "identity") +
+  ggplot2::scale_y_continuous(labels=scales::percent) +
+  ggplot2::coord_flip()
+```
+
+
+### Preisinformationen
+
+``` {r, retrieve-quotes-data, echo=FALSE}
 # load quotes
 quotes_hash <- "6175759dd4876b820a6457a4c341e9cd"
 file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
@@ -38,39 +74,44 @@ if (!file.exists(file_quotes)) {
 quotes <- readRDS(file_quotes)
 ```
 
-## Bezug und Umfang
-
-Für die Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret verwendet die Arbeit alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks)` Komponenten, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:
-
-``` {r nestle-stock, echo=FALSE}
-stock_nesn <- dplyr::filter(stocks, Ticker == "NESN")
-knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption = "Attribute der Nestlé Aktie per 28. Februar 2020") %>%
-  kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
-```
+Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
 
 
-Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen auf Yahoo Finance zur freien Nutzung auf täglicher Basis zur Verfügung [vgl. @yahoo_finance] und lassen sich mit entsprechedem API automatisiert abfragen. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix für das Länderkürzel haben. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:nestle-quote) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
-
-``` {r nestle-quote, echo=FALSE}
+``` {r quote-data-nestle, echo=FALSE}
 quote_nesn <- dplyr::filter(quotes, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
+
 knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption = "Kursinformationen der Nesté Aktie per 12. April 2019") %>%
   kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
+Die Werte "Open", "Low", "High" und "Close" zeigen Eröffnungs-, Tiefst-, Höchst- und Schlusskurs des Titels. Mit "Volume" werden die Anzahl gehandelter Titel am jeweiligen Tag angegeben. Unter "Adjusted" ist der um Dividendenausschüttungen korrigierte Schlusskurs aufgeführt.^[Allfällige Aktiensplits sind in allen Werten bereits berücksichtigt.] 
+
+Die Werte in Tabelle \@ref(tab:quote-data-nestle) sind insofern speziell, als dass sie den letzten Tag vor dem Ex-Dividend Datum von Nestlé für 2019 betreffen. Das heisst, es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug in jenem Jahr CHF 2.45 [vgl. @nestle]. Diese Differenz widerspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Da alle Werte (auch Open, Low, High und Close) am Folgetag ohne den Anspruch auf diese Dividende gehandelt werden, fallen diese typischerweise tiefer aus. Um eine Vergleichbarkeit der Renditen über die Zeit zu gewährleisten ist daher eine Anpassung der Werte mit Hilfe des Adjustement-Faktors nötig. Dieser ergibt sich als Quotient von Adjusted und Close Preis und wird auf allen Einträgen angewendet.
+
+Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten Tages - ausser eben am Tag vor Ex-Dividend - mit auf aktuellen Kurs festlegt. Im Lauf der Zeit und mit neuen Ausschüttungen verändert sich damit auch die Historie der Adjusted Werte. Dies lässt sich zeigen, wenn der Beispieleintrag von Nestlé per 12. April 2019 nach der nächsten Dividendenausschüttung (27. April 2020) noch einmal abgerufen wird [vgl. @nestle]. Während alle Preise ausser "Adjusted" identisch ausgewiesen sind, hat sich dieser neu auf 90.72 verändert [vgl. @yahoo_finance]. Mit der nächsten Dividenenausschüttung (voraussichtlich im April 2021) wird sich dieser Wert dann wieder ändern. Mit Hilfe der Adjustierung ist aber gewährleistet, dass die Werte vergleichbar bleiben.
+
 
 ## Datenaufbreitung
+### Bereinigung
 
-### Bereinigung und Normalisierung
-Obwohl es sich bei den verwendeten Daten um sehr häufig verwendete Werte handelt und mit Yahoo Finance ein erfahrener Datenanbieter gewählt wurde, zeigt ein erster Blick auf die bezogenen Rohdaten gewisse Probleme und Datenmängel.
+Mit Yahoo Finance wird ein erfahrener und häufig verwendeter Datenanbieter gewählt. Ein Blick auf die Rohdaten zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können.
 
 ```{r, echo=FALSE}
-summary(quotes)
+summary(quotes[, setdiff(names(quotes), c("Date", "Ticker", "Volume"))])
 ```
 
-Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schitten:
+Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten:
 
-1. Entfernen von Datenfehlern bei Corporate Actions
-1. Entfernen von negativen Preisen
+```{r, filter-data, echo=FALSE}
+wrong_corporate_action_threshold <- 0.001
+quotes <- na_wrong_corporate_actions(quotes, wrong_corporate_action_threshold)
+```
+1. Entfernen von fehlerhaften Adjustierungsdaten  
+Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen 
+
+1. Entfernen von negativen Preisen  
+
+
 1. Entfernen von Einträgen mit unerwarterer Reihenfolge der vorhandenen Kennzahlen
 1. Erkennen und Ausschluss offensichtlicher Tipfehler
 1. Unplausible Preisbewegungen innerhalb des Tages
@@ -80,9 +121,8 @@ Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen 
 
 
 
-```{r, filter_data, echo=FALSE}
+```{r, filter-data, echo=FALSE}
 quotes <- quotes %>%
-  na_wrong_corporate_actions() %>% # should be first
   na_negative_values() %>%
   na_unreasonable_measure_order() %>%
   na_typos() %>%
@@ -97,21 +137,9 @@ quotes <- quotes %>%
 
 
 
-### Preisadjustierung aufgrund von Corporate Actions
-
-Die Werte in Tabelle \@ref(tab:nestle-quote) sind insofern speziell, als dass sie den Ex-Dividend Tag von Nestlé für 2019 betreffen. Das heisst es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug für dieses Jahr CHF 2.45 [@nestle]. und wiederspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. 
 
 
-
-```{r, adjust_prices, echo=FALSE}
-quotes <- adjust_quotes(quotes)
-```
-
-
-
-
-
-```{r, reorganize_one_line, echo=FALSE}
+```{r, reorganize-one-line, echo=FALSE}
 quotes_line <- quotes %>%
   group_by(Ticker) %>%
   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
@@ -122,19 +150,21 @@ quotes_line <- quotes %>%
 
 Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.
 
+### Indexierung
+
 ```{r, echo=FALSE}
 norm_factor <- 100 / quotes_line$Adjusted_t_1
 quotes_line <- mutate_at(quotes_line, c("Open", "Low", "High", "Close", "Adjusted_t", "Adjusted_t_1"),  ~norm_factor * .)
 
 ```
 
-``` {r, remove_quanitles}
+``` {r, remove-quanitles}
 quotes_line <- na_extremes(quotes_line, col = c("Open", "Low", "High", "Close", "Adjusted_t"), tail = 0.01)
 
 ```
 
 
-```{r, round_data, echo=FALSE}
+```{r, round-data, echo=FALSE}
 quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
 ```
 

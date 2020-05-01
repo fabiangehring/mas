@@ -75,8 +75,8 @@ na_too_large_daily_changes <- function(quotes_ticker, max_ratio = 2) {
 #' @examples
 #' quotes_ticker <- tibble(Ticker = "SIKA.SW", Date = as.Date("2005-12-06"), Open = 17.5, Low = 17.4, High = 17.7, Clos = 17.7, Adjusted = -0.000001, Volume = 528480)
 #' na_wrong_corporate_actions(quotes_ticker)
-na_wrong_corporate_actions <- function(quotes_ticker) {
-  ticker_with_neg_adj <- quotes_ticker %>% filter(Adjusted < 0.001) %>% .[["Ticker"]] %>% unique()
+na_wrong_corporate_actions <- function(quotes_ticker, threshold) {
+  ticker_with_neg_adj <- quotes_ticker %>% filter(Adjusted < threshold) %>% .[["Ticker"]] %>% unique()
   quotes_ticker$Adjusted[quotes_ticker$Ticker %in% ticker_with_neg_adj] <- NA
   quotes_ticker
 }
