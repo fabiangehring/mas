@@ -52,68 +52,6 @@
 <script src="libs/kePrint-0.0.1/kePrint.js"></script>
 
 
-<style type="text/css">
-a.sourceLine { display: inline-block; line-height: 1.25; }
-a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
-a.sourceLine:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode { white-space: pre; position: relative; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-code.sourceCode { white-space: pre-wrap; }
-a.sourceLine { text-indent: -1em; padding-left: 1em; }
-}
-pre.numberSource a.sourceLine
-  { position: relative; left: -4em; }
-pre.numberSource a.sourceLine::before
-  { content: attr(data-line-number);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; pointer-events: all; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {  }
-@media screen {
-a.sourceLine::before { text-decoration: underline; }
-}
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-</style>
 
 </head>
 
@@ -140,9 +78,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li class="chapter" data-level="3.1.1" data-path="daten-1.html"><a href="daten-1.html#aktienuniversum"><i class="fa fa-check"></i><b>3.1.1</b> Aktienuniversum</a></li>
 <li class="chapter" data-level="3.1.2" data-path="daten-1.html"><a href="daten-1.html#preisinformationen"><i class="fa fa-check"></i><b>3.1.2</b> Preisinformationen</a></li>
 </ul></li>
-<li class="chapter" data-level="3.2" data-path="daten-1.html"><a href="daten-1.html#datenaufbreitung"><i class="fa fa-check"></i><b>3.2</b> Datenaufbreitung</a><ul>
+<li class="chapter" data-level="3.2" data-path="daten-1.html"><a href="daten-1.html#aufbereitung"><i class="fa fa-check"></i><b>3.2</b> Aufbereitung</a><ul>
 <li class="chapter" data-level="3.2.1" data-path="daten-1.html"><a href="daten-1.html#bereinigung"><i class="fa fa-check"></i><b>3.2.1</b> Bereinigung</a></li>
-<li class="chapter" data-level="3.2.2" data-path="daten-1.html"><a href="daten-1.html#indexierung"><i class="fa fa-check"></i><b>3.2.2</b> Indexierung</a></li>
+<li class="chapter" data-level="3.2.2" data-path="daten-1.html"><a href="daten-1.html#normalisierung"><i class="fa fa-check"></i><b>3.2.2</b> Normalisierung</a></li>
 </ul></li>
 </ul></li>
 <li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
@@ -397,12 +335,12 @@ Volume
 </tbody>
 </table>
 <p>Die Werte “Open”, “Low”, “High” und “Close” zeigen Eröffnungs-, Tiefst-, Höchst- und Schlusskurs des Titels. Mit “Volume” werden die Anzahl gehandelter Titel am jeweiligen Tag angegeben. Unter “Adjusted” ist der um Dividendenausschüttungen korrigierte Schlusskurs aufgeführt.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
-<p>Die Werte in Tabelle <a href="daten-1.html#tab:quote-data-nestle">3.2</a> sind insofern speziell, als dass sie den letzten Tag vor dem Ex-Dividend Datum von Nestlé für 2019 betreffen. Das heisst, es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug in jenem Jahr CHF 2.45 <span class="citation">(Nestle <a href="#ref-nestle">2020</a>)</span>. Diese Differenz widerspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Da alle Werte (auch Open, Low, High und Close) am Folgetag ohne den Anspruch auf diese Dividende gehandelt werden, fallen diese typischerweise tiefer aus. Um eine Vergleichbarkeit der Renditen über die Zeit zu gewährleisten ist daher eine Anpassung der Werte mit Hilfe des Adjustement-Faktors nötig. Dieser ergibt sich als Quotient von Adjusted und Close Preis und wird auf allen Einträgen angewendet.</p>
-<p>Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten Tages - ausser eben am Tag vor Ex-Dividend - mit auf aktuellen Kurs festlegt. Im Lauf der Zeit und mit neuen Ausschüttungen verändert sich damit auch die Historie der Adjusted Werte. Dies lässt sich zeigen, wenn der Beispieleintrag von Nestlé per 12. April 2019 nach der nächsten Dividendenausschüttung (27. April 2020) noch einmal abgerufen wird. <span class="citation">(Nestle <a href="#ref-nestle">2020</a>)</span> Während alle Preise ausser “Adjusted” identisch ausgewiesen sind, hat sich dieser neu auf 90.72 verändert. <span class="citation">(vgl. Yahoo <a href="#ref-yahoo_finance">2020</a>)</span> Mit der nächsten Dividenenausschüttung (voraussichtlich im April 2021) wird sich dieser Wert dann wieder ändern. Mit Hilfe der Adjustierung ist aber gewährleistet, dass die Werte vergleichbar bleiben.</p>
+<p>Die Werte in Tabelle <a href="daten-1.html#tab:quote-data-nestle">3.2</a> sind insofern speziell, als dass sie den letzten Tag vor dem Ex-Dividend Datum von Nestlé für 2019 betreffen. Das heisst, es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug in jenem Jahr CHF 2.45 <span class="citation">(vgl. Nestle <a href="#ref-nestle">2020</a>)</span>. Diese Differenz widerspiegelt sich in den Daten als Differenz des Close- und Adjusted-Preises. Da alle Werte (auch Open, Low, High und Close) am Folgetag ohne den Anspruch auf diese Dividende gehandelt werden, fallen diese typischerweise tiefer aus. Um eine Vergleichbarkeit der Renditen über die Zeit zu gewährleisten ist daher eine Anpassung der Werte mit Hilfe des Adjustement-Faktors nötig. Dieser ergibt sich als Quotient von Adjusted und Close Preis und wird auf allen Einträgen angewendet.</p>
+<p>Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten Tages - ausser eben am Tag vor Ex-Dividend - mit auf aktuellen Kurs festlegt. Im Lauf der Zeit und mit neuen Ausschüttungen verändert sich damit auch die Historie der Adjusted Werte. Dies lässt sich zeigen, wenn der Beispieleintrag von Nestlé per 12. April 2019 nach der nächsten Dividendenausschüttung (27. April 2020) noch einmal abgerufen wird <span class="citation">(vgl. Nestle <a href="#ref-nestle">2020</a>)</span>. Während alle Preise ausser “Adjusted” identisch ausgewiesen sind, hat sich dieser neu auf 90.72 verändert <span class="citation">(vgl. Yahoo <a href="#ref-yahoo_finance">2020</a>)</span>. Mit der nächsten Dividenenausschüttung (voraussichtlich im April 2021) wird sich dieser Wert dann wieder ändern. Mit Hilfe der Adjustierung ist aber gewährleistet, dass die Werte vergleichbar bleiben.</p>
 </div>
 </div>
-<div id="datenaufbreitung" class="section level2">
-<h2><span class="header-section-number">3.2</span> Datenaufbreitung</h2>
+<div id="aufbereitung" class="section level2">
+<h2><span class="header-section-number">3.2</span> Aufbereitung</h2>
 <div id="bereinigung" class="section level3">
 <h3><span class="header-section-number">3.2.1</span> Bereinigung</h3>
 <p>Mit Yahoo Finance wird ein erfahrener und häufig verwendeter Datenanbieter gewählt. Ein Blick auf die Rohdaten zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können.</p>
@@ -414,29 +352,35 @@ Volume
 ##  3rd Qu.:    157   3rd Qu.:    155   3rd Qu.:    158   3rd Qu.:    157  
 ##  Max.   :3750000   Max.   :3600000   Max.   :9046660   Max.   :3656250  
 ##  NA&#39;s   :135267    NA&#39;s   :135267    NA&#39;s   :135267    NA&#39;s   :135267   
-##     Adjusted              Volume         
-##  Min.   :-1.181e+20   Min.   :0.000e+00  
-##  1st Qu.: 7.000e+00   1st Qu.:3.368e+05  
-##  Median : 2.600e+01   Median :1.121e+06  
-##  Mean   : 7.285e+17   Mean   :9.974e+06  
-##  3rd Qu.: 1.220e+02   3rd Qu.:3.183e+06  
-##  Max.   : 5.487e+22   Max.   :6.271e+11  
-##  NA&#39;s   :135267       NA&#39;s   :135267</code></pre>
-<p>Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten:</p>
+##     Adjusted         
+##  Min.   :-1.181e+20  
+##  1st Qu.: 7.000e+00  
+##  Median : 2.600e+01  
+##  Mean   : 7.285e+17  
+##  3rd Qu.: 1.220e+02  
+##  Max.   : 5.487e+22  
+##  NA&#39;s   :135267</code></pre>
+<p>Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten. Allen gemeinsam ist, dass die Bereinigung keinen Ausschluss der Daten zur Folge hat, sondern betroffene Werte als “Nicht verfügbar, (NA)” klassifiziert werden. Diese Unterscheidung ist insbesondere bei rollierender Betrachtung eines Zeitfensters der Vergangenheit von Bedeutung.</p>
 <ol style="list-style-type: decimal">
-<li><p>Entfernen von fehlerhaften Adjustierungsdaten<br />
-asdfasdf</p></li>
-<li>Entfernen von negativen Preisen</li>
-<li>Entfernen von Einträgen mit unerwarterer Reihenfolge der vorhandenen Kennzahlen</li>
-<li>Erkennen und Ausschluss offensichtlicher Tipfehler</li>
-<li><p>Unplausible Preisbewegungen innerhalb des Tages</p></li>
+<li><p><strong>Entfernen von fehlerhaften Adjustierungsdaten</strong><br />
+Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. <a href="daten-1.html#preisinformationen">3.1.2</a>) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich <span class="math inline">\(-10^{-6}\)</span>), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als 0.001 aufweisen, ausgeschlossen.</p></li>
+<li><p><strong>Entfernen von Einträgen mit unerwarterer Reihenfolge</strong><br />
+Die Werte für Open, Low, High und Close implizieren eine klare Reihenfolge. Keine anderer der Werte darf höher als das High oder kleiner als das Low sein. Ist dies der Fall, werden die entsprechenden Werte von der Analyse ausgeschlossen.</p></li>
+<li><p><strong>Erkennen und Ausschluss von Tippfehlern</strong><br />
+Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel “AV.L” weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als 8 sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.</p></li>
+<li><p><strong>Fehlende Preisbewegungen innerhalb des Tages</strong><br />
+Der Aktienkurs eines grösseren Unternehens bewegt sich typischerweise auch an ruhigen Börsentagen immer ein wenig. Die vorhandenen Preise liegen mit der Genauigkeit mehrer Nachkommastellen vor. Unterscheiden sich hierbei Tagestiefst- und Tageshöchstpreis nicht, muss von einem Datenfehler ausgegangen werden. Einträge ohne Preisbewegung innerhalb des Tages werden daher von der Analyse ausgeschlossen.</p></li>
+<li><p><strong>Fehlende Kursbewegungen über nacheinanderfolgende Börsentage</strong><br />
+Ähnlich wie bei den Preisbewegungen innerhalb des Tages verhält es sich auch bei Bewegungen über sich folgende Börsentage hinweg. Es ist zu erwarten, dass sich mindestens einer der fünf betrachteten Preise vom Vortag unterscheidet. Ist dies nicht der Fall, wird der Eintrag ausgeschlossen.</p></li>
+<li><p><strong>Aussergewöhnlich hohe Preisbewegungen</strong><br />
+Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor 2 unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.</p></li>
+<li><p><strong>Ausschluss von Extremwerten</strong><br />
+Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. <a href="intro.html#forschungsfrage">2.2</a>). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.</p></li>
 </ol>
-<p>Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein.</p>
-<p>Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.</p>
+<p>Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus 9212052 Einträgen besteht. Davon weisen 135267 Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf 1688409. Für die Analyse bleiben somit 7523643 verwendbare Einträge.</p>
 </div>
-<div id="indexierung" class="section level3">
-<h3><span class="header-section-number">3.2.2</span> Indexierung</h3>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">quotes_line &lt;-<span class="st"> </span><span class="kw">na_extremes</span>(quotes_line, <span class="dt">col =</span> <span class="kw">c</span>(<span class="st">&quot;Open&quot;</span>, <span class="st">&quot;Low&quot;</span>, <span class="st">&quot;High&quot;</span>, <span class="st">&quot;Close&quot;</span>, <span class="st">&quot;Adjusted_t&quot;</span>), <span class="dt">tail =</span> <span class="fl">0.01</span>)</a></code></pre></div>
+<div id="normalisierung" class="section level3">
+<h3><span class="header-section-number">3.2.2</span> Normalisierung</h3>
 
 </div>
 </div>
@@ -516,6 +460,20 @@ gitbook.start({
 });
 </script>
 
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
 </body>
 
 </html>

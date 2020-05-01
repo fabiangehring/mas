@@ -51,8 +51,8 @@ na_no_daily_changes <- function(quotes_ticker, cols = c("Open", "Low", "High", "
 #' A date.frame where unreasonable values for adjusted are replaced by NA
 #'
 #' @examples
-#' na_too_large_daily_changes(tibble(Adjusted = c(1, 100, 1)))
-na_too_large_daily_changes <- function(quotes_ticker, max_ratio = 2) {
+#' na_too_large_daily_changes(tibble(Adjusted = c(1, 100, 1)), 2)
+na_too_large_daily_changes <- function(quotes_ticker, max_ratio) {
   too_large_daily_changes_up_bool <- c(FALSE, tidyr::replace_na(tail(quotes_ticker$Adjusted, -1) / head(quotes_ticker$Adjusted, -1) > max_ratio, FALSE))
   too_large_daily_changes_down_bool <- c(FALSE, tidyr::replace_na(head(quotes_ticker$Adjusted, -1) / tail(quotes_ticker$Adjusted, -1) > max_ratio, FALSE))
   
@@ -167,7 +167,7 @@ na_unreasonable_measure_order <- function(quotes_ticker) {
 #' 
 #' quotes_ticker_2 <- tibble(Ticker = "VOD.L", Date = as.Date("2019-09-16"), Open = 160, Low = 158, High = 1602, Close = 159, Adjusted = 155, Volume = 203315444)
 #' na_typos(quotes_ticker_2)
-na_typos <- function(quotes_ticker, max_ratio = 8) {
+na_typos <- function(quotes_ticker, max_ratio) {
   
   unreasonable_open_low <- tidyr::replace_na(quotes_ticker$Open / quotes_ticker$Low > max_ratio, FALSE)
   unreasonable_low_open <- tidyr::replace_na(quotes_ticker$Low / quotes_ticker$Open > max_ratio, FALSE)

@@ -71,14 +71,14 @@ if (!file.exists(file_quotes)) {
   file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
   saveRDS(quotes, file_quotes)
 }
-quotes <- readRDS(file_quotes)
+quotes_raw <- readRDS(file_quotes)
 ```
 
-Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
+Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
 
 
 ``` {r quote-data-nestle, echo=FALSE}
-quote_nesn <- dplyr::filter(quotes, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
+quote_nesn <- dplyr::filter(quotes_raw, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
 
 knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption = "Kursinformationen der Nesté Aktie per 12. April 2019") %>%
   kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
@@ -91,77 +91,87 @@ Die Werte in Tabelle \@ref(tab:quote-data-nestle) sind insofern speziell, als da
 Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten Tages - ausser eben am Tag vor Ex-Dividend - mit auf aktuellen Kurs festlegt. Im Lauf der Zeit und mit neuen Ausschüttungen verändert sich damit auch die Historie der Adjusted Werte. Dies lässt sich zeigen, wenn der Beispieleintrag von Nestlé per 12. April 2019 nach der nächsten Dividendenausschüttung (27. April 2020) noch einmal abgerufen wird [vgl. @nestle]. Während alle Preise ausser "Adjusted" identisch ausgewiesen sind, hat sich dieser neu auf 90.72 verändert [vgl. @yahoo_finance]. Mit der nächsten Dividenenausschüttung (voraussichtlich im April 2021) wird sich dieser Wert dann wieder ändern. Mit Hilfe der Adjustierung ist aber gewährleistet, dass die Werte vergleichbar bleiben.
 
 
-## Datenaufbreitung
+## Aufbereitung
 ### Bereinigung
 
 Mit Yahoo Finance wird ein erfahrener und häufig verwendeter Datenanbieter gewählt. Ein Blick auf die Rohdaten zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können.
 
 ```{r, echo=FALSE}
-summary(quotes[, setdiff(names(quotes), c("Date", "Ticker", "Volume"))])
+summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
 ```
 
-Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten:
+Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten. Allen gemeinsam ist, dass die Bereinigung keinen Ausschluss der Daten zur Folge hat, sondern betroffene Werte als "Nicht verfügbar, (NA)" klassifiziert werden. Diese Unterscheidung ist insbesondere bei rollierender Betrachtung eines Zeitfensters der Vergangenheit von Bedeutung.
 
-```{r, filter-data, echo=FALSE}
+``` {r, echo=FALSE}
+quotes_clean <- quotes_raw
+```
+
+```{r, filter-data-adjusted, echo=FALSE}
 wrong_corporate_action_threshold <- 0.001
-quotes <- na_wrong_corporate_actions(quotes, wrong_corporate_action_threshold)
+quotes_clean <- na_wrong_corporate_actions(quotes_clean, wrong_corporate_action_threshold)
 ```
-1. Entfernen von fehlerhaften Adjustierungsdaten  
-Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen 
+1. **Entfernen von fehlerhaften Adjustierungsdaten**  
+  Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
 
-1. Entfernen von negativen Preisen  
+```{r, filter-data-measure-order, echo=FALSE}
+quotes_clean <- na_unreasonable_measure_order(quotes_clean)
+```
+1. **Entfernen von Einträgen mit unerwarterer Reihenfolge**  
+  Die Werte für Open, Low, High und Close implizieren eine klare Reihenfolge. Keine anderer der Werte darf höher als das High oder kleiner als das Low sein. Ist dies der Fall, werden die entsprechenden Werte von der Analyse ausgeschlossen.
 
+```{r, filter-data-typo, echo=FALSE}
+max_typo_ratio <- 8
+quotes_clean <- na_typos(quotes_clean, max_typo_ratio)
+```
+1. **Erkennen und Ausschluss von Tippfehlern**  
+  Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.
 
-1. Entfernen von Einträgen mit unerwarterer Reihenfolge der vorhandenen Kennzahlen
-1. Erkennen und Ausschluss offensichtlicher Tipfehler
-1. Unplausible Preisbewegungen innerhalb des Tages
-  
+```{r, filter-data-no-intraday-moves, echo=FALSE}
+quotes_clean <- na_no_intraday_moves(quotes_clean)
+```
+1. **Fehlende Preisbewegungen innerhalb des Tages**  
+  Der Aktienkurs eines grösseren Unternehens bewegt sich typischerweise auch an ruhigen Börsentagen immer ein wenig. Die vorhandenen Preise  liegen mit der Genauigkeit mehrer Nachkommastellen vor. Unterscheiden sich hierbei Tagestiefst- und Tageshöchstpreis nicht, muss von einem Datenfehler ausgegangen werden. Einträge ohne Preisbewegung innerhalb des Tages werden daher von der Analyse ausgeschlossen.
 
-Um die Vergleichbarkeit der verschiedenen Preislevels der Kurse sicherzustellen fliessen nicht Preise, sondern die Kursveränderungen (Returns) in die Analyse mit ein. 
-
-
-
-```{r, filter-data, echo=FALSE}
-quotes <- quotes %>%
-  na_negative_values() %>%
-  na_unreasonable_measure_order() %>%
-  na_typos() %>%
-  na_no_intraday_moves() %>%
+```{r, filter-data-no-daily-changes, echo=FALSE}
+quotes_clean <- quotes_clean %>%
   group_by(Ticker) %>%
   dplyr::group_modify(~na_no_daily_changes(.)) %>%
-  dplyr::group_modify(~na_too_large_daily_changes(.)) %>%
-  # dplyr::group_modify(~filter_unbroken_history(.)) %>%
   ungroup()
-
 ```
+1. **Fehlende Kursbewegungen über nacheinanderfolgende Börsentage**  
+  Ähnlich wie bei den Preisbewegungen innerhalb des Tages verhält es sich auch bei Bewegungen über sich folgende Börsentage hinweg. Es ist zu erwarten, dass sich mindestens einer der fünf betrachteten Preise vom Vortag unterscheidet. Ist dies nicht der Fall, wird der Eintrag ausgeschlossen.
 
+```{r, filter-data-too-large-daily-changes, echo=FALSE}
+too_large_daily_change_ratio <- 2
+quotes_clean <- quotes_clean %>%
+  group_by(Ticker) %>%
+  dplyr::group_modify(~na_too_large_daily_changes(., too_large_daily_change_ratio)) %>%
+  ungroup()
+```
+1. **Aussergewöhnlich hohe Preisbewegungen**  
+  Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor `r too_large_daily_change_ratio` unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.
 
+```{r, filter-data-extremes, echo=FALSE}
+index_factor <- 100 / quotes_clean$Open
+quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~index_factor  * .)
+quotes_clean<- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close", "Adjusted"), tail = 0.01)
+quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
+```
+1. **Ausschluss von Extremwerten**  
+  Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.
 
+Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r sum(rowSums(is.na(quotes_clean)) != 0)`. Für die Analyse bleiben somit `r sum(rowSums(is.na(quotes_clean)) == 0)` verwendbare Einträge.
 
+### Normalisierung
 
 ```{r, reorganize-one-line, echo=FALSE}
-quotes_line <- quotes %>%
+quotes_line <- quotes_clean %>%
   group_by(Ticker) %>%
   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
   ungroup()
 ```
 
 
-
-Um Aktien mit höherem Preis nicht mehr Gewicht zu verleihen normieren wir die Preise per Schlusskurs des Vortages auf 100.
-
-### Indexierung
-
-```{r, echo=FALSE}
-norm_factor <- 100 / quotes_line$Adjusted_t_1
-quotes_line <- mutate_at(quotes_line, c("Open", "Low", "High", "Close", "Adjusted_t", "Adjusted_t_1"),  ~norm_factor * .)
-
-```
-
-``` {r, remove-quanitles}
-quotes_line <- na_extremes(quotes_line, col = c("Open", "Low", "High", "Close", "Adjusted_t"), tail = 0.01)
-
-```
 
 
 ```{r, round-data, echo=FALSE}
