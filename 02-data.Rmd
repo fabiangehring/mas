@@ -75,7 +75,7 @@ if (!file.exists(file_quotes)) {
 quotes_raw <- readRDS(file_quotes)
 ```
 
-Für alle Titel werden in einem zweiten Schritt und sofern verfügbar, die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
+Für alle Titel werden in einem zweiten Schritt die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
 
 
 ``` {r quote-data-nestle, echo=FALSE}
