@@ -84,7 +84,7 @@ Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis be
 
 
 ## Klassifikationsverfahren
-```{r, train_test_split, echo=FALSE}
+```{r, knn-data-preparation, echo=FALSE}
 
 quotes_clean <- arrow::read_feather("tmp/quotes_clean.feather")
 window <- 3
@@ -109,7 +109,7 @@ data <- select(data, c("Ticker", "Date", "Open_0", str_subset(names(data), paste
 data <- data %>% select(c("Ticker", "Date"), sort(str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
 rm(quotes_clean)
 
- 
+
 # # out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "euclidean", mc.cores = 3)
 # # saveRDS(out, "tmp/knn_olhc_3_euc.rds")
 # # rm(out)
@@ -189,6 +189,51 @@ rm(quotes_clean)
 # 
 
 ```
+
+
+```{r, knn-calculation, echo=FALSE}
+# data_bkp <- data
+# data <- data_bkp
+
+orig_order <- order(desc(data$Date))
+
+data <- data %>%
+  select(-Ticker) %>%
+  arrange(desc(Date))
+
+counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
+n_chunks <- 100
+breaks <- head(nrow(data) / (n_chunks + 1) * seq_len(n_chunks + 1), -1)
+
+split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>.))]])
+
+nn <- function(i, split_dates, data, dates){
+  split_date = split_dates[[i]]
+  curr_data <- data[dates <= split_date, ]
+  curr_dates <- dates[dates <= split_date]
+  curr_query <- data[dates > split_date & dates <= split_dates[[i+1]], ]
+  RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50)
+}
+
+set.seed(654321)
+samples <- sample(n_chunks)
+out <- pbmcapply::pbmclapply(
+  X = samples,
+  FUN = nn,
+  split_dates = split_dates,
+  data = as.matrix(select(data, -Date)),
+  dates = data$Date,
+  mc.cores = parallel::detectCores() - 1
+)
+
+RANN2::nn2_cpp2(data = mat, query = mat, group = group, k = 4, k_internal = 4)
+
+
+nn2_cpp2(data = mat, query = mat, group = group, k = 4, k_internal = 4)
+
+
+```
+
 
 
 

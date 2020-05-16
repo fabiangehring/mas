@@ -81,21 +81,19 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
 
 
 /*** R
-# microbenchmark(calc_payoff_per_title(close_1 = data$Close_1, close_0 = data$Close_0, first = data$Low, second = data$High, low = data$Low, high = data$High, gamma = 0.2, return_type = "disc"))
-quotes_line_test_1 <- tribble(
-  ~Close_1, ~Low, ~High, ~Close_0,
-        10,    8,    12,        9
-)
-
-calc_payoff_per_title(
-  close_1 = quotes_line_test_1$Close_1, 
-  close_0 = quotes_line_test_1$Close_0,
-  first = quotes_line_test_1$Low,
-  second  = quotes_line_test_1$High, 
-  low = quotes_line_test_1$Low, 
-  high = quotes_line_test_1$High, 
-  gamma = 0.2, 
-  return_type = "disc"
-)
-
+# quotes_line_test_1 <- tribble(
+#   ~Close_1, ~Low, ~High, ~Close_0,
+#         10,    8,    12,        9
+# )
+# 
+# calc_payoff_per_title(
+#   close_1 = quotes_line_test_1$Close_1, 
+#   close_0 = quotes_line_test_1$Close_0,
+#   first = quotes_line_test_1$Low,
+#   second  = quotes_line_test_1$High, 
+#   low = quotes_line_test_1$Low, 
+#   high = quotes_line_test_1$High, 
+#   gamma = 0.2, 
+#   return_type = "disc"
+# )
 */
