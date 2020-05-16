@@ -95,9 +95,9 @@ Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten 
 ## Aufbereitung
 ### Bereinigung
 
-Mit Yahoo Finance wird ein erfahrener und häufig verwendeter Datenanbieter gewählt. Ein Blick auf die Rohdaten zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können.
+Mit Yahoo Finance wird ein erfahrener und häufig verwendeter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(tab:summary_before_clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können.
 
-```{r, echo=FALSE}
+```{r, summary_before_clean, echo=FALSE}
 summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
 ```
 
@@ -110,6 +110,7 @@ quotes_clean <- quotes_raw
 ```{r, filter-data-adjusted, echo=FALSE}
 wrong_corporate_action_threshold <- 0.001
 quotes_clean <- na_wrong_corporate_actions(quotes_clean, wrong_corporate_action_threshold)
+quotes_clean <- adjust_quotes(quotes_clean)
 ```
 1. **Entfernen von fehlerhaften Adjustierungsdaten**  
   Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
@@ -154,7 +155,7 @@ quotes_clean <- quotes_clean %>%
 
 ```{r, filter-data-extremes, echo=FALSE}
 index_factor <- 100 / quotes_clean$Open
-quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~index_factor  * .)
+quotes_clean <- normalize_quotes(quotes_clean, base_col = "Open", target_cols = c("Low", "High", "Close", "Adjusted"))
 quotes_clean<- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close", "Adjusted"), tail = 0.01)
 quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
 ```
@@ -163,25 +164,35 @@ quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjus
 
 Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r sum(rowSums(is.na(quotes_clean)) != 0)`. Für die Analyse bleiben somit `r sum(rowSums(is.na(quotes_clean)) == 0)` verwendbare Einträge.
 
+
+```{r, echo=FALSE}
+# TODO: remove
+quotes_clean <- quotes_clean %>% select(-Adjusted)
+# arrow::write_feather(quotes_clean, "tmp/quotes_clean.feather")
+```
+
+
 ### Normalisierung
 
+Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) normalisiert.
+
+
 ```{r, reorganize-one-line, echo=FALSE}
-quotes_line <- quotes_clean %>%
-  group_by(Ticker) %>%
-  dplyr::group_modify(~reorganize_to_one_line(.)) %>%
-  ungroup()
+# quotes_line <- quotes_clean %>%
+#   group_by(Ticker) %>%
+#   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
+#   ungroup()
 ```
 
 
 
-
 ```{r, round-data, echo=FALSE}
-quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
+# quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
 ```
 
 
 ```{r, echo=FALSE}
 # TODO: remove
-# saveRDS(quotes_line, "tmp/quotes_line.rds")
+# arrow::write_feather(quotes_line, "tmp/quotes_line.feather")
 ```
 

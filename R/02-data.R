@@ -1,26 +1,28 @@
-#' Keep data only when unbroken. We consider a timeseries as broken if one of the values is 0 or below or NA.
-#'
-#' @param quotes_ticker A sorted data.frame with at least the columns defined in cols of numeric type
-#' @param cols The column names to check
-#'
-#' @return
-#' @export
-#'
-#' @examples
-#' quotes_ticker <- tibble(Low = c(1,2,NA,1,2), High = c(3,3,3,0,3), Adjusted = c(2,2,2,2,2))
-#' filter_unbroken_history(quotes_ticker)
-filter_unbroken_history <- function(quotes_ticker, cols = c("Low", "High", "Adjusted")) {
-  
-  bod_col_bool <- map(quotes_ticker[, cols], ~ .<=0 | is.na(.))
-  bad_bool <- Reduce(`|`, bod_col_bool)
-  
-  if (sum(bad_bool) > 0) {
-    first_good_idx <- max(which(bad_bool > 0)) + 1
-    if (first_good_idx > nrow(quotes_ticker)) return(data.frame())
-    quotes_ticker <- quotes_ticker[seq.int(first_good_idx, nrow(quotes_ticker)), ]
-  }
-  return(quotes_ticker)
-}
+
+# TODO: Needed anymore?
+#' #' Keep data only when unbroken. We consider a timeseries as broken if one of the values is 0 or below or NA.
+#' #'
+#' #' @param quotes_ticker A sorted data.frame with at least the columns defined in cols of numeric type
+#' #' @param cols The column names to check
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' #' quotes_ticker <- tibble(Low = c(1,2,NA,1,2), High = c(3,3,3,0,3), Adjusted = c(2,2,2,2,2))
+#' #' filter_unbroken_history(quotes_ticker)
+#' filter_unbroken_history <- function(quotes_ticker, cols = c("Low", "High", "Adjusted")) {
+#'   
+#'   bod_col_bool <- map(quotes_ticker[, cols], ~ .<=0 | is.na(.))
+#'   bad_bool <- Reduce(`|`, bod_col_bool)
+#'   
+#'   if (sum(bad_bool) > 0) {
+#'     first_good_idx <- max(which(bad_bool > 0)) + 1
+#'     if (first_good_idx > nrow(quotes_ticker)) return(data.frame())
+#'     quotes_ticker <- quotes_ticker[seq.int(first_good_idx, nrow(quotes_ticker)), ]
+#'   }
+#'   return(quotes_ticker)
+#' }
 
 
 #' Set values where not at least one of the columns are always changing from day to day in absolute value to NA.
@@ -34,7 +36,7 @@ filter_unbroken_history <- function(quotes_ticker, cols = c("Low", "High", "Adju
 #' @examples
 #' quotes_ticker <- tibble(Date = Sys.Date() + 1:5, Low = c(1,2,1,1,2), High = c(3,3,3,3,3), Adjusted = c(2,2,2,2,2))
 #' na_no_daily_changes(quotes_ticker)
-na_no_daily_changes <- function(quotes_ticker, cols = c("Open", "Low", "High", "Close", "Adjusted")) {
+na_no_daily_changes <- function(quotes_ticker, cols = c("Open", "Low", "High", "Adjusted")) {
   if (nrow(quotes_ticker) < 2) return(quotes_ticker)
   bad_bool <- c(FALSE, diff(as.matrix(quotes_ticker[, cols])) %>% abs() %>% rowSums() == 0)
   mutate_at(quotes_ticker, cols, ~ifelse(bad_bool, NA, .))
@@ -98,20 +100,21 @@ na_no_intraday_moves <- function(quotes_ticker, cols = c("Low", "High")) {
   mutate_at(quotes_ticker, cols, ~ifelse(bad_bool, NA, .))
 }
 
-#' Set negative values to NA
-#'
-#' @param quotes_ticker A data.frame containing at least the columns spezified in cols
-#' @param cols The cols that need to be positive
-#'
-#' @return The filtered data.frame
-#' @export
-#'
-#' @examples
-#' quotes_ticker <- tibble(Low = c(1), Open = c(1), High = c(3), Close = c(3), Adjusted = -1)
-#' na_negative_values(quotes_ticker)
-na_negative_values <- function(quotes_ticker, cols = c("Open", "Low", "High", "Close", "Adjusted")) {
-  mutate_at(quotes_ticker, cols, ~ ifelse(. < 0, NA, .))
-}
+# TODO: Needed anymore?
+#' #' Set negative values to NA
+#' #'
+#' #' @param quotes_ticker A data.frame containing at least the columns spezified in cols
+#' #' @param cols The cols that need to be positive
+#' #'
+#' #' @return The filtered data.frame
+#' #' @export
+#' #'
+#' #' @examples
+#' #' quotes_ticker <- tibble(Low = c(1), Open = c(1), High = c(3), Close = c(3), Adjusted = -1)
+#' #' na_negative_values(quotes_ticker)
+#' na_negative_values <- function(quotes_ticker, cols = c("Open", "Low", "High", "Close", "Adjusted")) {
+#'   mutate_at(quotes_ticker, cols, ~ ifelse(. < 0, NA, .))
+#' }
 
 
 #' Keep data only if the order Low <= Open | Close <= High is fulfilled
@@ -228,19 +231,19 @@ na_extremes <- function(data, col, tail) {
 }
 
 
-
-#' Move Close Adjusted of previous day to same line
-#'
-#' @param quotes_ticker A data.frame with at least the column "Adjusted"
-#'
-#' @return A data.frame where previous entry of adjusted is added on line as "Adjusted_t_1" and "Adjusted" is renamed to "Adjusted_t". The first entry is 
-#' removed, since no previous adjusted price is available.
-#' @export
-#'
-#' @examples
-reorganize_to_one_line <- function(quotes_ticker) {
-  slice(quotes_ticker, -1) %>% mutate(`Adjusted_t_1` = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
-}
+# TODO: Remove, use widen instead
+#' #' Move Close Adjusted of previous day to same line
+#' #'
+#' #' @param quotes_ticker A data.frame with at least the column "Adjusted"
+#' #'
+#' #' @return A data.frame where previous entry of adjusted is added on line as "Adjusted_t_1" and "Adjusted" is renamed to "Adjusted_t". The first entry is 
+#' #' removed, since no previous adjusted price is available.
+#' #' @export
+#' #'
+#' #' @examples
+#' reorganize_to_one_line <- function(quotes_ticker) {
+#'   slice(quotes_ticker, -1) %>% mutate(`Adjusted_t_1` = head(quotes_ticker$Adjusted, -1)) %>% rename(Adjusted_t = Adjusted)
+#' }
 
 
 #' Apply adjustment factor to all price and volume information
@@ -257,6 +260,23 @@ reorganize_to_one_line <- function(quotes_ticker) {
 adjust_quotes <- function(quotes) {
   adj_factor <- quotes$Adjusted / quotes$Close 
   quotes %>% mutate_at(c("Open", "Low", "High", "Close", "Volume"), ~ .*adj_factor)
+}
+
+
+#' Normalize values of a dataframe rowwise to 100
+#'
+#' @param quotes A data.frame containing at least all columns mentoned in "base_col" and "target_cols"
+#' @param base_col The name of the column to normalize to 100
+#' @param target_cols The names of the columns to normalize
+#'
+#' @return The normalized data.frame
+#' @export
+#'
+#' @examples
+#' normalize_quotes(tibble(a = c(50, 150), b = c(80, 200), c = c(50, 200)), base_col = "a", target_cols = c("b"))
+normalize_quotes <- function(quotes, base_col = "Open", target_cols = c("Low", "High", "Close", "Adjusted")) {
+  index_factor <- 100 / quotes[[base_col]] 
+  mutate_at(quotes, unique(c(base_col, target_cols)), ~.*index_factor)
 }
 
 

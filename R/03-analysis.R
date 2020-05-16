@@ -15,22 +15,22 @@ gamma_cash <- function(price, gamma) {
 
 #' Calculate the payoff from prices moves
 #'
-#' @param quotes_line A data.frame with at least the following columns: "Adjusted_t_1", "Low", "High", "Adjusted_t"
+#' @param quotes_line A data.frame with at least the following columns: "Close_1", "Low", "High", "Close_0"
 #' @param sell The upper price at which the the delta hedge should be "rebalanced"
 #' @param buy The lower price at which the the delta hedge should be "rebalanced"
 #' @param gamma The gamma value (assumed constant)
-#' @param both_first Character or numeric indicating what price movement is assumed first in cases where both, the buy and sell prices are reaches. One of 
-#' c("buy", "sell", "min", "max") or a integer value. "buy" indicates that the buy event was reached first. "sell" indicates that the sell event was reached first.
-#' "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event first that least to highest pnl. If an numeric is given
-#' a random number (with seed of that number) is used to evaluate if there was a buy or sell event first with equal probability of 50%.
+#' @param both_first Character indicating what price movement is assumed first in cases where both, the buy and sell prices are reaches. One of 
+#' c("buy", "sell", "min", "max") or a vector with "buy" and "sell" of same length as quotes_line. "buy" indicates that the buy event was reached first. 
+#' "sell" indicates that the sell event was reached first. "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event 
+#' first that least to highest pnl.
 #'
 #' @return The pnl for every row
 #' @export
 #'
 #' @examples
 #' quotes_line_test_1 <- tribble(
-#'    ~Adjusted_t_1, ~Low, ~High, ~Adjusted_t,
-#'                 10,     8,    12,           9
+#'    ~Close_1, ~Low, ~High, ~Close_0,
+#'          10,    8,    12,        9
 #'  )
 #' calc_payoff_const_gamma(quotes_line_test_1)
 #' calc_payoff_const_gamma(quotes_line_test_1, buy = quotes_line_test_1$Low, sell = quotes_line_test_1$High)
@@ -40,93 +40,104 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_1, buy = quotes_line_test_1$Low, sell = quotes_line_test_1$High, both_first = "min")
 #' 
 #' quotes_line_test_2 <- tribble(
-#'    ~Adjusted_t_1, ~Low, ~High, ~Adjusted_t,
-#'                 9,     8,    12,           10
+#'    ~Close_1, ~Low, ~High, ~Close_0,
+#'           9,    8,    12,       10
 #'  )
 #' calc_payoff_const_gamma(quotes_line_test_2)
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "buy")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "sell")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "max")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
-calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, sell = quotes_line$Adjusted_t, gamma = 0.2, both_first = 123456, return = "disc") {
-  
+calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell = quotes_line$Close_0, both_first = "min", gamma = 0.2, return_type = "disc") {
   stopifnot(all(buy <= sell, na.rm = TRUE))
   
-  low <- quotes_line$Low
-  high <- quotes_line$High
-  close_t_1 <- quotes_line$Adjusted_t_1
-  close_t <- quotes_line$Adjusted_t
+  # close_t_1 <- quotes_line$Close_1
+  # close_t <- quotes_line$Close_0
+  # low <- quotes_line$Low
+  # high <- quotes_line$High
+  # 
+  # calc_payoff_per_title_old<- function(first, second, low, high) {
+  # 
+  #   buy_first <- sell_second <- first < second
+  #   sell_first <- buy_second <- !buy_first
+  # 
+  #   n <- nrow(quotes_line)
+  # 
+  #   # transaction is done if
+  #   #   a) prices is hit and
+  #   #   b) price is coming from "correct" side (from a lower prices to sell, from an upper prices to buy)
+  #   first_prev_price <- quotes_line$Close_1
+  #   I_first <- as.logical(rep(FALSE, n))
+  #   I_first[buy_first & first >= low & first_prev_price > first] <- TRUE
+  #   I_first[sell_first & first <= high & first_prev_price < first] <- TRUE
+  # 
+  #   second_prev_price <- first
+  #   second_prev_price[!I_first] <- quotes_line$Close_1[!I_first]
+  # 
+  #   I_second <- as.logical(rep(FALSE, n))
+  #   I_second[buy_second & second >= low & second_prev_price > second] <- TRUE
+  #   I_second[sell_second & second <= high & second_prev_price < second] <- TRUE
+  # 
+  #   # calc returns
+  #   if (return_type == "cont") {
+  #     r_first_close_t_1 <- log(first/close_t_1)
+  #     r_first_close_t <- log(first/close_t)
+  #     r_second_close_t_1 <- log(second/close_t_1)
+  #     r_second_first <- log(second/first)
+  #     r_close_t_second <- log(close_t/second)
+  #     r_close_t_close_t_1 <- log(close_t/close_t_1)
+  #   } else if (return_type == "disc") {
+  #     r_first_close_t_1 <- first/close_t_1-1
+  #     r_first_close_t <- first/close_t-1
+  #     r_second_close_t_1 <- second/close_t_1-1
+  #     r_second_first <- second/first-1
+  #     r_close_t_second <- close_t/second-1
+  #     r_close_t_close_t_1 <- close_t/close_t_1-1
+  #   }
+  # 
+  #   # calc gains
+  #   gamma_cash_t_1 <- gamma_cash(close_t_1, gamma)
+  #   gamma_cash_first <- gamma_cash(first, gamma)
+  #   gamma_cash_second <- gamma_cash(second, gamma)
+  # 
+  #   start_to_first <- gamma_cash_t_1 * r_first_close_t_1 ^ 2 * I_first * (1 - I_second)
+  #   first_to_end <- gamma_cash_first * r_first_close_t ^2 * I_first * (1 - I_second)
+  # 
+  #   start_to_second <- gamma_cash_t_1 * r_second_close_t_1 ^2 * I_second * (1 - I_first)
+  #   second_to_end <- gamma_cash_second * r_close_t_second ^2 * I_second * (1 - I_first)
+  # 
+  #   start_to_first_both <- gamma_cash_t_1 * r_first_close_t_1 ^2 * I_first * I_second
+  #   first_to_second <- gamma_cash_first * r_second_first^2 * I_second * I_first
+  #   second_to_end_both <- gamma_cash_second * r_close_t_second^2 * I_second * I_first
+  #   start_to_end <- gamma_cash_t_1 * r_close_t_close_t_1^2 * (1 - I_second) * (1 - I_first)
+  # 
+  #   0.5 *100 * (start_to_first + first_to_end + start_to_second + second_to_end + start_to_first_both + first_to_second + second_to_end_both + start_to_end)
+  # }
   
-  calc_payoff_per_title <- function(first, second, low, high) {
+  if (length(both_first) == 1L && both_first %in% c("min", "max")) {
     
-    buy_first <- sell_second <- first < second
-    sell_first <- buy_second <- !buy_first
+    buy_first <- calc_payoff_per_title(
+      close_1 = quotes_line$Close_1, 
+      close_0 = quotes_line$Close_0,
+      first = buy,
+      second  = sell, 
+      low = quotes_line$Low, 
+      high = quotes_line$High, 
+      gamma = gamma, 
+      return_type = return_type
+    )
     
-    n <- nrow(quotes_line)
-    
-    # transaction is done if 
-    #   a) prices is hit and 
-    #   b) price is coming from "correct" side (from a lower prices to sell, from an upper prices to buy)
-    first_prev_price <- quotes_line$Adjusted_t_1
-    I_first <- as.logical(rep(FALSE, n))
-    I_first[buy_first & first >= low & first_prev_price > first] <- TRUE
-    I_first[sell_first & first <= high & first_prev_price < first] <- TRUE
-    
-    second_prev_price <- ifelse(I_first, first, quotes_line$Adjusted_t_1)
-    I_second <- as.logical(rep(FALSE, n))
-    I_second[buy_second & second >= low & second_prev_price > second] <- TRUE
-    I_second[sell_second & second <= high & second_prev_price < second] <- TRUE
-    
-    # calc returns
-    if (return == "cont") {
-      r_first_close_t_1 <- log(first/close_t_1)
-      r_first_close_t <- log(first/close_t)
-      r_second_close_t_1 <- log(second/close_t_1)
-      r_second_first <- log(second/first)
-      r_close_t_second <- log(close_t/second)
-      r_close_t_close_t_1 <- log(close_t/close_t_1)
-    } else if (return == "disc") {
-      r_first_close_t_1 <- first/close_t_1-1
-      r_first_close_t <- first/close_t-1
-      r_second_close_t_1 <- second/close_t_1-1
-      r_second_first <- second/first-1
-      r_close_t_second <- close_t/second-1
-      r_close_t_close_t_1 <- close_t/close_t_1-1
-    }
-    
-    # calc gains
-    start_to_first <- gamma_cash(close_t_1, gamma) * r_first_close_t_1 ^ 2 * I_first * (1 - I_second)
-    first_to_end <- gamma_cash(close_t, gamma) * r_first_close_t ^2 * I_first * (1 - I_second)
-    
-    start_to_second <- gamma_cash(close_t_1, gamma) * r_second_close_t_1 ^2 * I_second * (1 - I_first)
-    second_to_end <- gamma_cash(second, gamma) * r_close_t_second ^2 * I_second * (1 - I_first)
-    
-    start_to_first_both <- gamma_cash(close_t_1, gamma) * r_first_close_t_1 ^2 * I_first * I_second
-    first_to_second <- gamma_cash(first, gamma) * r_second_first^2 * I_second * I_first
-    second_to_end_both <- gamma_cash(second, gamma) * r_close_t_second^2 * I_second * I_first
-    start_to_end <- gamma_cash(close_t_1, gamma) * r_close_t_close_t_1^2 * (1 - I_second) * (1 - I_first)
-    
-    0.5 *100 * (start_to_first + first_to_end + start_to_second + second_to_end + start_to_first_both + first_to_second + second_to_end_both + start_to_end)
-  }
-  
-  # evaluate first and second
-  if (is.numeric(both_first))  {
-    old <- .Random.seed
-    set.seed(both_first)
-    buy_first_bool <- sample(c(TRUE, FALSE), nrow(quotes_line), TRUE)
-    .Random.seed <<- old
-    first <- ifelse(buy_first_bool, buy, 0) + ifelse(!buy_first_bool, sell, 0)
-    second <- ifelse(!buy_first_bool, buy, 0) + ifelse(buy_first_bool, sell, 0)
-  } else if (both_first %in% "buy") {
-    first <- buy
-    second <- sell
-  } else if (both_first == "sell") {
-    first <- sell
-    second <- buy
-  } else if (both_first %in% c("min", "max")) {
-    buy_first <- calc_payoff_per_title(buy, sell, low, high)
-    sell_first <- calc_payoff_per_title(sell, buy, low, high)
-    
+    sell_first <- calc_payoff_per_title(
+      close_1 = quotes_line$Close_1, 
+      close_0 = quotes_line$Close_0,
+      first = sell,
+      second  = buy, 
+      low = quotes_line$Low, 
+      high = quotes_line$High, 
+      gamma = gamma, 
+      return_type = return_type
+    )
+
     first <- buy
     second <- sell
     if (both_first == "min") {
@@ -136,12 +147,84 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
       first[sell_first > buy_first] <- sell[sell_first > buy_first]
       second[sell_first > buy_first] <- buy[sell_first > buy_first]
     }
+  } else if (all(both_first %in% c("buy", "sell"))) {
+    if (length(both_first) == 1 && nrow(quotes_line) > 1) {
+      both_first <- rep(both_first, nrow(quotes_line))
+    }
+    
+    buy_first_bool <- both_first == "buy"
+    first <- buy
+    second <- sell
+    if (sum(!buy_first_bool) > 0) {
+      first[!buy_first_bool] <- sell[!buy_first_bool]
+      second[!buy_first_bool] <- buy[!buy_first_bool]
+    }
+    
   } else {
     stop("Expected input for argument both_first.")
   }
   
-  calc_payoff_per_title(first, second, low, high)
+  calc_payoff_per_title(
+    close_1 = quotes_line$Close_1, 
+    close_0 = quotes_line$Close_0,
+    first = first,
+    second  = second, 
+    low = quotes_line$Low, 
+    high = quotes_line$High, 
+    gamma = gamma, 
+    return_type = return_type
+  )
+
 }
+
+
+#' #' Get history of current element
+#' #'
+#' #' @param data A sorted data.frame sortest by Ticker and desc(Date)
+#' #' @param window An integer indicating the length of the history
+#' #' @param col The column names of the values for which the history should be widened
+#' #' @param include_current A logical indicating if the current date (t = 0) should be included in the output
+#' 
+#' #' @return A data.frame of same length and order like data with the history for each row for the requestes columns. The number at the end of the column tells
+#' #' their order and indicates the distance to the current data (i.e. *_7 meaning t-7).
+#' #' @export
+#' #'
+#' #' @examples
+#' #' data <- tibble(a = 1:100, b = 1:100)
+#' #' widen(data, 7, c("a", "b"))
+#' #' widen(data, 7, c("a", "b"), include_current = TRUE)
+#' #' widen(data, 7, c("a"))
+#' #' widen(data, 7, c("a"), include_current = TRUE)
+#' widen <- function(data, window, cols = names(data), include_current = FALSE) {
+#'   
+#'   # fill first rows such that even first row has predecessor
+#'   data_fill <- data[seq_len(window), ] 
+#'   data_fill[seq_len(dim(data_fill)[1]), seq_len(dim(data_fill)[2])] <- NA
+#'   data <- bind_rows(data_fill, data)
+#'   
+#'   # widen data
+#'   row_idx <- map(seq_len(nrow(data) - window), function(x) {
+#'     curr_row_idx <- seq_len(window) + x - 1
+#'     if (include_current) {
+#'       curr_row_idx <- c(curr_row_idx, window + x)
+#'     }
+#'     curr_row_idx
+#'   }) %>% unlist()
+#'   
+#'   values_fn <- map(cols, ~list) %>% set_names(cols)
+#'   data_widened <- data[row_idx, cols] %>%
+#'     mutate(group_id = rep(rev(seq_len(window + include_current) - include_current), length(row_idx) / (window + include_current))) %>%
+#'     tidyr::pivot_wider(
+#'       names_from = group_id, 
+#'       values_from = all_of(cols), 
+#'       values_fn = values_fn
+#'     )
+#'   
+#'   # name columns in case of single feature
+#'   if (length(cols) == 1) names(data_widened) <- paste0(cols, "_", names(data_widened))
+#'   
+#'   unnest(data_widened, cols = names(data_widened)) 
+#' }
 
 
 #' Get history of current element
@@ -149,7 +232,7 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
 #' @param data A sorted data.frame sortest by Ticker and desc(Date)
 #' @param window An integer indicating the length of the history
 #' @param col The column names of the values for which the history should be widened
-#' @param include_current A logical indicating if the current date (t = 0) should be included in the output
+#' @param keep A character vector indicating what existing columns should be kept
 
 #' @return A data.frame of same length and order like data with the history for each row for the requestes columns. The number at the end of the column tells
 #' their order and indicates the distance to the current data (i.e. *_7 meaning t-7).
@@ -158,37 +241,32 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Adjusted_t, s
 #' @examples
 #' data <- tibble(a = 1:100, b = 1:100)
 #' widen(data, 7, c("a", "b"))
-#' widen(data, 7, c("a", "b"), include_current = TRUE)
-widen <- function(data, window, cols = names(data), include_current = FALSE) {
+#' widen(data, 7, c("a", "b"), keep = c("a", "b"))
+#' widen(data, 7, c("a"))
+#' widen(data, 7, c("a"), keep = "b")
+widen <- function(data, window, cols = names(data), keep = NULL) {
   
   # fill first rows such that even first row has predecessor
   data_fill <- data[seq_len(window), ] 
   data_fill[seq_len(dim(data_fill)[1]), seq_len(dim(data_fill)[2])] <- NA
-  data <- bind_rows(data_fill, data)
+  data_all <- bind_rows(data_fill, data)
   
-  # widen data
-  row_idx <- map(seq_len(nrow(data) - window), function(x) {
-    curr_row_idx <- seq_len(window) + x - 1
-    if (include_current) {
-      curr_row_idx <- c(curr_row_idx, window + x)
-    }
-    curr_row_idx
-  }) %>% unlist()
+  # widen data  
+  row_idx <- rep(seq_len(window), nrow(data)) + rep(seq_len(nrow(data)) - 1, each = window)
   
   values_fn <- map(cols, ~list) %>% set_names(cols)
-  data_widened <- data[row_idx, cols] %>%
-    mutate(group_id = rep(rev(seq_len(window + include_current) - include_current), length(row_idx) / (window + include_current))) %>%
+  data_widened <- data_all[row_idx, cols] %>%
+    mutate(group_id = rep(rev(seq_len(window )), length(row_idx) / (window))) %>%
     tidyr::pivot_wider(
       names_from = group_id, 
       values_from = all_of(cols), 
       values_fn = values_fn
-    ) %>% 
-    unnest(cols = names(.)) 
+    )
   
   # name columns in case of single feature
   if (length(cols) == 1) names(data_widened) <- paste0(cols, "_", names(data_widened))
   
-  data_widened
+  bind_cols(unnest(data_widened, cols = names(data_widened)), data[, keep])
 }
 
 
@@ -440,8 +518,8 @@ plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean")
     separate(type, sep = "_", into = c("type", "window"))
   
   # factor to ensure order
-  window_string <- ifelse(plot_data$window == 0, "t", paste0("t-", plot_data$window))
-  window_levels <- ifelse(sort(unique(plot_data$window), decreasing = TRUE) == 0, "t", paste0("t-", sort(unique(plot_data$window), decreasing = TRUE)))
+  window_string <- dplyr::if_else(plot_data$window == 0, "t", paste0("t-", plot_data$window))
+  window_levels <- dplyr::if_else(sort(unique(plot_data$window), decreasing = TRUE) == 0, "t", paste0("t-", sort(unique(plot_data$window), decreasing = TRUE)))
   
   plot_data <- plot_data %>%
     mutate_at("window", ~factor(window_string, window_levels)) %>%
@@ -566,3 +644,70 @@ sort_nn_idx <- function(nn_idx, x, reverse = FALSE) {
     return(matrix(order(orig_order)[nn_idx], ncol = ncol(nn_idx))[orig_order, ])
   }
 }
+
+
+#' Calculate payoff variation factors including bootstrap for different symmetric price moves
+#'
+#' @param data A data.frame with at least the following columns: "Close_1", "Low", "High", "Close_0"
+#' @param both_first Character indicating what price movement is assumed first in cases where both, the buy and sell prices are reaches. One of 
+#' c("buy", "sell", "min", "max") or a vector with "buy" and "sell" of same length as quotes_line. "buy" indicates that the buy event was reached first. 
+#' "sell" indicates that the sell event was reached first. "min" conservativly considers the move first that leaves to the least pnl. "max" uses the event 
+#' first that least to highest pnl.
+#' @param move The moves (up and down) to be calculated
+#' @param R The number of bootstrap samples
+#' @param col The columns which should be moved
+#' @param mc.cores The number of cores used for parallelization
+#'
+#' @return A data.frame with columns "move", "original", "bias", "std_error", "lower" and "upper"
+#' @export
+#'
+#' @examples
+#' data <- quotes_line_test_1 <- tribble(
+#'    ~Close_1, ~Open,  ~Low, ~High, ~Close_0,
+#'          10,     9,   8,    12,        9,
+#'           9,     7,   5,    17,        10
+#'  )
+#'  bootstrap_variation_factor(data = data, both_first = "buy", move = seq(0, 0.1, 0.01), R = 10)
+bootstrap_variation_factor <- function(data, both_first, move, R, col = "Open", mc.cores = getOption("mc.cores", 2L)) {
+  purrr::map_df(move, function(curr_move) {
+    print(curr_move)
+    bootstr <- boot::boot(data, function(data, index) {
+      if (length(both_first == 1 & nrow(data) > 1)) {
+        both_first <- rep(both_first, nrow(data))
+      }
+      scale_fct <- sum(calc_payoff_const_gamma(data[index, ], both_first = both_first[index]))
+      opt_payoff_sym(data = data[index, ], move = curr_move, col = col, both_first = both_first[index], scale_fct = scale_fct)
+    }, R = R, parallel = "multicore", ncpus = mc.cores)
+    ci <- boot::boot.ci(bootstr, type = "perc")
+    out <- list(move = curr_move, original = bootstr$t0, bias = mean(bootstr$t) - bootstr$t0, std_error = sd(bootstr$t))
+    if (is.null(ci)) {
+      out <- c(out, list(lower = bootstr$t0, upper = bootstr$t0))
+    } else {
+      out <- c(out, list(lower = as.vector(ci$percent[1, 4]), upper = as.vector(ci$percent[1, 5])))
+    }
+    out
+  })
+}
+
+
+#' Plot payoff ratio for factor variation with confidence ribbon.
+#'
+#' @param data A data.frame with at least the columns "move", "original", "lower" and "upper"
+#'
+#' @return A ggplot2 plot
+#' @export
+#'
+#' @examples
+#' plot_variation_factor(tibble(move = c(0.01, 0.02), original = c(1, 2), lower = c(0, 1.5), upper = c(3, 4.5)))
+plot_variation_factor <- function(data) {
+  ggplot2::ggplot(data, aes(x = move)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey70") +
+    ggplot2::geom_line(aes(y = original)) +
+    ggplot2::xlab("Abweichung vom Eröffnungspreis") + 
+    ggplot2::scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+    ggplot2::ylab( "Payoffverhältnis zur Referenzstrategie") +
+    ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    ggplot2::ggtitle("Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis")
+}
+
+

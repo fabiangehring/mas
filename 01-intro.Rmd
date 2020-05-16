@@ -88,20 +88,20 @@ Auch im Falle der etwas komplexeren Strategie mit der Möglichkeit von Käufen u
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times I_{first} \ +\\
 
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{close_t}{close_{t_1}}\right)}^2  \times (1 - I_{first}) \times (1 - I_{second})
-
+(\#eq:payoff)
 \end{eqnarray}
 
 wobei, 
 
 \begin{equation}
 \$\Gamma_i = \Gamma \times S_i^2 / 100
+(\#eq:gamma_cash)
 \end{equation}
 
 Zu beachten gilt es insbesondere, dass der Payoff quadratisch auf Preisbewegungen reagiert. Dies führt dazu, dass es von Relevanz ist, ob zuerst der Kaufs- (untere Grenze) oder der Verkaufsschwelle erreicht wird. Die Ausführung zum jeweiligen Schwellenwert wird durch die Indikatorvariablen $I_{first}$ und $I_{second}$ modelliert. Damit es zu einer Ausfühung kommt müssen dabei folgende beiden Kriterien kumulativ erfüllt sein:
 
 a) Der Schwellenwert wird erreicht.
-b) Die vorangegangene Transaktion hat bei einem höheren Preis für Aktion an unterer Schwelle, resp. tieferen Preis für eine Aktion an der oberen Schwelle stattgefunden. ^[Dies hat dann Relevanz, wenn der Eröffnungspreis eine prognostizierte Schwelle überspringen kann. Effektiv sollte die obere, resp. untere Grenze in solchen Fällen allerdings auf den  Eröffnungskurs gesetzt werden.]
-
+b) Die vorangegangene Transaktion hat bei einem höheren Preis für Aktion an unterer Schwelle, resp. tieferen Preis für eine Aktion an der oberen Schwelle stattgefunden. ^[Dies hat dann Relevanz, wenn der Eröffnungspreis eine prognostizierte Schwelle überspringen kann. Effektiv sollte die obere, resp. untere Grenze in solchen Fällen allerdings auf den Eröffnungskurs gesetzt werden.]
 
 <!-- Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden. -->
 

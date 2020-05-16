@@ -17,92 +17,99 @@ suppressPackageStartupMessages({
   library(profvis)
 })
 Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
+source("R/02-data.R")
 source("R/03-analysis.R")
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 
-# TODO: remove
-quotes_line <- arrow::read_feather("tmp/quotes_line.feather")
 
 ```
 
 Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
 
 - Einfache Optimierungen
-- KLassifikationsverfahren (bsp. KNN):
-- Neuronale Netzwerke (bsp. RNN, LTSM):
-- Autogressive Modelle (bsp. GARCH)
+- Klassifikationsverfahren (KNN):
+- Neuronale Netzwerke (RNN, LTSM):
+- Autogressive Modelle (GARCH)
+
+Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht, sondern diese gänzlich zum Tagesschlusskurz durchführt. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Ausage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Grenze Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel \@ref(forschungsfrage) ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.[^Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Exsistenz ist aber bei der Interprätation der Ergebnisse dennoch inneressant, da die Payoffs der gefundenen Strategien diebezüglich als untere Grenzen des Payoffs betrachtet werden können.
 
 
 ## Einfache Optimierungen
 
-Eine einfache Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als optimierte prozentuale Bewegungen vom aktuellen Preis zu ermitteln. Dies lässt sich sowohl symmetrische wie auch asymmetrisch machen. 
+Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festzulegen. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhälntisse unter 1 kennzeichnen unterlegene Strategien. 
+
+Für die Analyse wird der Datensatz zufällig in einen Trainingsdatensatz (80%) und einen Testdatensatz (20%) unterteilt.
 
 ```{r, echo=FALSE}
-# 
-# #' opt_payoff_sym(0, quotes_test)
-# opt_payoff_sym <- function(move, quotes_line, col, both_first, scale_fct = 1) {
-#   sum(calc_payoff_const_gamma(quotes_line, buy = (1 - move) * quotes_line[[col]], sell = (1 + move) * quotes_line[[col]], both_first = both_first)) / scale_fct
-# }
-# 
-# both_first <- 123456
-# dat <- tidyr::drop_na(quotes_line)
-# opt_payoff_sym(move = 0.01, quotes_line = dat, col = "Open", both_first = both_first, scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)))
-# 
-# move <- seq(0, 0.1, 0.0025)
-# 
-# factor_open <- dplyr::map(
-#   .x = move,
-#   .f = opt_payoff_sym,
-#   quotes_line = dat,
-#   col = "Open",
-#   both_first = both_first,
-#   scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first))
-# )
-# 
-# optimum_open <- optimize(
-#   f = opt_payoff_sym,
-#   interval = c(0, 0.2),
-#   quotes_line = dat,
-#   col = "Open",
-#   both_first = both_first,
-#   scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)),
-#   maximum = TRUE
-# )
-# 
-# res_open <- tibble(move = move, factor = unlist(factor_open))
-# plot(res_open$move, res_open$factor, type = "l")
-# 
-# 
-# factor_adjusted_t_1 <- map(
-#   .x = move,
-#   .f = opt_payoff_sym,
-#   quotes_line = dat,
-#   col = "Adjusted_t_1",
-#   both_first = both_first,
-#   scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first))
-# )
-# 
-# optimum_adjusted_t_1 <- optimize(
-#   f = opt_payoff_sym,
-#   interval = c(0, 0.2),
-#   quotes_line = dat,
-#   col = "Adjusted_t_1",
-#   both_first = both_first,
-#   scale_fct = sum(calc_payoff_const_gamma(dat, both_first = both_first)),
-#   maximum = TRUE
-# )
-# 
-# res_adjusted_t_1 <- tibble(move = move, factor = unlist(factor_adjusted_t_1))
-# plot(res_adjusted_t_1$move, res_adjusted_t_1$factor, type = "l")
-# 
+opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
+  sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
+}
+
+quotes_clean <- arrow::read_feather("tmp/quotes_clean.feather")
+data <- quotes_clean %>%
+  dplyr::group_by(Ticker) %>%
+  dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
+  ungroup() %>%
+  rename(Close_0 = "Close") %>%
+  select(-Ticker)
+data <- normalize_quotes(data, "Close_1", names(data))
+data <- tidyr::drop_na(data)
+rm(quotes_clean)
+
+set.seed(123456)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
+
+variation_factor_open_args <- list(
+  move = seq(0, 0.1, 0.001), 
+  data = data, 
+  both_first = both_first, 
+  R = 100
+)
+
+variation_factor_open_hash <- digest::digest(variation_factor_open_args)
+variation_factor_open_file_name <- paste0("tmp/variation_factor_open_", variation_factor_open_hash, ".feather")
+
+if (file.exists(variation_factor_open_file_name)) {
+  bootstraped_variation_factor_open <- arrow::read_arrow(variation_factor_open_file_name)
+} else {
+  bootstraped_variation_factor_open <- do.call(bootstrap_variation_factor, args = c(variation_factor_open_args, list(mc.cores = 4)))
+  arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
+}
+
+plot_variation_factor(bootstraped_variation_factor_open)
 
 ```
+
+Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei varierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: 
 
 
 ## Klassifikationsverfahren
 ```{r, train_test_split, echo=FALSE}
-# 
-# quotes_line <- tidyr::drop_na(quotes_line)
-# 
+
+quotes_clean <- arrow::read_feather("tmp/quotes_clean.feather")
+window <- 3
+data <- quotes_clean %>%
+  dplyr::group_by(Ticker) %>%
+  dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+  ungroup() %>%
+  rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High")
+
+data <- normalize_quotes(data, paste0("Close_", window + 1), setdiff(names(data), c("Ticker", "Date")))
+
+# remove unneeded (after normalization) day before window start
+data <- select(data, c("Ticker", "Date", str_subset(names(data), paste0("_[^", window + 1, "]$"))))
+
+# drop NA (for window and current)
+data <- tidyr::drop_na(data)
+
+# remove current date except "Open"
+data <- select(data, c("Ticker", "Date", "Open_0", str_subset(names(data), paste0("_[^", 0, "]$"))))
+
+# sort columns nicely
+data <- data %>% select(c("Ticker", "Date"), sort(str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+rm(quotes_clean)
+
+ 
 # # out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "euclidean", mc.cores = 3)
 # # saveRDS(out, "tmp/knn_olhc_3_euc.rds")
 # # rm(out)
