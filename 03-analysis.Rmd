@@ -21,6 +21,7 @@ source("R/02-data.R")
 source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 
+quotes_clean_hash <- "94b2b8bdc8775dcce36c1b48bc79cbe4"
 
 ```
 
@@ -45,7 +46,7 @@ opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
   sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
 }
 
-quotes_clean <- arrow::read_feather("tmp/quotes_clean.feather")
+quotes_clean <- arrow::read_feather(paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
 data <- quotes_clean %>%
   dplyr::group_by(Ticker) %>%
   dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
@@ -86,107 +87,29 @@ Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis be
 ## Klassifikationsverfahren
 ```{r, knn-data-preparation, echo=FALSE}
 
-quotes_clean <- arrow::read_feather("tmp/quotes_clean.feather")
+quotes_clean <- arrow::read_feather(paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
 window <- 3
-data <- quotes_clean %>%
+data_all <- quotes_clean %>%
   dplyr::group_by(Ticker) %>%
   dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
-  ungroup() %>%
-  rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High")
-
-data <- normalize_quotes(data, paste0("Close_", window + 1), setdiff(names(data), c("Ticker", "Date")))
+  dplyr::ungroup() %>%
+  dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
+  normalize_quotes(paste0("Close_", window + 1), setdiff(names(data), c("Ticker", "Date")))
 
 # remove unneeded (after normalization) day before window start
-data <- select(data, c("Ticker", "Date", str_subset(names(data), paste0("_[^", window + 1, "]$"))))
+data <- dplyr::select(data_all, c("Ticker", "Date", str_subset(names(data_all), paste0("_[^", window + 1, "]$"))))
 
 # drop NA (for window and current)
 data <- tidyr::drop_na(data)
 
 # remove current date except "Open"
-data <- select(data, c("Ticker", "Date", "Open_0", str_subset(names(data), paste0("_[^", 0, "]$"))))
+data <- dplyr::select(data, c("Ticker", "Date", "Open_0", str_subset(names(data), paste0("_[^", 0, "]$"))))
 
 # sort columns nicely
-data <- data %>% select(c("Ticker", "Date"), sort(str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+data <- data %>% dplyr::select(c("Ticker", "Date"), sort(stringr::str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+id_cols <- c("Ticker", "Date")
+data_all <- data[, id_cols] %>% inner_join(data_all, by = id_cols)
 rm(quotes_clean)
-
-
-# # out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "euclidean", mc.cores = 3)
-# # saveRDS(out, "tmp/knn_olhc_3_euc.rds")
-# # rm(out)
-# 
-# #out <- find_nn(quotes_line = quotes_line, cols = c("Open", "Low", "High", "Close"), window = 3, norm = "manhattan", mc.cores = 3)
-# # saveRDS(out, "tmp/knn_olhc_3_man.rds")
-# 
-# 
-# knn_olhc_3_euc <- readRDS("tmp/knn_olhc_3_euc.rds")
-# knn_olhc_3_man <- readRDS("tmp/knn_olhc_3_man.rds")
-# 
-# 
-# plot_history <- function(id, data, window, nn_idx) {
-#   
-#   
-#   test <- sample(1000:2000, 15000, replace = TRUE)
-#   
-#   
-#   
-#   comp %>%
-#     mutate(entry = seq_len(n())) %>%
-#     tidyr::pivot_longer(-entry, names_to = "type")
-#   
-#   
-#   cols_all <- paste0(cols, "_", seq_len(ncol(data) / length(cols)))
-#   data_id <- map(seq_len(ncol(data) / length(cols)), ~select_at(data, paste0(cols, "_", .)))
-#   
-#   
-#   cols_all <- do.call(function(...) paste(..., sep = "_"), expand.grid(cols, seq_len(ncol(data) / length(cols))))
-#   
-#   curr_data <- data_id[[1]] %>% 
-#     mutate(id = seq_len(n())) %>%
-#     tidyr::pivot_longer(-id, names_to = "type") %>%
-#     mutate_at("type", ~factor(., levels = cols_all)) %>%
-#     filter(id < 10)
-#   
-#   
-#   
-#   ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
-#     
-#     
-#     ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
-#     geom_point() + 
-#     geom_line() +
-#     theme_bw()
-#   
-#   
-#   
-# }
-# 
-# 
-# x <- quotes_line[123456, ]
-# foo <- knn_olhc_3_euc$nn.idx[123456, ]
-# foo <- knn_olhc_3_man$nn.idx[123456, ]
-# 
-# test <- arrange(quotes_line, Ticker, Date)
-# 
-# data_wide_123456 <- data_query$data_wide
-# 
-# quotes_line[123453:123455,]
-# 
-# data_wide_123456[foo, ]
-# 
-# quotes_line[21352,]
-# 
-# 
-# dat <- x %>%
-#   bind_rows(quotes_line[foo, ]) %>%
-#   select("Open", "Low", "High", "Close") %>%
-#   mutate(ID = seq_len(n())) %>% 
-#   tidyr::pivot_longer(-ID, names_to = "type")
-# 
-# ggplot(data=filter(dat, ID %in% seq_len(51)), aes(x=type, y=value, group = ID)) + 
-#   geom_point() + 
-#   geom_line() +
-#   theme_bw()
-# 
 
 ```
 
@@ -194,76 +117,61 @@ rm(quotes_clean)
 ```{r, knn-calculation, echo=FALSE}
 # data_bkp <- data
 # data <- data_bkp
-
 orig_order <- order(desc(data$Date))
-
-data <- data %>%
-  select(-Ticker) %>%
-  arrange(desc(Date))
+data <- data %>% select(-Ticker) %>% arrange(desc(Date))
 
 counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
 n_chunks <- 100
-breaks <- head(nrow(data) / (n_chunks + 1) * seq_len(n_chunks + 1), -1)
+breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
 
-split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>.))]])
+split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
 
 nn <- function(i, split_dates, data, dates){
-  split_date = split_dates[[i]]
+  split_date <- split_dates[[i]]
   curr_data <- data[dates <= split_date, ]
   curr_dates <- dates[dates <= split_date]
-  curr_query <- data[dates > split_date & dates <= split_dates[[i+1]], ]
+  curr_query <- data[dates <= split_date & dates > ifelse(i == 1, -Inf, split_dates[[i-1]]), ]
   RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50)
 }
 
-set.seed(654321)
-samples <- sample(n_chunks)
-out <- pbmcapply::pbmclapply(
-  X = samples,
+knn_eucl_list <- pbmcapply::pbmclapply(
+  X = rev(seq_len(n_chunks)),
   FUN = nn,
   split_dates = split_dates,
   data = as.matrix(select(data, -Date)),
   dates = data$Date,
-  mc.cores = parallel::detectCores() - 1
+  mc.cores = parallel::detectCores()
 )
 
-RANN2::nn2_cpp2(data = mat, query = mat, group = group, k = 4, k_internal = 4)
+knn_eucl_list_hash <- digest::digest(knn_eucl_list)
+# saveRDS(knn_eucl_list_hash, paste0("tmp/knn_eucl_list_", knn_eucl_list_hash, ".rds"))
 
-
-nn2_cpp2(data = mat, query = mat, group = group, k = 4, k_internal = 4)
-
-
-```
-
-
-
-
-```{r, knn-calculation, echo=FALSE}
-# data_wide_0 <- quotes_line %>%
-#   as_tibble() %>%
-#   group_by(Ticker) %>%
-#   widen(window = 3, cols = c("Open", "Low", "High", "Close"), include_current = TRUE)
-# 
-# # exclude all columns (also when _0 value is not available)
-# na_rows_bool <- rowSums(is.na(data_wide_0)) > 0
-# knn_data <- data_wide_0 %>%
-#   mutate(Date = quotes_line$Date) %>%
-#   mutate_all(~ifelse(na_rows_bool, NA, .)) 
-# 
-# gc()
-# nn <- find_nn(select(knn_data, !c(ends_with("_0"), any_of("Date"))), dates = knn_data$Date, mc.cores = 3)
-# 
-# 
-# nn <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds")
-# 
-# nn <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds")
-# 
-# 
-# 
+knn_eucl <- purrr::transpose(knn_eucl_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
+knn_eucl_hash <- digest::digest(knn_eucl)
+# arrow::write_feather(as_tibble(knn_eucl$nn.idx), paste0("tmp/knn_eucl_idx_", knn_eucl_hash, ".feather"))
+# arrow::write_feather(as_tibble(knn_eucl$nn.dists), paste0("tmp/knn_eucl_dists_", knn_eucl_hash, ".feather"))
 
 ```
 
 
-```{r, knn-history-plot, echo=FALSE}
+
+```{r, knn-single-plot, echo=FALSE}
+
+knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather")
+
+idx <- 123456 
+
+id_cols <- c("Ticker", "Date")
+curr_id <- data[idx, id_cols]
+
+data_wide_curr <- data_all[idx, ]
+data_wide_nn <- data_all %>% inner_join(select(data, id_cols),  by = id_cols)
+
+plot_nn(
+  data_wide_curr = data_all[idx, ],
+  data_wide_nn = data_all[as.integer(knn_eucl_idx[idx, ]), ]
+)
+
 # id <- 280000
 # valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0]
 # 

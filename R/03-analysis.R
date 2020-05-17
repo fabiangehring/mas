@@ -504,6 +504,8 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
 #' plot_nn(select(data_wide_curr, !ends_with("_0")), select(data_wide_nn, !ends_with("_0")))
 plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean") {  
   
+  browser()
+  
   stopifnot(sort(names(data_wide_curr)) == sort(names(data_wide_nn)))
   col_types <- unique(stringr::str_extract(names(data_wide_curr), ".*(?=_[0-9]+$)"))
   

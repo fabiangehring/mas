@@ -168,7 +168,8 @@ Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quot
 ```{r, echo=FALSE}
 # TODO: remove
 quotes_clean <- quotes_clean %>% select(-Adjusted)
-# arrow::write_feather(quotes_clean, "tmp/quotes_clean.feather")
+quotes_clean_hash <- digest::digest(quotes_clean)
+# arrow::write_feather(quotes_clean, paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
 ```
 
 
