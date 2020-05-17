@@ -67,13 +67,17 @@ sudo apt-get install build-essential libcurl4-gnutls-dev openjdk-7-* libxml2-dev
 cp -r /opt/intel/mkl/tools/builder .
 cd builder; source /opt/intel/mkl/bin/mklvars.sh intel64; make libintel64 export=blas_example_list parallel=gnu name=libRblas
 
-
-  # Install RStudio Server
+# Install RStudio Server
 sudo apt-get install gdebi-core
 wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5042-amd64.deb
 sudo gdebi rstudio-server-1.2.5042-amd64.deb
 
 
 ## Tutorial for RStudio on Azure: https://techcommunity.microsoft.com/t5/educator-developer-blog/hosting-rserver-and-rstudio-on-azure/ba-p/744389
+
+        
+# 4. Install CUDA if Nvidia GPU is available according to this manual: https://tensorflow.rstudio.com/installation/gpu/local_gpu/
+# but use these versions instead: https://www.tensorflow.org/install/gpu
+# be aware that the Rprofile.site file is located under "/opt/R/3.6.3_mkl/lib/R/etc/Rprofile.site" (instead of the path given in the rstudio-manual)
 
 
