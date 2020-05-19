@@ -11,7 +11,7 @@ sudo apt-get update
 
 sudo apt-get install intel-mkl-64bit 
 # propose explizit versions i.e.
-sudo apt-get install intel-mkl-64bit-2020.1-102
+sudo apt-get -y install intel-mkl-64bit-2020.1-102
 
 
 # 2. Install R (https://docs.rstudio.com/resources/install-r-source/)
@@ -20,24 +20,24 @@ sudo apt-get build-dep r-base
 
 ### if there is a warning that URI must be added to sources.list there are 2 options: 
 
-  a) Desktop: make sure to enable "Quellcodepaketquelle" in the Applikation "Anwendungspaketquellen" or 
+  # a) Desktop: make sure to enable "Quellcodepaketquelle" in the Applikation "Anwendungspaketquellen" or 
   
   sudo apt-get update
   sudo apt-get build-dep r-base
   
-  b) Command line: from command line: 
+  # b) Command line: from command line: 
   
   # check entries that are commented out
   cat /etc/apt/sources.list | grep deb-src  #  see what will get changed
   
-  # uncommend
+  # uncomment
   sudo sed -i~orig -e 's/# deb-src/deb-src/' /etc/apt/sources.list   
   
   # verify
   cat /etc/apt/sources.list | grep deb-src  #  see what will get changed
 
   sudo apt-get update
-  sudo apt-get build-dep r-base
+  sudo apt-get -y build-dep r-base
 ###
 
 
@@ -57,25 +57,35 @@ sudo make install
 
 # create symlinks
 sudo ln -s /opt/R/${R_VERSION}_mkl/bin/R /usr/local/bin/R
-sudo ln -s /opt/R/${R_VERSION}_mkl/bin/Rscript /usr/local/bin/Rscript
+    sudo ln -s /opt/R/${R_VERSION}_mkl/bin/Rscript /usr/local/bin/Rscript
 
 
 # optional, install other libraries
-sudo apt-get install build-essential libcurl4-gnutls-dev openjdk-7-* libxml2-dev libssl-dev texlive-full
+sudo apt-get -y install build-essential libcurl4-gnutls-dev openjdk-7-* libxml2-dev libssl-dev texlive-full
 
 # 3. Fix know issue (no problem detected myself, but described here: https://software.intel.com/en-us/articles/using-intel-mkl-with-r) might not be necessary in later releases
 cp -r /opt/intel/mkl/tools/builder .
 cd builder; source /opt/intel/mkl/bin/mklvars.sh intel64; make libintel64 export=blas_example_list parallel=gnu name=libRblas
 
 # Install RStudio Server
+
+### a) from binary
+
+# use stable version
 sudo apt-get install gdebi-core
-wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5042-amd64.deb
+wget https://download2.rstudio.org/server/trusty/amd64/rstudio-server-1.2.5042-amd64.deb
 sudo gdebi rstudio-server-1.2.5042-amd64.deb
 
+# use preview version https://rstudio.com/products/rstudio/download/preview/
+# wget https://s3.amazonaws.com/rstudio-ide-build/server/bionic/amd64/rstudio-server-1.3.958-amd64.deb
+# sudo gdebi rstudio-server-1.3.958-amd64.deb
 
+## if Rstudio Server fails to start because of missing libssl.so.1.1 install newest openssl (https://www.openssl.org/source/)
+# try later again and it worked
 ## Tutorial for RStudio on Azure: https://techcommunity.microsoft.com/t5/educator-developer-blog/hosting-rserver-and-rstudio-on-azure/ba-p/744389
 
-        
+### b) from source (necessary since keras not working properly in version 1.2.5042, see https://community.rstudio.com/t/keras-crash-in-rstudio-server-gui-not-on-command-line/48960)
+
 # 4. Install CUDA if Nvidia GPU is available according to this manual: https://tensorflow.rstudio.com/installation/gpu/local_gpu/
 # but use these versions instead: https://www.tensorflow.org/install/gpu
 # be aware that the Rprofile.site file is located under "/opt/R/3.6.3_mkl/lib/R/etc/Rprofile.site" (instead of the path given in the rstudio-manual)
