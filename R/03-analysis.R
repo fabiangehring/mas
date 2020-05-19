@@ -384,6 +384,68 @@ split_data_query <- function(curr_date, all_dates, data_wide) {
 #' 
 
 
+# output is sorted in arrange(data, Date, Ticker)
+#' Find nearest neighbors chunkwise. Invalid indices (because they point to a later point in time) are replaced with NA. Additionally the output matrices are
+#' organized such that NA values are at the very right.
+#'
+#' @param data A data.frame with coluns Date and Ticker and other numeric columns that should be compared. Data.frame must be sorted for "Date" and "Ticker", 
+#' otherwise an error will be thrown.
+#' @param distance One of c("euclidean", "manhattan"
+#' @param k The number of nearest neigbours to find. Notice that these are not guaranteed since invalid indices (since pointing to late pint in time) are
+#' replaced by NA.
+#' @param n_chunks Number of chunks to split the data into.  
+#' @param mc.cores The number of cores for parallel execution
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' data <- data.frame(
+#'   Date = as.Date(c("2001-01-01", "2001-01-02", "2001-01-02")), 
+#'   Ticker = c("A", "A", "A"), 
+#'   value = c(1, 3, 1.2)
+#' )
+#' find_nn_chunkwise(data = data, n_chunks = 1, k = 3)
+find_nn_chunkwise <- function(data, distance = "euclidean", k = 75, n_chunks = 500, mc.cores = parallel::detectCores()) {
+  
+  # check if data is ordered correctly
+  if (!all(order(data$Date, data$Ticker) == seq_len(nrow(data)))) stop("data must be sorted for Date and Ticker")
+  stopifnot(all(order(data$Date, data$Ticker) == seq_len(nrow(data))))
+
+  counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
+  
+  breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
+  split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
+
+  # check if all chunk sizes >= k
+  chunk_sizes <- diff(map_int(split_dates, ~sum(filter(counts, Date <= .)$cnt)))
+  if (any(chunk_sizes < k)) stop("chunk size smaller than k, decrease number of chunks")
+  
+  
+  rann_fct <- if (distance == "euclidean") {RANN::nn2} else if (distance == "manhattan") {RANN.L1::nn2} else stop("distance not supported")
+
+  knn_list <- pbmcapply::pbmclapply(rev(seq_along(split_dates)), function(i) {
+    prev_split_Date <- ifelse(i > 1, split_dates[[i - 1]], -Inf)
+    curr_split_Date <- split_dates[[i]]
+    curr_data <- as.matrix(select(filter(data, Date <= curr_split_Date), -Ticker, -Date))
+    curr_query <- as.matrix(select(filter(data, Date <= curr_split_Date & Date > prev_split_Date) , -Ticker, -Date))
+    rann_fct(curr_data, curr_query, k = k)
+  },  mc.cores =  mc.cores)
+  
+  knn <- purrr::transpose(knn_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
+  
+  bad_idx <- knn$nn.idx > rep(head(c(0, counts$cum_sum), -1), counts$cnt)
+  knn$nn.idx[bad_idx] <- NA
+  knn$nn.idx <- drop_na_nn_idx(knn$nn.idx, k)
+  
+  knn$nn.dists[bad_idx] <- NA
+  knn$nn.dists <- drop_na_nn_dists(knn$nn.dists, k)
+  
+  knn
+}
+
+
+
 #' Find quote histories in the past that resembles the current the most
 #'
 #' @param data_wide A data.frame with all columns that need to be used to find the nearest neighbors
@@ -504,8 +566,6 @@ find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = par
 #' plot_nn(select(data_wide_curr, !ends_with("_0")), select(data_wide_nn, !ends_with("_0")))
 plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean") {  
   
-  browser()
-  
   stopifnot(sort(names(data_wide_curr)) == sort(names(data_wide_nn)))
   col_types <- unique(stringr::str_extract(names(data_wide_curr), ".*(?=_[0-9]+$)"))
   
@@ -515,6 +575,7 @@ plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean")
   plot_data <- mutate(data_wide_nn, src = "nn") %>%
     bind_rows(mutate(data_wide_curr, src = "curr")) %>%
     bind_rows(mutate(data_wide_pred, src = "pred")) %>%
+    select(c(stringr::str_subset(names(.), "_[0-9]+$"), "src")) %>%
     mutate(entry = seq_len(n())) %>%
     tidyr::pivot_longer(-c("entry", "src"), names_to = "type") %>%
     separate(type, sep = "_", into = c("type", "window"))

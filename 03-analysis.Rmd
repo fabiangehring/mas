@@ -20,6 +20,8 @@ Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
 source("R/02-data.R")
 source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
+
 
 quotes_clean_hash <- "94b2b8bdc8775dcce36c1b48bc79cbe4"
 
@@ -94,7 +96,10 @@ data_all <- quotes_clean %>%
   dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
   dplyr::ungroup() %>%
   dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
-  normalize_quotes(paste0("Close_", window + 1), setdiff(names(data), c("Ticker", "Date")))
+  normalize_quotes(paste0("Close_", window + 1), setdiff(names(.), c("Ticker", "Date")))
+
+# arrow::write_feather(data_all, paste0("tmp/data_all_", quotes_clean_hash, ".feather"))
+data_all <- arrow::read_arrow(paste0("tmp/data_all_", quotes_clean_hash, ".feather"))
 
 # remove unneeded (after normalization) day before window start
 data <- dplyr::select(data_all, c("Ticker", "Date", str_subset(names(data_all), paste0("_[^", window + 1, "]$"))))
@@ -112,6 +117,24 @@ data_all <- data[, id_cols] %>% inner_join(data_all, by = id_cols)
 rm(quotes_clean)
 
 ```
+
+
+```{r, knn-calculation-classic, echo=FALSE}
+
+data <- arrange(data, Date, Ticker)
+knn_eucl <- find_nn_chunkwise(
+  data = data,
+  distance = "euclidean",
+  k = 75,
+  n_chunks = 200,
+  mc.cores = parallel::detectCores()
+)
+
+saveRDS(knn_eucl, "tmp/knn_eucl.rds")
+
+```
+
+
 
 
 ```{r, knn-calculation, echo=FALSE}
@@ -158,18 +181,28 @@ knn_eucl_hash <- digest::digest(knn_eucl)
 ```{r, knn-single-plot, echo=FALSE}
 
 knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather")
+knn_eucl_dists <- arrow::read_feather("tmp/knn_eucl_dists_7d3356cf64a5f81081840f6b1b370d77.feather")
+
 
 idx <- 123456 
 
-id_cols <- c("Ticker", "Date")
-curr_id <- data[idx, id_cols]
+knn_eucl_idx[idx, ]
+knn_eucl_dists[idx, ]
+select(data[idx, ], -c("Ticker", "Date"))
+select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date"))
 
-data_wide_curr <- data_all[idx, ]
-data_wide_nn <- data_all %>% inner_join(select(data, id_cols),  by = id_cols)
+sqrt(sum((select(data[idx, ], -c("Ticker", "Date")) - select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")))^2))
+
+id_cols <- c("Ticker", "Date")
+knn <- RANN::nn2(
+  data = select(data, -id_cols),
+  query = select(data[idx, ], -id_cols),
+  k = 10
+)
 
 plot_nn(
   data_wide_curr = data_all[idx, ],
-  data_wide_nn = data_all[as.integer(knn_eucl_idx[idx, ]), ]
+  data_wide_nn = data_all[c(3660437, 2876442, 1411227), ]
 )
 
 # id <- 280000
