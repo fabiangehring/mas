@@ -69,7 +69,7 @@ if (file.exists(variation_factor_open_file_name)) {
     data = data, 
     both_first = both_first, 
     R = 100,
-    mc.cores = 1
+    mc.cores = 3
   )
   
   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
@@ -130,6 +130,27 @@ knn_eucl <- find_nn_chunkwise(
 saveRDS(knn_eucl, "tmp/knn_eucl.rds")
 
 ```
+
+
+
+
+```{r, knn-calculation-classic, echo=FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+##### Old
+
+
 
 
 
