@@ -2,7 +2,6 @@
 
 
 ```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
-
 suppressPackageStartupMessages({
   library(dplyr)
   library(stringr)
@@ -16,15 +15,13 @@ suppressPackageStartupMessages({
   library(microbenchmark)
   library(profvis)
 })
-Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
+
 source("R/02-data.R")
 source("R/03-analysis.R")
+
+Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
-
-
-quotes_clean_hash <- "94b2b8bdc8775dcce36c1b48bc79cbe4"
-
 ```
 
 Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
@@ -41,42 +38,42 @@ Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstr
 
 Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festzulegen. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhälntisse unter 1 kennzeichnen unterlegene Strategien. 
 
-Für die Analyse wird der Datensatz zufällig in einen Trainingsdatensatz (80%) und einen Testdatensatz (20%) unterteilt.
+``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
 
-```{r, echo=FALSE}
-opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
-  sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
-}
-
-quotes_clean <- arrow::read_feather(paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
-data <- quotes_clean %>%
-  dplyr::group_by(Ticker) %>%
-  dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
-  ungroup() %>%
-  rename(Close_0 = "Close") %>%
-  select(-Ticker)
-data <- normalize_quotes(data, "Close_1", names(data))
-data <- tidyr::drop_na(data)
-rm(quotes_clean)
-
-set.seed(123456)
-both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
-
-variation_factor_open_args <- list(
-  move = seq(0, 0.1, 0.001), 
-  data = data, 
-  both_first = both_first, 
-  R = 100
-)
-
-variation_factor_open_hash <- digest::digest(variation_factor_open_args)
-variation_factor_open_file_name <- paste0("tmp/variation_factor_open_", variation_factor_open_hash, ".feather")
+variation_factor_open_file_name <- paste0("data/variation_factor_open.feather")
 
 if (file.exists(variation_factor_open_file_name)) {
-  bootstraped_variation_factor_open <- arrow::read_arrow(variation_factor_open_file_name)
+  bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
 } else {
-  bootstraped_variation_factor_open <- do.call(bootstrap_variation_factor, args = c(variation_factor_open_args, list(mc.cores = 4)))
+  
+  opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
+    sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
+  }
+  
+  quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
+  data <- quotes_clean %>%
+    dplyr::group_by(Ticker) %>%
+    dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
+    ungroup() %>%
+    rename(Close_0 = "Close") %>%
+    select(-Ticker)
+  data <- normalize_quotes(data, "Close_1", names(data))
+  data <- tidyr::drop_na(data)
+  rm(quotes_clean)
+  
+  set.seed(123456)
+  both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
+
+  bootstraped_variation_factor_open <- bootstrap_variation_factor(
+    move = seq(0, 0.1, 0.001), 
+    data = data, 
+    both_first = both_first, 
+    R = 100,
+    mc.cores = 1
+  )
+  
   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
+  
 }
 
 plot_variation_factor(bootstraped_variation_factor_open)

@@ -735,7 +735,7 @@ bootstrap_variation_factor <- function(data, both_first, move, R, col = "Open", 
   purrr::map_df(move, function(curr_move) {
     print(curr_move)
     bootstr <- boot::boot(data, function(data, index) {
-      if (length(both_first == 1 & nrow(data) > 1)) {
+      if (length(both_first) == 1 & nrow(data) > 1) {
         both_first <- rep(both_first, nrow(data))
       }
       scale_fct <- sum(calc_payoff_const_gamma(data[index, ], both_first = both_first[index]))

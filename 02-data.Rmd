@@ -15,43 +15,42 @@ suppressPackageStartupMessages({
   library(tidyr)
 })
 
-source("data/download_scripts.R")
+source("global.R")
+source("R/download_scripts.R")
 source("R/02-data.R")
 
-# load stocks
-stocks_hash <- "a2ea2a17f87576c2bf28c0e2ff80f30e"
-file_stocks <- here::here(paste0("data/stocks_", stocks_hash,".rds"))
-if (!file.exists(file_stocks)) {
-  stocks <- download_stocks() 
-  stocks_hash <- digest::digest(stocks)
-  file_stocks <- here::here(paste0("data/stocks_", stocks_hash,".rds"))
-  saveRDS(stocks, file_stocks)
+# load stocks_raw
+file_stocks_raw <- here::here(paste0("data/stocks_raw.feather"))
+if (file.exists(file_stocks_raw)) {
+  stocks_raw <- arrow::read_feather(file_stocks_raw)
+} else {
+  stocks_raw <- download_stocks() 
+  arrow::write_feather(stocks_raw, file_stocks_raw)
 }
-stocks <- readRDS(file_stocks) %>% unnest(cols = names(.))
 ```
 
-Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret werden alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks)` Aktien, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:
+Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret werden alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020 ^[Das Startdatum dieser Arbeit.] verwendet. Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks_raw)` Aktien, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des ETF Emittenten weitere Attribute zur Verfügung. Diese lauten am Beispiel Nesté wie folgt:
 
 ``` {r etf-data-nestle-stock, echo=FALSE}
-stock_nesn <- dplyr::filter(stocks, Ticker == "NESN")
+stock_nesn <- dplyr::filter(stocks_raw, Ticker == "NESN")
 knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption = "Attribute der Nestlé Aktie per 28. Februar 2020") %>%
   kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
 Neben eindeutigen Identifiern wie "Ticker" und "ISIN" enthält der Datensatz auch Informationen zur "Asset Class" der Komponente. Für die vorliegende Analyse von Aktien ist hierbei lediglich die Ausprägung "Equity" zulässig. Die Kennzahlen "Weight", "Market Value" und "Notional Value" geben Auskunft über die Grösse der betachteten Unternehmung und eignen sich auch zum Vergleich ebendieser. Zu beachten gilt, dass im Falle von Aktien der "Notional Value" dem "Market Value" entspricht und sich dieser bis auf rundungsbedingte Differenzen auch aus der Anzahl ausgegebener Titel mal Tagesendkurs ("Shares" x "Price") ermitteln lässt. 
 
-Als weitere Unterscheidungsmerkmale sind der Hauptbörsenplatz "Exchange" (`r length(unique(stocks$Exchange))` unterschiedliche Ausprägungen), der Sitz "Location" (`r length(unique(stocks$Location))` Ausprägungen) sowie die Währung "Market Currency" (`r length(unique(stocks[["Market Currency"]]))` Ausprägungen) aufgeführt. Alle drei Attribute bilden stark verwandte Informationen ab. Geschlüsselt auf Kontinente ergeben sich für den Börsensitz folgende Anteile: 
+Als weitere Unterscheidungsmerkmale sind der Hauptbörsenplatz "Exchange" (`r length(unique(stocks_raw$Exchange))` unterschiedliche Ausprägungen), der Sitz "Location" (`r length(unique(stocks_raw$Location))` Ausprägungen) sowie die Währung "Market Currency" (`r length(unique(stocks_raw[["Market Currency"]]))` Ausprägungen) aufgeführt. Alle drei Attribute bilden stark verwandte Informationen ab. Geschlüsselt auf Kontinente ergeben sich für den Börsensitz folgende Anteile: 
 
-- Nordamerika: `r round(sum(stocks$Location %in% c("United States", "Canada"))/nrow(stocks) * 100, 0)`% 
-- Europa: `r round(sum(stocks$Location %in% c("Portugal", "Austria", "Ireland", "Norway", "Belgium", "Finland", "Israel", "Denmark", "Netherlands", "Spain", "Italy", "Sweden", "Switzerland", "Germany", "France", "United Kingdom"))/nrow(stocks) * 100, 0)`% 
-- Asien: `r round(sum(stocks$Location %in% c("Japan", "Hong Kong", "Singapore"))/nrow(stocks) * 100, 0)`% 
-- Australien: `r round(sum(stocks$Location %in% c("Australia", "New Zealand"))/nrow(stocks) * 100, 0)`%
+- Nordamerika: `r round(sum(stocks_raw$Location %in% c("United States", "Canada"))/nrow(stocks_raw) * 100, 0)`% 
+- Europa: `r round(sum(stocks_raw$Location %in% c("Portugal", "Austria", "Ireland", "Norway", "Belgium", "Finland", "Israel", "Denmark", "Netherlands", "Spain", "Italy", "Sweden", "Switzerland", "Germany", "France", "United Kingdom"))/nrow(stocks_raw) * 100, 0)`% 
+- Asien: `r round(sum(stocks_raw$Location %in% c("Japan", "Hong Kong", "Singapore"))/nrow(stocks_raw) * 100, 0)`% 
+- Australien: `r round(sum(stocks_raw$Location %in% c("Australia", "New Zealand"))/nrow(stocks_raw) * 100, 0)`%
 
-Als letzes Attribut enthält der Datensatz Angaben zum "Sector" in welchem die jeweilige Unternehmung tätigt ist. Bis auf die Kategorien "Energy" und "Other" ist jeder der `r length(unique(stocks$Sector))` aufgeführten Sektoren mit mindestens 5 Anteil vorhanden. Die beiden Sektoren mit dem höchsten Anteil sind "Industrials" und "Financials".
+Als letzes Attribut enthält der Datensatz Angaben zum "Sector" in welchem die jeweilige Unternehmung tätigt ist. Bis auf die Kategorien "Energy" und "Other" ist jeder der `r length(unique(stocks_raw$Sector))` aufgeführten Sektoren mit mindestens 5 Anteil vorhanden. Die beiden Sektoren mit dem höchsten Anteil sind "Industrials" und "Financials".
 
 
 ``` {r, fig.cap='Anzahl im Datensatz vorhandene Titel je Sektor', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
-table(stocks$Sector) %>%
+table(stocks_raw$Sector) %>%
   sort(decreasing = FALSE) %>%
   tibble(Sektor = factor(names(.), levels = unique(names(.))), Anteil = . / sum(.) ) %>%
   ggplot2::ggplot(ggplot2::aes(x = Sektor, y = Anteil)) + 
@@ -64,18 +63,16 @@ table(stocks$Sector) %>%
 
 ``` {r, retrieve-quotes-data, echo=FALSE}
 # load quotes
-quotes_hash <- "6175759dd4876b820a6457a4c341e9cd"
-file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
-if (!file.exists(file_quotes)) {
-  quotes <- download_quotes(stocks) # takes about 35mins
-  quotes_hash <- digest::digest(quotes)
-  file_quotes <- here::here(paste0("data/quotes_", quotes_hash,".rds"))
-  saveRDS(quotes, file_quotes)
+file_quotes_raw <- here::here(paste0("data/quotes_raw.feather"))
+if (file.exists(file_quotes_raw)) {
+  quotes_raw <- arrow::read_feather(file_quotes_raw)
+} else {
+  quotes_raw <- download_quotes(stocks_raw) # takes about 35mins
+  arrow::write_feather(quotes_raw, file_quotes_raw)
 }
-quotes_raw <- readRDS(file_quotes)
 ```
 
-Für alle Titel werden in einem zweiten Schritt die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
+Für alle Titel werden in einem zweiten Schritt die historischen Aktienkurse inkl. Höchst- und Tiefstkurs bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks_raw) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
 
 
 ``` {r quote-data-nestle, echo=FALSE}
@@ -113,26 +110,26 @@ quotes_clean <- na_wrong_corporate_actions(quotes_clean, wrong_corporate_action_
 quotes_clean <- adjust_quotes(quotes_clean)
 ```
 1. **Entfernen von fehlerhaften Adjustierungsdaten**  
-  Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
+Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
 
 ```{r, filter-data-measure-order, echo=FALSE}
 quotes_clean <- na_unreasonable_measure_order(quotes_clean)
 ```
 1. **Entfernen von Einträgen mit unerwarterer Reihenfolge**  
-  Die Werte für Open, Low, High und Close implizieren eine klare Reihenfolge. Keine anderer der Werte darf höher als das High oder kleiner als das Low sein. Ist dies der Fall, werden die entsprechenden Werte von der Analyse ausgeschlossen.
+Die Werte für Open, Low, High und Close implizieren eine klare Reihenfolge. Keine anderer der Werte darf höher als das High oder kleiner als das Low sein. Ist dies der Fall, werden die entsprechenden Werte von der Analyse ausgeschlossen.
 
 ```{r, filter-data-typo, echo=FALSE}
 max_typo_ratio <- 8
 quotes_clean <- na_typos(quotes_clean, max_typo_ratio)
 ```
 1. **Erkennen und Ausschluss von Tippfehlern**  
-  Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.
+Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.
 
 ```{r, filter-data-no-intraday-moves, echo=FALSE}
 quotes_clean <- na_no_intraday_moves(quotes_clean)
 ```
 1. **Fehlende Preisbewegungen innerhalb des Tages**  
-  Der Aktienkurs eines grösseren Unternehens bewegt sich typischerweise auch an ruhigen Börsentagen immer ein wenig. Die vorhandenen Preise  liegen mit der Genauigkeit mehrer Nachkommastellen vor. Unterscheiden sich hierbei Tagestiefst- und Tageshöchstpreis nicht, muss von einem Datenfehler ausgegangen werden. Einträge ohne Preisbewegung innerhalb des Tages werden daher von der Analyse ausgeschlossen.
+Der Aktienkurs eines grösseren Unternehens bewegt sich typischerweise auch an ruhigen Börsentagen immer ein wenig. Die vorhandenen Preise  liegen mit der Genauigkeit mehrer Nachkommastellen vor. Unterscheiden sich hierbei Tagestiefst- und Tageshöchstpreis nicht, muss von einem Datenfehler ausgegangen werden. Einträge ohne Preisbewegung innerhalb des Tages werden daher von der Analyse ausgeschlossen.
 
 ```{r, filter-data-no-daily-changes, echo=FALSE}
 quotes_clean <- quotes_clean %>%
@@ -141,7 +138,7 @@ quotes_clean <- quotes_clean %>%
   ungroup()
 ```
 1. **Fehlende Kursbewegungen über nacheinanderfolgende Börsentage**  
-  Ähnlich wie bei den Preisbewegungen innerhalb des Tages verhält es sich auch bei Bewegungen über sich folgende Börsentage hinweg. Es ist zu erwarten, dass sich mindestens einer der fünf betrachteten Preise vom Vortag unterscheidet. Ist dies nicht der Fall, wird der Eintrag ausgeschlossen.
+Ähnlich wie bei den Preisbewegungen innerhalb des Tages verhält es sich auch bei Bewegungen über sich folgende Börsentage hinweg. Es ist zu erwarten, dass sich mindestens einer der fünf betrachteten Preise vom Vortag unterscheidet. Ist dies nicht der Fall, wird der Eintrag ausgeschlossen.
 
 ```{r, filter-data-too-large-daily-changes, echo=FALSE}
 too_large_daily_change_ratio <- 2
@@ -151,7 +148,7 @@ quotes_clean <- quotes_clean %>%
   ungroup()
 ```
 1. **Aussergewöhnlich hohe Preisbewegungen**  
-  Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor `r too_large_daily_change_ratio` unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.
+Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor `r too_large_daily_change_ratio` unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.
 
 ```{r, filter-data-extremes, echo=FALSE}
 index_factor <- 100 / quotes_clean$Open
@@ -160,7 +157,7 @@ quotes_clean<- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close",
 quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
 ```
 1. **Ausschluss von Extremwerten**  
-  Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.
+Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.
 
 Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r sum(rowSums(is.na(quotes_clean)) != 0)`. Für die Analyse bleiben somit `r sum(rowSums(is.na(quotes_clean)) == 0)` verwendbare Einträge.
 
@@ -168,8 +165,9 @@ Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quot
 ```{r, echo=FALSE}
 # TODO: remove
 quotes_clean <- quotes_clean %>% select(-Adjusted)
-quotes_clean_hash <- digest::digest(quotes_clean)
-# arrow::write_feather(quotes_clean, paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
+
+digest::digest(quotes_clean)
+# arrow::write_feather(quotes_clean, paste0("data/quotes_clean.feather"))
 ```
 
 
@@ -183,17 +181,5 @@ Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien e
 #   group_by(Ticker) %>%
 #   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
 #   ungroup()
-```
-
-
-
-```{r, round-data, echo=FALSE}
-# quotes_line <- mutate_if(quotes_line, is.numeric, ~round(., 6)) # to avoid problems because of system accurracy
-```
-
-
-```{r, echo=FALSE}
-# TODO: remove
-# arrow::write_feather(quotes_line, "tmp/quotes_line.feather")
 ```
 
