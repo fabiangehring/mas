@@ -14,6 +14,7 @@ suppressPackageStartupMessages({
   library(arrow)
   library(microbenchmark)
   library(profvis)
+  library(keras)
 })
 
 source("R/02-data.R")
@@ -63,13 +64,13 @@ if (file.exists(variation_factor_open_file_name)) {
   
   set.seed(123456)
   both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
-
+  
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
     move = seq(0, 0.1, 0.001), 
     data = data, 
     both_first = both_first, 
     R = 100,
-    mc.cores = 3
+    mc.cores = 4
   )
   
   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
@@ -86,31 +87,36 @@ Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis be
 ## Klassifikationsverfahren
 ```{r, knn-data-preparation, echo=FALSE}
 
-quotes_clean <- arrow::read_feather(paste0("tmp/quotes_clean_", quotes_clean_hash, ".feather"))
+quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
 window <- 3
-data_all <- quotes_clean %>%
+data_wide_3_all <- quotes_clean %>%
   dplyr::group_by(Ticker) %>%
   dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
   dplyr::ungroup() %>%
   dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
   normalize_quotes(paste0("Close_", window + 1), setdiff(names(.), c("Ticker", "Date")))
 
-# arrow::write_feather(data_all, paste0("tmp/data_all_", quotes_clean_hash, ".feather"))
-data_all <- arrow::read_arrow(paste0("tmp/data_all_", quotes_clean_hash, ".feather"))
-
 # remove unneeded (after normalization) day before window start
-data <- dplyr::select(data_all, c("Ticker", "Date", str_subset(names(data_all), paste0("_[^", window + 1, "]$"))))
+data_wide_3 <- dplyr::select(data_wide_3_all, c("Ticker", "Date", str_subset(names(data_wide_3_all), paste0("_[^", window + 1, "]$"))))
 
 # drop NA (for window and current)
-data <- tidyr::drop_na(data)
+data_wide_3 <- tidyr::drop_na(data_wide_3)
 
 # remove current date except "Open"
-data <- dplyr::select(data, c("Ticker", "Date", "Open_0", str_subset(names(data), paste0("_[^", 0, "]$"))))
+data_wide_3 <- dplyr::select(data_wide_3, c("Ticker", "Date", "Open_0", str_subset(names(data), paste0("_[^", 0, "]$"))))
 
 # sort columns nicely
-data <- data %>% dplyr::select(c("Ticker", "Date"), sort(stringr::str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+data_wide_3 <- data_wide_3 %>% dplyr::select(c("Ticker", "Date"), sort(stringr::str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+
+# arrow::write_feather(data, "data/data_wide_3.feather")
+# data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+
 id_cols <- c("Ticker", "Date")
-data_all <- data[, id_cols] %>% inner_join(data_all, by = id_cols)
+data_wide_3_all <- data_wide_3[, id_cols] %>% inner_join(data_wide_3_all, by = id_cols)
+# arrow::write_feather(data_wide_3_all, "data/data_wide_3_all.feather")
+# data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
+digest::digest(data_wide_3_all)
+
 rm(quotes_clean)
 
 ```
@@ -118,26 +124,59 @@ rm(quotes_clean)
 
 ```{r, knn-calculation-classic, echo=FALSE}
 
-data <- arrange(data, Date, Ticker)
-knn_eucl <- find_nn_chunkwise(
-  data = data,
+data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+
+knn_eucl_chunkwise <- find_nn_chunkwise(
+  data = arrange(data_wide_3, Date, Ticker),
   distance = "euclidean",
   k = 75,
   n_chunks = 200,
-  mc.cores = parallel::detectCores()
+  mc.cores = 4
 )
 
-saveRDS(knn_eucl, "tmp/knn_eucl.rds")
+saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
 
 ```
 
 
+```{r, keras, echo=FALSE}
+
+data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
 
 
-```{r, knn-calculation-classic, echo=FALSE}
+set.seed(321654)
+train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
+test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
+
+train_data <- as.matrix(select(data_wide_3[train_idx, ], -Ticker, -Date))
+  train_labels <- data_wide_3_all[train_idx, ]$Close_0
+
+test_data <- as.matrix(select(data_wide_3[test_idx, ], -Ticker, -Date))
+test_labels <- data_wide_3_all[test_idx, ]$Close_0
 
 
-```
+model <- keras_model_sequential() %>%
+  layer_dense(units = 256, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+  layer_dense(units = 256, activation = "relu") %>%
+  layer_dense(units = 1)
+
+model %>% compile(
+  loss = "mse",
+  optimizer = optimizer_rmsprop(),
+  metrics = list("mean_absolute_error")
+)
+
+summary(model)
+history <- model %>% fit(
+  train_data,
+  train_labels,
+  epochs = 10,
+  validation_split = 0.2
+)
+
+
+  ```
 
 
 
