@@ -4,7 +4,10 @@ hash_list <- tibble::tribble(
   "quotes_raw", "feather", "776f84d00775909a851387455da30e8f",
   "stocks_raw", "feather", "1dc8906b62813ac4ef5b5e6d1e2a3eb1",
   
-  "quotes_clean", "feather", "7f3e895442813405f2a27de8d3b7b5b8"
+  "quotes_clean", "feather", "7f3e895442813405f2a27de8d3b7b5b8",
+  
+  "data_wide_3", "feather", "7993fbe98201a028e9e98f7c521e69ab",
+  "data_wide_3_all", "feather", "214f645ae71226f239cd6eb10b38dedc"
 )
 
 
