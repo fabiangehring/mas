@@ -163,8 +163,8 @@ train_labels <- all_labels[train_idx]
 test_labels <- all_labels[test_idx]
 
 model <- keras_model_sequential() %>%
-  layer_dense(units = 256, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  layer_dense(units = 256, activation = "relu") %>%
+  layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+  layer_dense(units = 512, activation = "relu") %>%
   layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
 
 
@@ -174,27 +174,16 @@ model %>% compile(
   metrics = c('accuracy')
 )
 
-summary(model)
 history <- model %>% fit(
   train_data,
   train_labels,
-  epochs = 10,
-  batch_size = 512, 
+  epochs = 50,
+  batch_size = 128, 
   validation_split = 0.2
 )
 
-quantile_generator <- function(input_vector, quantiles = 4) { 
-  tiles <- quantile(input_vector, probs = seq(0, 1, 1/quantiles))
-  temp <- rep(NA,length(input_vector)) 
-  for (i in 2:length(tiles)){ 
-    temp[input_vector <= tiles[i] & is.na(temp)] <- i 
-  }
-  return(temp) 
-} 
-tempvec <- runif(100,0,1)
-df <- data.frame(v1= tempvec, v2= quantile_generator(tempvec, 4)) split(df, df$v2) 
-
-
+summary(model)
+save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_64_val_split_20.hdf5")
 
 ```
 
