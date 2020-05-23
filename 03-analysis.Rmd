@@ -180,7 +180,7 @@ history <- model %>% keras::fit(
   train_data,
   train_labels,
   epochs = 50,
-  batch_size = 64, 
+  batch_size = 128, 
   validation_split = 0.2
 )
 
