@@ -14,7 +14,9 @@ suppressPackageStartupMessages({
   library(arrow)
   library(microbenchmark)
   library(profvis)
+  library(dqrng)
   library(keras)
+  library(magrittr)
 })
 
 source("R/02-data.R")
@@ -146,14 +148,6 @@ saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
 data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
 
-# ### Testing only
-# set.seed(951753)
-# fract_idx <- sample(seq_len(nrow(data_wide_3)), 100000)
-# 
-# data_wide_3 <- data_wide_3[fract_idx, ]
-# data_wide_3_all <- data_wide_3_all[fract_idx, ]
-# ###
-
 set.seed(321654)
 train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
 test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
@@ -162,29 +156,16 @@ all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
 train_data <- all_data[train_idx, ]
 test_data <- all_data[test_idx, ]
 
-
-breaks_low <- find_breaks(data_wide_3_all$Low_0, train_idx, test_idx, n_group)
-
-breaks_high <- find_breaks(data_wide_3_all$High_0, train_idx, test_idx, n_group)
-groups_high <- as.integer(cut(data_wide_3_all$High_0, breaks = breaks_high), include.lowest = TRUE)
-
-breaks_close <- find_breaks(data_wide_3_all$Close_0, train_idx, test_idx, n_group)
-groups_close <- as.integer(cut(data_wide_3_all$Close_0, breaks = breaks_close), include.lowest = TRUE)
-
-groups_map <- expand.grid(groups_low = seq_len(n_group), groups_high = seq_len(n_group), groups_close = seq_len(n_group)) %>% mutate(group = seq_len(nrow(.)) - 1)
-
-all_labels <- tibble(groups_low = groups_low, groups_high = groups_high, groups_close = groups_close) %>% 
-  left_join(groups_map, by = c("groups_low", "groups_high", "groups_close")) %>%
-  group_by(group) %>%
-  summarize(n = n())
-
+n_groups_per_col <- 10
+cols <- c("Low_0", "High_0", "Close_0")
+all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
 train_labels <- all_labels[train_idx]
 test_labels <- all_labels[test_idx]
 
 model <- keras_model_sequential() %>%
   layer_dense(units = 256, activation = "relu",  input_shape = dim(train_data)[2]) %>%
   layer_dense(units = 256, activation = "relu") %>%
-  layer_dense(units = n_group^3, activation = "softmax")
+  layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
 
 
 model %>% compile(
