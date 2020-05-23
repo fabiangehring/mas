@@ -4,15 +4,15 @@ hash_list <- tibble::tribble(
   "quotes_raw", "feather", "776f84d00775909a851387455da30e8f",
   "stocks_raw", "feather", "1dc8906b62813ac4ef5b5e6d1e2a3eb1",
   
-  "quotes_clean", "feather", "7f3e895442813405f2a27de8d3b7b5b8",
-  
-  "data_wide_3", "feather", "7993fbe98201a028e9e98f7c521e69ab",
-  "data_wide_3_all", "feather", "214f645ae71226f239cd6eb10b38dedc"
+  "quotes_clean", "feather", "e7d78a2e9a7bfe796b90d809c46929c5",
+
+  "data_wide_3", "feather", "61917e89ed6fcc8d642f09068d6a8888",
+  "data_wide_3_all", "feather", "c002d658907d57ebd31d8f2d1ff6a566",
 )
 
 
 check_hashes <- function() {
-  data_files <- list.files("data")
+  data_files <- setdiff(list.files("data"), list.dirs("data", full.names = FALSE))
   if (!isTRUE(all.equal(sort(data_files), sort(paste0(hash_list$file, ".", hash_list$ending))))) {
     stop("Actual files and expected files are not the same.")
   }

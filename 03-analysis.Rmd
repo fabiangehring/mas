@@ -108,14 +108,16 @@ data_wide_3 <- dplyr::select(data_wide_3, c("Ticker", "Date", "Open_0", str_subs
 # sort columns nicely
 data_wide_3 <- data_wide_3 %>% dplyr::select(c("Ticker", "Date"), sort(stringr::str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
 
-# arrow::write_feather(data, "data/data_wide_3.feather")
+# arrow::write_feather(data_wide_3, "data/data_wide_3.feather")
 # data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+# data_wide_3_hash <- digest::digest(data_wide_3)
+
 
 id_cols <- c("Ticker", "Date")
 data_wide_3_all <- data_wide_3[, id_cols] %>% inner_join(data_wide_3_all, by = id_cols)
 # arrow::write_feather(data_wide_3_all, "data/data_wide_3_all.feather")
 # data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
-digest::digest(data_wide_3_all)
+# data_wide_3_all_hash <- digest::digest(data_wide_3_all)
 
 rm(quotes_clean)
 
@@ -144,27 +146,51 @@ saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
 data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
 
+# ### Testing only
+# set.seed(951753)
+# fract_idx <- sample(seq_len(nrow(data_wide_3)), 100000)
+# 
+# data_wide_3 <- data_wide_3[fract_idx, ]
+# data_wide_3_all <- data_wide_3_all[fract_idx, ]
+# ###
 
 set.seed(321654)
 train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
 test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 
-train_data <- as.matrix(select(data_wide_3[train_idx, ], -Ticker, -Date))
-  train_labels <- data_wide_3_all[train_idx, ]$Close_0
+all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
+train_data <- all_data[train_idx, ]
+test_data <- all_data[test_idx, ]
 
-test_data <- as.matrix(select(data_wide_3[test_idx, ], -Ticker, -Date))
-test_labels <- data_wide_3_all[test_idx, ]$Close_0
 
+breaks_low <- find_breaks(data_wide_3_all$Low_0, train_idx, test_idx, n_group)
+
+breaks_high <- find_breaks(data_wide_3_all$High_0, train_idx, test_idx, n_group)
+groups_high <- as.integer(cut(data_wide_3_all$High_0, breaks = breaks_high), include.lowest = TRUE)
+
+breaks_close <- find_breaks(data_wide_3_all$Close_0, train_idx, test_idx, n_group)
+groups_close <- as.integer(cut(data_wide_3_all$Close_0, breaks = breaks_close), include.lowest = TRUE)
+
+groups_map <- expand.grid(groups_low = seq_len(n_group), groups_high = seq_len(n_group), groups_close = seq_len(n_group)) %>% mutate(group = seq_len(nrow(.)) - 1)
+
+all_labels <- tibble(groups_low = groups_low, groups_high = groups_high, groups_close = groups_close) %>% 
+  left_join(groups_map, by = c("groups_low", "groups_high", "groups_close")) %>%
+  group_by(group) %>%
+  summarize(n = n())
+
+train_labels <- all_labels[train_idx]
+test_labels <- all_labels[test_idx]
 
 model <- keras_model_sequential() %>%
   layer_dense(units = 256, activation = "relu",  input_shape = dim(train_data)[2]) %>%
   layer_dense(units = 256, activation = "relu") %>%
-  layer_dense(units = 1)
+  layer_dense(units = n_group^3, activation = "softmax")
+
 
 model %>% compile(
-  loss = "mse",
-  optimizer = optimizer_rmsprop(),
-  metrics = list("mean_absolute_error")
+  optimizer = 'adam', 
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('accuracy')
 )
 
 summary(model)
@@ -172,11 +198,24 @@ history <- model %>% fit(
   train_data,
   train_labels,
   epochs = 10,
+  batch_size = 512, 
   validation_split = 0.2
 )
 
+quantile_generator <- function(input_vector, quantiles = 4) { 
+  tiles <- quantile(input_vector, probs = seq(0, 1, 1/quantiles))
+  temp <- rep(NA,length(input_vector)) 
+  for (i in 2:length(tiles)){ 
+    temp[input_vector <= tiles[i] & is.na(temp)] <- i 
+  }
+  return(temp) 
+} 
+tempvec <- runif(100,0,1)
+df <- data.frame(v1= tempvec, v2= quantile_generator(tempvec, 4)) split(df, df$v2) 
 
-  ```
+
+
+```
 
 
 

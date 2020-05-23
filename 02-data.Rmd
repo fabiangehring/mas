@@ -151,8 +151,8 @@ quotes_clean <- quotes_clean %>%
 Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor `r too_large_daily_change_ratio` unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.
 
 ```{r, filter-data-extremes, echo=FALSE}
-index_factor <- 100 / quotes_clean$Open
-quotes_clean <- normalize_quotes(quotes_clean, base_col = "Open", target_cols = c("Low", "High", "Close", "Adjusted"))
+index_factor <- 100 / quotes_clean$Adjusted
+quotes_clean <- normalize_quotes(quotes_clean, base_col = "Adjusted", target_cols = c("Low", "High", "Close", "Open"))
 quotes_clean<- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close", "Adjusted"), tail = 0.01)
 quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
 ```
@@ -166,8 +166,10 @@ Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quot
 # TODO: remove
 quotes_clean <- quotes_clean %>% select(-Adjusted)
 
-digest::digest(quotes_clean)
 # arrow::write_feather(quotes_clean, paste0("data/quotes_clean.feather"))
+# quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
+# quates_clean_hash <- digest::digest(quotes_clean)
+
 ```
 
 
