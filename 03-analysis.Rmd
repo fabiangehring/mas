@@ -180,12 +180,12 @@ history <- model %>% keras::fit(
   train_data,
   train_labels,
   epochs = 50,
-  batch_size = 64, 
+  batch_size = 128, 
   validation_split = 0.2
 )
 
 summary(model)
-keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_64_val_split_20.hdf5")
+keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5")
 print("done")
 
 ```
