@@ -774,3 +774,87 @@ plot_variation_factor <- function(data) {
 }
 
 
+
+#' Discretizize data into buckets of same size based on training data. The columns are processed sequentially. Lowest and Highets buckets start from -Inf and 
+#' Inf respectively, such that out of box test data gets classified as well.
+#'
+#' @param data A data.frame with at least the columns given in cols
+#' @param train_idx An integer vector holding the indices of the trainingset
+#' @param test_idx An integer vector holding the indices of the testset
+#' @param cols The column names to use for bucketing, the processing is done in order of mentioning
+#' @param n_groups_per_col Number of buckets per column
+#'
+#' @return A list with elements "groups" and "borders". "Groups" is an integer vector of the groups for the data (train and testset), starting at 0. "Borders" is a data.frame
+#' including the borders for every bucket.
+#' @export
+#'
+#' @examples
+#' multivariate_discretization(data, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), 3)
+# out <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), 10)
+# out$groups %>% tibble(groups = .) %>% group_by(groups) %>% summarize(n = n()) %>% ungroup() %>% arrange(desc(n))
+multivariate_discretization <- function(data, train_idx, test_idx, cols, n_groups_per_col) {
+  
+  data_train <- dplyr::slice(data, train_idx)
+  data_test <- dplyr::slice(data, test_idx)
+  
+  groups_prev_train <- rep(0L, length(train_idx))
+  groups_prev_test <- rep(0L, length(test_idx))
+  
+  # init border table
+  border_names <- map(cols, ~paste0(., c("_lower", "_upper"))) %>% unlist()
+  borders <- map(seq_len(length(cols) * 2), ~rep(NA_real_, n_groups_per_col^length(cols))) %>% 
+    set_names(border_names) %>% 
+    tibble::as_tibble() %>%
+    cbind(tibble(Bucket = seq_len(n_groups_per_col^length(cols)) - 1), .)
+  
+  for (col_id in seq_along(cols)) {
+    
+    curr_col <- cols[[col_id]]
+    groups_curr_train <- rep(0L, length(train_idx))
+    groups_curr_test <- rep(0L, length(test_idx))
+    print(paste0("col_id: ", col_id))
+    
+    for (curr_group in seq_len(n_groups_per_col^(col_id - 1)) - 1) {
+      
+      print(paste0("curr_group: ", curr_group))
+      curr_train_group_idx <- which(groups_prev_train == curr_group)
+      curr_train_values <- data_train[[curr_col]][curr_train_group_idx]
+      curr_breaks <- quantile(curr_train_values, probs = seq(0, 1, length  = n_groups_per_col + 1))
+      curr_breaks[1] <- -Inf
+      curr_breaks[length(curr_breaks)] <- Inf
+      curr_breaks <- as.vector(curr_breaks)
+      
+      # write lower and upper limits
+      start_idx <- curr_group * n_groups_per_col^(length(cols) - col_id + 1) + 1
+      curr_idx <- seq_len(n_groups_per_col * n_groups_per_col^(length(cols) - col_id)) + start_idx - 1
+      
+      curr_lower <- head(curr_breaks, -1) %>% rep(each = n_groups_per_col^(length(cols) - col_id))
+      borders[curr_idx, 1 + (col_id - 1) * 2 + 1] <- curr_lower
+      
+      curr_upper <- tail(curr_breaks, -1) %>% rep(each = n_groups_per_col^(length(cols) - col_id))
+      borders[curr_idx, 1 + (col_id - 1) * 2 + 2] <- curr_upper
+      
+      if (col_id == 1) {
+        group_offset <- 0
+      } else {
+        group_offset <- curr_group * n_groups_per_col
+      }
+      groups_curr_train[curr_train_group_idx] <- group_offset + as.integer(cut(curr_train_values, breaks = curr_breaks)) - 1
+      curr_test_group_idx <- which(groups_prev_test == curr_group)
+      curr_test_values <- data_test[[curr_col]][curr_test_group_idx]
+      
+      groups_curr_test[curr_test_group_idx] <- group_offset + as.integer(cut(curr_test_values, breaks = curr_breaks)) - 1
+    }
+    groups_prev_train <- groups_curr_train
+    groups_prev_test <- groups_curr_test
+  }
+  
+  groups <- rep(NA_integer_, nrow(data))
+  groups[train_idx] <- groups_curr_train
+  groups[test_idx] <- groups_curr_test
+  
+  list(groups = groups, borders = borders)
+}
+
+
+
