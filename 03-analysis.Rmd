@@ -145,6 +145,8 @@ saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
 
 ```{r, keras, echo=FALSE}
 
+library(magrittr)
+
 data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
 
@@ -162,19 +164,19 @@ all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, 
 train_labels <- all_labels[train_idx]
 test_labels <- all_labels[test_idx]
 
-model <- keras_model_sequential() %>%
-  layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  layer_dense(units = 512, activation = "relu") %>%
-  layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
+model <- keras::keras_model_sequential() %>%
+  keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+  keras::layer_dense(units = 512, activation = "relu") %>%
+  keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
 
 
-model %>% compile(
+model %>% keras::compile(
   optimizer = 'adam', 
   loss = 'sparse_categorical_crossentropy',
   metrics = c('accuracy')
 )
 
-history <- model %>% fit(
+history <- model %>% keras::fit(
   train_data,
   train_labels,
   epochs = 50,
@@ -183,7 +185,8 @@ history <- model %>% fit(
 )
 
 summary(model)
-save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_64_val_split_20.hdf5")
+keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5")
+print("done")
 
 ```
 
