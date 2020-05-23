@@ -14,6 +14,7 @@ suppressPackageStartupMessages({
   library(arrow)
   library(microbenchmark)
   library(profvis)
+  library(dqrng)
   library(keras)
 })
 
