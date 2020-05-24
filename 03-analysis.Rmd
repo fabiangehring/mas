@@ -157,72 +157,34 @@ all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
 train_data <- all_data[train_idx, ]
 test_data <- all_data[test_idx, ]
 
-cols <- c("Low_0")
-all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
-train_labels <- all_labels[train_idx]
-test_labels <- all_labels[test_idx]
 
-# Low_0
-low_model <- keras::keras_model_sequential() %>%
-  keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  keras::layer_dense(units = 512, activation = "relu") %>%
-  keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
+fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
 
-low_model %>% keras::compile(
-  optimizer = 'adam', 
-  loss = 'sparse_categorical_crossentropy',
-  metrics = c('accuracy')
-)
+  all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
+  train_labels <- all_labels[train_idx]
+  test_labels <- all_labels[test_idx]
+  
+  model <- keras::keras_model_sequential() %>%
+    keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+    keras::layer_dense(units = 512, activation = "relu") %>%
+    keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
+  
+  model %>% keras::compile(
+    optimizer = 'adam', 
+    loss = 'sparse_categorical_crossentropy',
+    metrics = c('accuracy')
+  )
+  
+  model %>% keras::fit(
+    train_data,
+    train_labels,
+    epochs = 50,
+    batch_size = 1024, 
+    validation_split = 0.2
+  )
+}
 
-low_history <- low_model %>% keras::fit(
-  train_data,
-  train_labels,
-  epochs = 50,
-  batch_size = 128, 
-  validation_split = 0.2
-)
-
-# High_0
-high_model <- keras::keras_model_sequential() %>%
-  keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  keras::layer_dense(units = 512, activation = "relu") %>%
-  keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
-
-high_model %>% keras::compile(
-  optimizer = 'adam', 
-  loss = 'sparse_categorical_crossentropy',
-  metrics = c('accuracy')
-)
-
-high_history <- high_model %>% keras::fit(
-  train_data,
-  train_labels,
-  epochs = 50,
-  batch_size = 128, 
-  validation_split = 0.2
-)
-
-# Close_0
-close_model <- keras::keras_model_sequential() %>%
-  keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  keras::layer_dense(units = 512, activation = "relu") %>%
-  keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
-
-close_model %>% keras::compile(
-  optimizer = 'adam', 
-  loss = 'sparse_categorical_crossentropy',
-  metrics = c('accuracy')
-)
-
-close_history <- close_model %>% keras::fit(
-  train_data,
-  train_labels,
-  epochs = 50,
-  batch_size = 128, 
-  validation_split = 0.2
-)
-
-
+fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", n_groups_per_col)
 
 ```
 
