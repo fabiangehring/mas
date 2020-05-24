@@ -222,7 +222,7 @@ fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups
   model <- keras::keras_model_sequential() %>%
     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
     keras::layer_dense(units = 512, activation = "relu") %>%
-      keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid")
+    keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid")
   
   model %>% keras::compile(
     optimizer = 'adam', 
@@ -233,7 +233,7 @@ fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups
   model %>% keras::fit(
     train_data,
     train_labels,
-    epochs = 1,
+    epochs = 50,
     batch_size = 1024, 
     validation_split = 0.2
   )
