@@ -222,7 +222,7 @@ get_class_prices <- function(borders, groups) {
 n_groups_per_col <- 100
 
 # buy prices
-model_low <- load_model_hdf5("data/model_low.hdf5")
+model_low <- load_model_hdf5("data/model_low_100.hdf5")
 pred_classes_low <- predict_classes(model_low, test_data, batch_size = 1024)
 # pred_prob <- predict_proba(model_low, test_data, batch_size = 1024)
 
@@ -258,7 +258,7 @@ sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both
 sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct 
 
 # open
-sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.05), sell = eval_data$Open * (1 + 0.05), both_first = both_first)) / scale_fct 
+sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.045), sell = eval_data$Open * (1 + 0.045), both_first = both_first)) / scale_fct 
 
 
 ```
@@ -303,14 +303,14 @@ fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups
   return(model)
 }
 
-model_low_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 10)
-save_model_hdf5(model_low_binary, "data/model_low_binary.hdf5")
 
-model_high_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 10)
-save_model_hdf5(model_low_binary, "data/model_high_binary.hdf5")
+low_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
+save_model_hdf5(low_binary_100$model, "data/low_binary_100_model.hdf5")
+saveRDS(low_binary_100$history, "data/low_binary_100_history.hdf5")
 
-model_close_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 10)
-save_model_hdf5(model_low_binary, "data/model_close_binary.hdf5")
+high_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
+save_model_hdf5(high_binary_100$model, "data/high_binary_100_model.hdf5")
+saveRDS(high_binary_100$history, "data/high_binary_100_history.hdf5")
 
 ```
 
