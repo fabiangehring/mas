@@ -143,8 +143,7 @@ saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
 ```
 
 
-
-```{r, keras-combined-individual-softmax, echo=FALSE}
+```{r, keras-setup, echo=FALSE}
 
 data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
@@ -153,13 +152,18 @@ set.seed(321654)
 train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
 test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 
-all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
-train_data <- all_data[train_idx, ]
-test_data <- all_data[test_idx, ]
+```
 
+
+
+```{r, keras-combined-individual-categorial, echo=FALSE}
 
 fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
 
+  all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
+  train_data <- all_data[train_idx, ]
+  test_data <- all_data[test_idx, ]
+  
   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
   train_labels <- all_labels[train_idx]
   test_labels <- all_labels[test_idx]
@@ -182,12 +186,71 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
     batch_size = 1024, 
     validation_split = 0.2
   )
+  
+  return(model)
 }
 
-fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", n_groups_per_col)
+model_low <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 10)
+save_model_hdf5(model_high, "data/model_low.hdf5")
+
+model_high <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 10)
+save_model_hdf5(model_high, "data/model_high.hdf5")
+
+model_close <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 10)
+save_model_hdf5(model_close, "data/model_close.hdf5")
 
 ```
 
+
+```{r, keras-combined-individual-binary, echo=FALSE}
+
+fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
+
+  # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf
+  # http://orca.st.usm.edu/~zwang/files/rank.pdf
+  # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/
+
+  all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
+  train_data <- all_data[train_idx, ]
+
+  all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
+  train_labels <- all_labels[train_idx]
+  
+  # make them "ordinal"
+  train_labels <- purrr::map(seq_len(n_groups_per_col) - 1, ~as.integer(.<=train_labels)) %>% unlist() %>% matrix(., ncol = n_groups_per_col)
+  
+  model <- keras::keras_model_sequential() %>%
+    keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+    keras::layer_dense(units = 512, activation = "relu") %>%
+      keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid")
+  
+  model %>% keras::compile(
+    optimizer = 'adam', 
+    loss = 'binary_crossentropy',
+    metrics = c('accuracy')
+  )
+  
+  model %>% keras::fit(
+    train_data,
+    train_labels,
+    epochs = 1,
+    batch_size = 1024, 
+    validation_split = 0.2
+  )
+  
+  return(model)
+}
+
+model_low_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 10)
+save_model_hdf5(model_low_binary, "data/model_low_binary.hdf5")
+
+model_high_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 10)
+save_model_hdf5(model_low_binary, "data/model_high_binary.hdf5")
+
+model_close_binary <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 10)
+save_model_hdf5(model_low_binary, "data/model_close_binary.hdf5")
+
+```
 
 
 
@@ -214,8 +277,8 @@ model %>% keras::compile(
 history <- model %>% keras::fit(
   train_data,
   train_labels,
-  epochs = 50,
-  batch_size = 128, 
+  epochs = 2,
+  batch_size = 1024, 
   validation_split = 0.2
 )
 
@@ -225,25 +288,7 @@ print("done")
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ##### Old
-
-
-
 
 
 
