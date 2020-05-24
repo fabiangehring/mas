@@ -29,8 +29,8 @@ gamma_cash <- function(price, gamma) {
 #'
 #' @examples
 #' quotes_line_test_1 <- tribble(
-#'    ~Close_1, ~Low, ~High, ~Close_0,
-#'          10,    8,    12,        9
+#'    ~Close_1,   ~Low,   ~High, ~Close_0,
+#'          10,      8,      12,        9
 #'  )
 #' calc_payoff_const_gamma(quotes_line_test_1)
 #' calc_payoff_const_gamma(quotes_line_test_1, buy = quotes_line_test_1$Low, sell = quotes_line_test_1$High)
@@ -50,69 +50,6 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
 calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell = quotes_line$Close_0, both_first = "min", gamma = 0.2, return_type = "disc") {
   stopifnot(all(buy <= sell, na.rm = TRUE))
-  
-  # close_t_1 <- quotes_line$Close_1
-  # close_t <- quotes_line$Close_0
-  # low <- quotes_line$Low
-  # high <- quotes_line$High
-  # 
-  # calc_payoff_per_title_old<- function(first, second, low, high) {
-  # 
-  #   buy_first <- sell_second <- first < second
-  #   sell_first <- buy_second <- !buy_first
-  # 
-  #   n <- nrow(quotes_line)
-  # 
-  #   # transaction is done if
-  #   #   a) prices is hit and
-  #   #   b) price is coming from "correct" side (from a lower prices to sell, from an upper prices to buy)
-  #   first_prev_price <- quotes_line$Close_1
-  #   I_first <- as.logical(rep(FALSE, n))
-  #   I_first[buy_first & first >= low & first_prev_price > first] <- TRUE
-  #   I_first[sell_first & first <= high & first_prev_price < first] <- TRUE
-  # 
-  #   second_prev_price <- first
-  #   second_prev_price[!I_first] <- quotes_line$Close_1[!I_first]
-  # 
-  #   I_second <- as.logical(rep(FALSE, n))
-  #   I_second[buy_second & second >= low & second_prev_price > second] <- TRUE
-  #   I_second[sell_second & second <= high & second_prev_price < second] <- TRUE
-  # 
-  #   # calc returns
-  #   if (return_type == "cont") {
-  #     r_first_close_t_1 <- log(first/close_t_1)
-  #     r_first_close_t <- log(first/close_t)
-  #     r_second_close_t_1 <- log(second/close_t_1)
-  #     r_second_first <- log(second/first)
-  #     r_close_t_second <- log(close_t/second)
-  #     r_close_t_close_t_1 <- log(close_t/close_t_1)
-  #   } else if (return_type == "disc") {
-  #     r_first_close_t_1 <- first/close_t_1-1
-  #     r_first_close_t <- first/close_t-1
-  #     r_second_close_t_1 <- second/close_t_1-1
-  #     r_second_first <- second/first-1
-  #     r_close_t_second <- close_t/second-1
-  #     r_close_t_close_t_1 <- close_t/close_t_1-1
-  #   }
-  # 
-  #   # calc gains
-  #   gamma_cash_t_1 <- gamma_cash(close_t_1, gamma)
-  #   gamma_cash_first <- gamma_cash(first, gamma)
-  #   gamma_cash_second <- gamma_cash(second, gamma)
-  # 
-  #   start_to_first <- gamma_cash_t_1 * r_first_close_t_1 ^ 2 * I_first * (1 - I_second)
-  #   first_to_end <- gamma_cash_first * r_first_close_t ^2 * I_first * (1 - I_second)
-  # 
-  #   start_to_second <- gamma_cash_t_1 * r_second_close_t_1 ^2 * I_second * (1 - I_first)
-  #   second_to_end <- gamma_cash_second * r_close_t_second ^2 * I_second * (1 - I_first)
-  # 
-  #   start_to_first_both <- gamma_cash_t_1 * r_first_close_t_1 ^2 * I_first * I_second
-  #   first_to_second <- gamma_cash_first * r_second_first^2 * I_second * I_first
-  #   second_to_end_both <- gamma_cash_second * r_close_t_second^2 * I_second * I_first
-  #   start_to_end <- gamma_cash_t_1 * r_close_t_close_t_1^2 * (1 - I_second) * (1 - I_first)
-  # 
-  #   0.5 *100 * (start_to_first + first_to_end + start_to_second + second_to_end + start_to_first_both + first_to_second + second_to_end_both + start_to_end)
-  # }
   
   if (length(both_first) == 1L && both_first %in% c("min", "max")) {
     

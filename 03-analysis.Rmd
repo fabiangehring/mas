@@ -156,10 +156,10 @@ test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 
 
 
-```{r, keras-combined-individual-categorial, echo=FALSE}
+```{r, keras-individual-categorial, echo=FALSE}
 
 fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
-
+  
   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
   train_data <- all_data[train_idx, ]
   test_data <- all_data[test_idx, ]
@@ -190,14 +190,58 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
   return(model)
 }
 
-model_low <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 10)
-save_model_hdf5(model_high, "data/model_low.hdf5")
+model_low_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
+save_model_hdf5(model_high, "data/model_low_100.hdf5")
 
-model_high <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 10)
-save_model_hdf5(model_high, "data/model_high.hdf5")
+model_high_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
+save_model_hdf5(model_high, "data/model_high_100.hdf5")
 
-model_close <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 10)
-save_model_hdf5(model_close, "data/model_close.hdf5")
+model_close_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 100)
+save_model_hdf5(model_close, "data/model_close_100.hdf5")
+
+```
+
+
+```{r, keras-individual-categorial-evaluation, echo=FALSE}
+
+test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ]
+model_low <- load_model_hdf5("data/model_low.hdf5")
+pred_classes <- predict_classes(model_low, test_data, batch_size = 1024)
+pred_prob <- predict_proba(model_low, test_data, batch_size = 1024)
+
+
+get_class_prices <- function(discretization) {
+  class_borders <- discretization$borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border"))
+  class_borders[1, "Lower_Border"] <- class_borders[1, "Upper_Border"]
+  class_borders[nrow(class_borders), "Upper_Border"] <- class_borders[nrow(class_borders), "Lower_Border"]
+  class_centers <- (class_borders$Lower_Border + class_borders$Upper_Border) / 2 
+  class_centers[discretization$groups + 1]
+}
+
+discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col)
+buy <- get_class_prices(discretization_low)[test_idx]
+
+discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col)
+sell <- get_class_prices(discretization_high)[test_idx]
+
+unexpected_order_idx <- which(buy > sell)
+buy[unexpected_order_idx] <- sell[unexpected_order_idx] <- (buy[unexpected_order_idx] + sell[unexpected_order_idx]) / 2
+
+
+eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0)
+
+set.seed(654951)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(eval_data), replace = TRUE)]
+
+scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first))
+sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct 
+
+# max
+sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct 
+
+# open
+sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.05), sell = eval_data$Open * (1 + 0.05), both_first = both_first)) / scale_fct 
+
 
 ```
 
@@ -205,14 +249,14 @@ save_model_hdf5(model_close, "data/model_close.hdf5")
 ```{r, keras-combined-individual-binary, echo=FALSE}
 
 fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
-
+  
   # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf
   # http://orca.st.usm.edu/~zwang/files/rank.pdf
   # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/
-
+  
   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
   train_data <- all_data[train_idx, ]
-
+  
   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
   train_labels <- all_labels[train_idx]
   
