@@ -43,7 +43,7 @@ Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht da
 
 ``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
 
-variation_factor_open_file_name <- paste0("data/variation_factor_open.feather")
+variation_factor_open_file_name <- "data/variation_factor_open.feather"
 
 if (file.exists(variation_factor_open_file_name)) {
   bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
@@ -54,6 +54,8 @@ if (file.exists(variation_factor_open_file_name)) {
   }
   
   quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
+  # quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
+
   data <- quotes_clean %>%
     dplyr::group_by(Ticker) %>%
     dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
@@ -66,9 +68,12 @@ if (file.exists(variation_factor_open_file_name)) {
   
   set.seed(123456)
   both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
-  
+
+  scale_fct <- sum(calc_payoff_const_gamma(data, both_first = both_first))
+  opt_payoff_sym(0.01, data, "Open", both_first, scale_fct)
+
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
-    move = seq(0, 0.1, 0.001), 
+    move = seq(0, 0.1, 0.01), 
     data = data, 
     both_first = both_first, 
     R = 100,
@@ -191,13 +196,13 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
 }
 
 model_low_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
-save_model_hdf5(model_high, "data/model_low_100.hdf5")
+save_model_hdf5(model_low_100, "data/model_low_100.hdf5")
 
 model_high_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
-save_model_hdf5(model_high, "data/model_high_100.hdf5")
+save_model_hdf5(model_high_100, "data/model_high_100.hdf5")
 
 model_close_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 100)
-save_model_hdf5(model_close, "data/model_close_100.hdf5")
+save_model_hdf5(model_close_100, "data/model_close_100.hdf5")
 
 ```
 
@@ -205,24 +210,33 @@ save_model_hdf5(model_close, "data/model_close_100.hdf5")
 ```{r, keras-individual-categorial-evaluation, echo=FALSE}
 
 test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ]
-model_low <- load_model_hdf5("data/model_low.hdf5")
-pred_classes <- predict_classes(model_low, test_data, batch_size = 1024)
-pred_prob <- predict_proba(model_low, test_data, batch_size = 1024)
 
-
-get_class_prices <- function(discretization) {
-  class_borders <- discretization$borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border"))
+get_class_prices <- function(borders, groups) {
+  class_borders <- borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border"))
   class_borders[1, "Lower_Border"] <- class_borders[1, "Upper_Border"]
   class_borders[nrow(class_borders), "Upper_Border"] <- class_borders[nrow(class_borders), "Lower_Border"]
-  class_centers <- (class_borders$Lower_Border + class_borders$Upper_Border) / 2 
-  class_centers[discretization$groups + 1]
+  class_centers <- (class_borders$Lower_Border + class_borders$Upper_Border) / 2
+  class_centers[groups + 1]
 }
 
+n_groups_per_col <- 100
+
+# buy prices
+model_low <- load_model_hdf5("data/model_low.hdf5")
+pred_classes_low <- predict_classes(model_low, test_data, batch_size = 1024)
+# pred_prob <- predict_proba(model_low, test_data, batch_size = 1024)
+
 discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col)
-buy <- get_class_prices(discretization_low)[test_idx]
+buy <- get_class_prices(discretization_low$borders, pred_classes_low)
+
+
+# sell prices
+model_high <- load_model_hdf5("data/model_high_100.hdf5")
+pred_classes_high <- predict_classes(model_high, test_data, batch_size = 1024)
+# pred_prob <- predict_proba(model_high, test_data, batch_size = 1024)
 
 discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col)
-sell <- get_class_prices(discretization_high)[test_idx]
+sell <- get_class_prices(discretization_high$borders, pred_classes_high)
 
 unexpected_order_idx <- which(buy > sell)
 buy[unexpected_order_idx] <- sell[unexpected_order_idx] <- (buy[unexpected_order_idx] + sell[unexpected_order_idx]) / 2
@@ -232,6 +246,10 @@ eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low 
 
 set.seed(654951)
 both_first <- c("buy", "sell")[sample(c(1, 2), nrow(eval_data), replace = TRUE)]
+
+data_wide_3_all[test_idx, ][1, ]
+buy[1]
+sell[1]
 
 scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first))
 sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct 
