@@ -50,6 +50,9 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
 calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell = quotes_line$Close_0, both_first = "min", gamma = 0.2, return_type = "disc") {
   stopifnot(all(buy <= sell, na.rm = TRUE))
+
+  if (length(buy) == 1L && nrow(quotes_line) > 1) buy <- rep(buy, nrow(quotes_line))
+  if (length(sell) == 1L && nrow(quotes_line) > 1) sell <- rep(sell, nrow(quotes_line))
   
   if (length(both_first) == 1L && both_first %in% c("min", "max")) {
     
@@ -74,7 +77,7 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell
       gamma = gamma, 
       return_type = return_type
     )
-
+    
     first <- buy
     second <- sell
     if (both_first == "min") {
@@ -111,7 +114,7 @@ calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell
     gamma = gamma, 
     return_type = return_type
   )
-
+  
 }
 
 
@@ -348,19 +351,19 @@ find_nn_chunkwise <- function(data, distance = "euclidean", k = 75, n_chunks = 5
   # check if data is ordered correctly
   if (!all(order(data$Date, data$Ticker) == seq_len(nrow(data)))) stop("data must be sorted for Date and Ticker")
   stopifnot(all(order(data$Date, data$Ticker) == seq_len(nrow(data))))
-
+  
   counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
   
   breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
   split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
-
+  
   # check if all chunk sizes >= k
   chunk_sizes <- diff(map_int(split_dates, ~sum(filter(counts, Date <= .)$cnt)))
   if (any(chunk_sizes < k)) stop("chunk size smaller than k, decrease number of chunks")
   
   
   rann_fct <- if (distance == "euclidean") {RANN::nn2} else if (distance == "manhattan") {RANN.L1::nn2} else stop("distance not supported")
-
+  
   knn_list <- pbmcapply::pbmclapply(rev(seq_along(split_dates)), function(i) {
     prev_split_Date <- ifelse(i > 1, split_dates[[i - 1]], -Inf)
     curr_split_Date <- split_dates[[i]]
@@ -792,6 +795,80 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
   
   list(groups = groups, borders = borders)
 }
+
+
+#' Plot price histogram
+#' Negative and positive infinity values are replaced by extrapolating the closest bin.
+#' 
+#' @param data A data.frame with columns "lower", "upper" and "prob" and optionally "group"
+#' @param title A character with the title
+#'
+#' @return A ggplot2 object
+#' @export
+#'
+#' @examples
+#' data <- tibble(
+#'   lower = c(c(-Inf, 100, 98), c(-Inf, 100.2, 98.2)),
+#'   upper = c(c(98, Inf, 100), c(98.2, Inf, 100.2)), 
+#'   prob = c(c(0.3, 0.3, 0.4), c(0.2, 0.6, 0.2)),
+#'   group = rep(1:2, each = 3)
+#' )
+#' plot_price_histogram(data, title = "Verteilung Sell-Preise")
+plot_price_histogram <- function(data, title = NULL) {
+
+  if ("group" %in% names(data)) {
+    data <- data %>% group_by(group) %>% arrange(lower, .by_group = TRUE)
+  } else {
+    data <- data %>% arrange(lower)
+  }
+  
+  lower <- data$lower
+  neg_inf_idx <- which(lower == -Inf)
+  lower[neg_inf_idx] <- lower[neg_inf_idx + 1] - (lower[neg_inf_idx + 2] - lower[neg_inf_idx + 1])
+  data$lower <- lower
+
+  upper <- data$upper
+  pos_inf_idx <- which(upper == Inf)
+  upper[pos_inf_idx] <- upper[pos_inf_idx - 1] + (upper[pos_inf_idx - 1] - upper[pos_inf_idx - 2])
+  data$upper <- upper
+  
+  ## use actual borders as lobels (except for Inf and -Inf which should be left blank)
+  # labels_lower <- lower
+  # labels_lower[neg_inf_idx] <- ""
+  # labels_upper <- upper
+  # labels_upper[pos_inf_idx] <- ""
+  # break_order <- order(c(lower, upper))
+  # breaks <- c(lower, upper)[break_order]
+  # duplicated_breaks <- duplicated(breaks)
+  # breaks <- breaks[!duplicated_breaks]
+  # labels <- c(labels_lower, labels_upper)[break_order]
+  # labels <- labels[!duplicated_breaks]
+  
+  ## use standard breaks and labels
+  breaks <- seq(from = floor(min(data$lower)), to = ceiling(max(data$lower)))
+  labels <- breaks
+  
+  p <- ggplot(data, aes(ymin = 0))
+  if ("group" %in% names(data)) {
+    p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob, fill = group), alpha = 0.5)
+  } else {
+    p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob), alpha = 0.5, show.legend = FALSE)
+  }
+
+  p + 
+    xlab("number of obs") + 
+    ylab("value") +
+    scale_x_continuous(breaks = breaks, labels = labels) + 
+    scale_y_continuous(labels = scales::percent) + 
+    ggplot2::ggtitle(title) + 
+    ggplot2::xlab("Preis") +
+    ggplot2::ylab("Wahrscheintlichkeit") + 
+    ggplot2::scale_fill_discrete(name = "Typ") +
+    theme_bw()
+}
+
+
+
 
 
 

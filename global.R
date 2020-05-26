@@ -6,8 +6,8 @@ hash_list <- tibble::tribble(
   
   "quotes_clean", "feather", "e7d78a2e9a7bfe796b90d809c46929c5",
 
-  "data_wide_3", "feather", "96d5799dcd11c46453e9c391ba1bbfe3",
-  "data_wide_3_all", "feather", "c002d658907d57ebd31d8f2d1ff6a566",
+  "data_wide_3", "feather", "9d8e0d252b437f29d7b770a3cdd60c9b",
+  "data_wide_3_all", "feather", "34c059cb3975b94349ee933ebc62dd71",
 )
 
 

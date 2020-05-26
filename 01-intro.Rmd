@@ -95,7 +95,7 @@ wobei,
 
 \begin{equation}
 \$\Gamma_i = \Gamma \times S_i^2 / 100
-(\#eq:gamma_cash)
+(\#eq:gammacash)
 \end{equation}
 
 Zu beachten gilt es insbesondere, dass der Payoff quadratisch auf Preisbewegungen reagiert. Dies führt dazu, dass es von Relevanz ist, ob zuerst der Kaufs- (untere Grenze) oder der Verkaufsschwelle erreicht wird. Die Ausführung zum jeweiligen Schwellenwert wird durch die Indikatorvariablen $I_{first}$ und $I_{second}$ modelliert. Damit es zu einer Ausfühung kommt müssen dabei folgende beiden Kriterien kumulativ erfüllt sein:

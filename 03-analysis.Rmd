@@ -55,7 +55,7 @@ if (file.exists(variation_factor_open_file_name)) {
   
   quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
   # quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
-
+  
   data <- quotes_clean %>%
     dplyr::group_by(Ticker) %>%
     dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
@@ -68,10 +68,10 @@ if (file.exists(variation_factor_open_file_name)) {
   
   set.seed(123456)
   both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
-
+  
   scale_fct <- sum(calc_payoff_const_gamma(data, both_first = both_first))
   opt_payoff_sym(0.01, data, "Open", both_first, scale_fct)
-
+  
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
     move = seq(0, 0.1, 0.01), 
     data = data, 
@@ -101,7 +101,7 @@ data_wide_3_all <- quotes_clean %>%
   dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
   dplyr::ungroup() %>%
   dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
-  normalize_quotes(paste0("Close_", window + 1), setdiff(names(.), c("Ticker", "Date")))
+  normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
 
 # remove unneeded (after normalization) day before window start
 data_wide_3 <- dplyr::select(data_wide_3_all, c("Ticker", "Date", str_subset(names(data_wide_3_all), paste0("_[^", window + 1, "]$"))))
@@ -195,324 +195,359 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
   return(model)
 }
 
-model_low_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
-save_model_hdf5(model_low_100, "data/model_low_100.hdf5")
+# model_low_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
+# save_model_hdf5(model_low_100, "models/model_low_100.hdf5")
+model_low_100 <- load_model_hdf5("models/model_low_100.hdf5")
 
-model_high_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
-save_model_hdf5(model_high_100, "data/model_high_100.hdf5")
+# model_high_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
+# save_model_hdf5(model_high_100, "models/model_high_100.hdf5")
+model_high_100 <- load_model_hdf5("models/model_low_100.hdf5")
 
-model_close_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 100)
-save_model_hdf5(model_close_100, "data/model_close_100.hdf5")
 
 ```
 
 
 ```{r, keras-individual-categorial-evaluation, echo=FALSE}
-
-test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ]
-
-get_class_prices <- function(borders, groups) {
+get_class_prices <- function(borders) {
   class_borders <- borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border"))
   class_borders[1, "Lower_Border"] <- class_borders[1, "Upper_Border"]
   class_borders[nrow(class_borders), "Upper_Border"] <- class_borders[nrow(class_borders), "Lower_Border"]
-  class_centers <- (class_borders$Lower_Border + class_borders$Upper_Border) / 2
-  class_centers[groups + 1]
+  (class_borders$Lower_Border + class_borders$Upper_Border) / 2
 }
 
+test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ]
 n_groups_per_col <- 100
 
+
+curr_eval_id <- 781
+
 # buy prices
-model_low <- load_model_hdf5("data/model_low_100.hdf5")
-pred_classes_low <- predict_classes(model_low, test_data, batch_size = 1024)
-# pred_prob <- predict_proba(model_low, test_data, batch_size = 1024)
+model_low <- load_model_hdf5("models/model_low_100.hdf5")
+pred_prob_low <- predict_proba(model_low, test_data[curr_eval_id, , drop = FALSE], batch_size = 1024)
+# pred_classes_low <- predict_classes(model_low, test_data, batch_size = 1024)
 
 discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col)
-buy <- get_class_prices(discretization_low$borders, pred_classes_low)
-
+hist_data_low <- discretization_low$borders %>% 
+  mutate(prob = as.vector(pred_prob_low)) %>% 
+  rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>%
+  rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>%
+  select("lower", "upper", "prob") %>%
+  mutate(group = "Low")
 
 # sell prices
-model_high <- load_model_hdf5("data/model_high_100.hdf5")
-pred_classes_high <- predict_classes(model_high, test_data, batch_size = 1024)
-# pred_prob <- predict_proba(model_high, test_data, batch_size = 1024)
+model_high <- load_model_hdf5("models/model_high_100.hdf5")
+pred_prob_high <- predict_proba(model_high, test_data[curr_eval_id, , drop = FALSE], batch_size = 1024)
+# pred_classes_high <- predict_classes(model_high, test_data, batch_size = 1024)
 
 discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col)
-sell <- get_class_prices(discretization_high$borders, pred_classes_high)
 
-unexpected_order_idx <- which(buy > sell)
-buy[unexpected_order_idx] <- sell[unexpected_order_idx] <- (buy[unexpected_order_idx] + sell[unexpected_order_idx]) / 2
+hist_data_high <- discretization_high$borders %>% 
+  mutate(prob = as.vector(pred_prob_high)) %>% 
+  rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>%
+  rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>%
+  select("lower", "upper", "prob") %>%
+  mutate(group = "High")
 
+plot_price_histogram(bind_rows(hist_data_low, hist_data_high), "Some test")
 
-eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0)
+test <- expand.grid(
+  Close_1 = 100,
+  Low = discretization_low$borders$Low_0_lower,
+  High = discretization_high$borders$High_0_lower,
+  Close_0 = (discretization_low$borders$Low_0_lower + discretization_high$borders$High_0_lower) / 2
+)
+
+test$Low <- ifelse(!is.finite(test$Low ), 97, test$Low)
+test$High <- ifelse(!is.finite(test$Low ), 103, test$Low)
+test$Close_0 <- ifelse(!is.finite(test$Low ), 100, test$Low)
+
 
 set.seed(654951)
-both_first <- c("buy", "sell")[sample(c(1, 2), nrow(eval_data), replace = TRUE)]
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(test), replace = TRUE)]
 
-data_wide_3_all[test_idx, ][1, ]
-buy[1]
-sell[1]
-
-scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first))
-sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct 
-
-# max
-sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct 
-
-# open
-sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.045), sell = eval_data$Open * (1 + 0.045), both_first = both_first)) / scale_fct 
+calc_payoff_const_gamma(tibble(Close_1 = 100, Low = 102, High = 105, Close_0 = 103), buy = -Inf, sell = Inf, both_first = "buy")
 
 
-```
+microbenchmark::microbenchmark({
+sum(calc_payoff_const_gamma(test, buy = 97, sell = 103, both_first = both_first))
+})
 
 
-```{r, keras-combined-individual-binary, echo=FALSE}
-
-fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
   
-  # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf
-  # http://orca.st.usm.edu/~zwang/files/rank.pdf
-  # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/
+  sell <- get_class_prices(discretization_high$borders, pred_classes_high)
   
-  all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
-  train_data <- all_data[train_idx, ]
   
-  all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
+  eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0)
+  
+
+  
+  data_wide_3_all[test_idx, ][1, ]
+  buy[1]
+  sell[1]
+  
+  scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first))
+  sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct 
+  
+  # max
+  sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct 
+  
+  # open
+  sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.045), sell = eval_data$Open * (1 + 0.045), both_first = both_first)) / scale_fct 
+  
+  
+  ```
+  
+  
+  ```{r, keras-combined-individual-binary, echo=FALSE}
+  
+  fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) {
+    
+    # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf
+    # http://orca.st.usm.edu/~zwang/files/rank.pdf
+    # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/
+    
+    all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))
+    train_data <- all_data[train_idx, ]
+    
+    all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
+    train_labels <- all_labels[train_idx]
+    
+    # make them "ordinal"
+    train_labels <- purrr::map(seq_len(n_groups_per_col) - 1, ~as.integer(.<=train_labels)) %>% unlist() %>% matrix(., ncol = n_groups_per_col)
+    
+    model <- keras::keras_model_sequential() %>%
+      keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
+      keras::layer_dense(units = 512, activation = "relu") %>%
+      keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid")
+    
+    model %>% keras::compile(
+      optimizer = 'adam', 
+      loss = 'binary_crossentropy',
+      metrics = c('accuracy')
+    )
+    
+    model %>% keras::fit(
+      train_data,
+      train_labels,
+      epochs = 50,
+      batch_size = 1024, 
+      validation_split = 0.2
+    )
+    
+    return(model)
+  }
+  
+  
+  low_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
+  save_model_hdf5(low_binary_100$model, "data/low_binary_100_model.hdf5")
+  saveRDS(low_binary_100$history, "data/low_binary_100_history.hdf5")
+  
+  high_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
+  save_model_hdf5(high_binary_100$model, "data/high_binary_100_model.hdf5")
+  saveRDS(high_binary_100$history, "data/high_binary_100_history.hdf5")
+  
+  ```
+  
+  
+  
+  ```{r, keras-combined-softmax-no-saampling, echo=FALSE}
+  
+  n_groups_per_col <- 10
+  cols <- c("Low_0", "High_0", "Close_0")
+  all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
+  
   train_labels <- all_labels[train_idx]
-  
-  # make them "ordinal"
-  train_labels <- purrr::map(seq_len(n_groups_per_col) - 1, ~as.integer(.<=train_labels)) %>% unlist() %>% matrix(., ncol = n_groups_per_col)
+  test_labels <- all_labels[test_idx]
   
   model <- keras::keras_model_sequential() %>%
     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
     keras::layer_dense(units = 512, activation = "relu") %>%
-    keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid")
+    keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
   
   model %>% keras::compile(
     optimizer = 'adam', 
-    loss = 'binary_crossentropy',
+    loss = 'sparse_categorical_crossentropy',
     metrics = c('accuracy')
   )
   
-  model %>% keras::fit(
+  history <- model %>% keras::fit(
     train_data,
     train_labels,
-    epochs = 50,
+    epochs = 2,
     batch_size = 1024, 
     validation_split = 0.2
   )
   
-  return(model)
-}
-
-
-low_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
-save_model_hdf5(low_binary_100$model, "data/low_binary_100_model.hdf5")
-saveRDS(low_binary_100$history, "data/low_binary_100_history.hdf5")
-
-high_binary_100 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
-save_model_hdf5(high_binary_100$model, "data/high_binary_100_model.hdf5")
-saveRDS(high_binary_100$history, "data/high_binary_100_history.hdf5")
-
-```
-
-
-
-```{r, keras-combined-softmax-no-saampling, echo=FALSE}
-
-n_groups_per_col <- 10
-cols <- c("Low_0", "High_0", "Close_0")
-all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups
-
-train_labels <- all_labels[train_idx]
-test_labels <- all_labels[test_idx]
-
-model <- keras::keras_model_sequential() %>%
-  keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>%
-  keras::layer_dense(units = 512, activation = "relu") %>%
-  keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax")
-
-model %>% keras::compile(
-  optimizer = 'adam', 
-  loss = 'sparse_categorical_crossentropy',
-  metrics = c('accuracy')
-)
-
-history <- model %>% keras::fit(
-  train_data,
-  train_labels,
-  epochs = 2,
-  batch_size = 1024, 
-  validation_split = 0.2
-)
-
-summary(model)
-keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5")
-print("done")
-
-```
-
-##### Old
-
-
-
-```{r, knn-calculation, echo=FALSE}
-# data_bkp <- data
-# data <- data_bkp
-orig_order <- order(desc(data$Date))
-data <- data %>% select(-Ticker) %>% arrange(desc(Date))
-
-counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
-n_chunks <- 100
-breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
-
-split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
-
-nn <- function(i, split_dates, data, dates){
-  split_date <- split_dates[[i]]
-  curr_data <- data[dates <= split_date, ]
-  curr_dates <- dates[dates <= split_date]
-  curr_query <- data[dates <= split_date & dates > ifelse(i == 1, -Inf, split_dates[[i-1]]), ]
-  RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50)
-}
-
-knn_eucl_list <- pbmcapply::pbmclapply(
-  X = rev(seq_len(n_chunks)),
-  FUN = nn,
-  split_dates = split_dates,
-  data = as.matrix(select(data, -Date)),
-  dates = data$Date,
-  mc.cores = parallel::detectCores()
-)
-
-knn_eucl_list_hash <- digest::digest(knn_eucl_list)
-# saveRDS(knn_eucl_list_hash, paste0("tmp/knn_eucl_list_", knn_eucl_list_hash, ".rds"))
-
-knn_eucl <- purrr::transpose(knn_eucl_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
-knn_eucl_hash <- digest::digest(knn_eucl)
-# arrow::write_feather(as_tibble(knn_eucl$nn.idx), paste0("tmp/knn_eucl_idx_", knn_eucl_hash, ".feather"))
-# arrow::write_feather(as_tibble(knn_eucl$nn.dists), paste0("tmp/knn_eucl_dists_", knn_eucl_hash, ".feather"))
-
-```
-
-
-
-```{r, knn-single-plot, echo=FALSE}
-
-knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather")
-knn_eucl_dists <- arrow::read_feather("tmp/knn_eucl_dists_7d3356cf64a5f81081840f6b1b370d77.feather")
-
-
-idx <- 123456 
-
-knn_eucl_idx[idx, ]
-knn_eucl_dists[idx, ]
-select(data[idx, ], -c("Ticker", "Date"))
-select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date"))
-
-sqrt(sum((select(data[idx, ], -c("Ticker", "Date")) - select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")))^2))
-
-id_cols <- c("Ticker", "Date")
-knn <- RANN::nn2(
-  data = select(data, -id_cols),
-  query = select(data[idx, ], -id_cols),
-  k = 10
-)
-
-plot_nn(
-  data_wide_curr = data_all[idx, ],
-  data_wide_nn = data_all[c(3660437, 2876442, 1411227), ]
-)
-
-# id <- 280000
-# valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0]
-# 
-# k <- 10
-# plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_len(k)],])
-
-```
-
-```{r, knn-prediction-power, echo=FALSE}
-# k <- 20
-# 
-# nn_idx <- as.matrix(arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather"))
-# 
-# nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn_idx[, seq_len(k)])
-# na_row_bool <- rowSums(is.na(nn_pred)) > 0
-# 
-# nn_pred_sample <- nn_pred[!na_row_bool, ] %>% rename(Buy = Low_0, Sell = High_0)
-# quotes_line_sample <- quotes_line[!na_row_bool, ]
-# 
-# plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample)
-# 
-# 
-# ### perform bootstraping
-# size_map <- quotes_line %>%
-#   select(Date) %>%
-#   group_by(Date) %>% 
-#   summarize(count = n()) %>% 
-#   ungroup() %>% 
-#   mutate(size = cumsum(count) - count) %>% 
-#   select(-count)
-# size <- quotes_line %>% select(Date) %>% left_join(size_map, by = "Date") %>% .[["size"]]
-# ###
-# 
-# boot_nn_idx_1 <- bootstrap_nn_idx(nn_idx, size, 20, 123456)
-# 
-# nn_pred_boot <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = boot_nn_idx_1)
-# na_row_bool_boot <- rowSums(is.na(nn_pred_boot)) > 0
-# 
-# nn_pred_boot_sample <- nn_pred_boot[!na_row_bool_boot, ] %>% rename(Buy = Low_0, Sell = High_0)
-# quotes_line_boot_sample <- quotes_line[!na_row_bool_boot, ]
-# 
-# plot_ratio_history(quotes_line = quotes_line_boot_sample, data_pred = nn_pred_boot_sample)
-# 
-# 
-
-```
-
-
-
-```{r, knn-bootstraping, echo=FALSE}
-# k <- 20
-# quotes_line <- readRDS("tmp/quotes_line.rds")
-# quotes_line_sorted <- quotes_line %>% arrange(Date)
-# 
-# nn_idx <- arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather")
-# 
-# nn_idx_sorted <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds") %>% .[["nn.idx"]] %>% sort_nn_idx(quotes_line$Date)
-# 
-# 
-# set.seed(123456)
-# boot_pred <- map(seq_len(100), function(i) {
-#   print(i)
-#   curr_nn_idx_boot <- bootstrap_nn(sort(quotes_line$Date), sort_nn_idx(nn_idx_sorted), k = k)
-#   pred_nn(select(quotes_line_sorted, c("Low", "High")), nn_idx = curr_nn_idx_boot)
-# })
-# # saveRDS(boot_pred, "tmp/boot_pred.rds")
-# 
-# boot_pred <- readRDS("tmp/boot_pred.rds")
-# 
-# 
-# all_complete <- rep(TRUE, nrow(quotes_line_sorted))
-# for(i in seq_along(boot_pred)) {
-#   print(i)
-#   all_complete <- all_complete * rowSums(is.na(boot_pred[[i]])) == 0
-#   gc()
-# }
-# 
-# na_row_bool <- rowSums(is.na(nn_idx_sorted)) + rowSums(is.na())
-# 
-# test <- map(boot_pred, ~sum(calc_payoff_const_gamma(quotes_line_sorted[all_complete], buy = .$Low, sell = .$High, both_first = 234567)))
-# 
-# na_row_bool <- rowSums(is.na(nn$nn.idx)) == 0
-
-# nn_idx[4418184, ]
-# quotes_line[4418184, ]
-
-
-
-
-```
-
-## Neuronale Netzwerke
-
-## Autoregressive Modelle
+  summary(model)
+  keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5")
+  print("done")
+  
+  ```
+  
+  ##### Old
+  
+  
+  
+  ```{r, knn-calculation, echo=FALSE}
+  # data_bkp <- data
+  # data <- data_bkp
+  orig_order <- order(desc(data$Date))
+  data <- data %>% select(-Ticker) %>% arrange(desc(Date))
+  
+  counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
+  n_chunks <- 100
+  breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
+  
+  split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
+  
+  nn <- function(i, split_dates, data, dates){
+    split_date <- split_dates[[i]]
+    curr_data <- data[dates <= split_date, ]
+    curr_dates <- dates[dates <= split_date]
+    curr_query <- data[dates <= split_date & dates > ifelse(i == 1, -Inf, split_dates[[i-1]]), ]
+    RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50)
+  }
+  
+  knn_eucl_list <- pbmcapply::pbmclapply(
+    X = rev(seq_len(n_chunks)),
+    FUN = nn,
+    split_dates = split_dates,
+    data = as.matrix(select(data, -Date)),
+    dates = data$Date,
+    mc.cores = parallel::detectCores()
+  )
+  
+  knn_eucl_list_hash <- digest::digest(knn_eucl_list)
+  # saveRDS(knn_eucl_list_hash, paste0("tmp/knn_eucl_list_", knn_eucl_list_hash, ".rds"))
+  
+  knn_eucl <- purrr::transpose(knn_eucl_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
+  knn_eucl_hash <- digest::digest(knn_eucl)
+  # arrow::write_feather(as_tibble(knn_eucl$nn.idx), paste0("tmp/knn_eucl_idx_", knn_eucl_hash, ".feather"))
+  # arrow::write_feather(as_tibble(knn_eucl$nn.dists), paste0("tmp/knn_eucl_dists_", knn_eucl_hash, ".feather"))
+  
+  ```
+  
+  
+  
+  ```{r, knn-single-plot, echo=FALSE}
+  
+  knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather")
+  knn_eucl_dists <- arrow::read_feather("tmp/knn_eucl_dists_7d3356cf64a5f81081840f6b1b370d77.feather")
+  
+  
+  idx <- 123456 
+  
+  knn_eucl_idx[idx, ]
+  knn_eucl_dists[idx, ]
+  select(data[idx, ], -c("Ticker", "Date"))
+  select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date"))
+  
+  sqrt(sum((select(data[idx, ], -c("Ticker", "Date")) - select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")))^2))
+  
+  id_cols <- c("Ticker", "Date")
+  knn <- RANN::nn2(
+    data = select(data, -id_cols),
+    query = select(data[idx, ], -id_cols),
+    k = 10
+  )
+  
+  plot_nn(
+    data_wide_curr = data_all[idx, ],
+    data_wide_nn = data_all[c(3660437, 2876442, 1411227), ]
+  )
+  
+  # id <- 280000
+  # valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0]
+  # 
+  # k <- 10
+  # plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_len(k)],])
+  
+  ```
+  
+  ```{r, knn-prediction-power, echo=FALSE}
+  # k <- 20
+  # 
+  # nn_idx <- as.matrix(arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather"))
+  # 
+  # nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn_idx[, seq_len(k)])
+  # na_row_bool <- rowSums(is.na(nn_pred)) > 0
+  # 
+  # nn_pred_sample <- nn_pred[!na_row_bool, ] %>% rename(Buy = Low_0, Sell = High_0)
+  # quotes_line_sample <- quotes_line[!na_row_bool, ]
+  # 
+  # plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample)
+  # 
+  # 
+  # ### perform bootstraping
+  # size_map <- quotes_line %>%
+  #   select(Date) %>%
+  #   group_by(Date) %>% 
+  #   summarize(count = n()) %>% 
+  #   ungroup() %>% 
+  #   mutate(size = cumsum(count) - count) %>% 
+  #   select(-count)
+  # size <- quotes_line %>% select(Date) %>% left_join(size_map, by = "Date") %>% .[["size"]]
+  # ###
+  # 
+  # boot_nn_idx_1 <- bootstrap_nn_idx(nn_idx, size, 20, 123456)
+  # 
+  # nn_pred_boot <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = boot_nn_idx_1)
+  # na_row_bool_boot <- rowSums(is.na(nn_pred_boot)) > 0
+  # 
+  # nn_pred_boot_sample <- nn_pred_boot[!na_row_bool_boot, ] %>% rename(Buy = Low_0, Sell = High_0)
+  # quotes_line_boot_sample <- quotes_line[!na_row_bool_boot, ]
+  # 
+  # plot_ratio_history(quotes_line = quotes_line_boot_sample, data_pred = nn_pred_boot_sample)
+  # 
+  # 
+  
+  ```
+  
+  
+  
+  ```{r, knn-bootstraping, echo=FALSE}
+  # k <- 20
+  # quotes_line <- readRDS("tmp/quotes_line.rds")
+  # quotes_line_sorted <- quotes_line %>% arrange(Date)
+  # 
+  # nn_idx <- arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather")
+  # 
+  # nn_idx_sorted <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds") %>% .[["nn.idx"]] %>% sort_nn_idx(quotes_line$Date)
+  # 
+  # 
+  # set.seed(123456)
+  # boot_pred <- map(seq_len(100), function(i) {
+  #   print(i)
+  #   curr_nn_idx_boot <- bootstrap_nn(sort(quotes_line$Date), sort_nn_idx(nn_idx_sorted), k = k)
+  #   pred_nn(select(quotes_line_sorted, c("Low", "High")), nn_idx = curr_nn_idx_boot)
+  # })
+  # # saveRDS(boot_pred, "tmp/boot_pred.rds")
+  # 
+  # boot_pred <- readRDS("tmp/boot_pred.rds")
+  # 
+  # 
+  # all_complete <- rep(TRUE, nrow(quotes_line_sorted))
+  # for(i in seq_along(boot_pred)) {
+  #   print(i)
+  #   all_complete <- all_complete * rowSums(is.na(boot_pred[[i]])) == 0
+  #   gc()
+  # }
+  # 
+  # na_row_bool <- rowSums(is.na(nn_idx_sorted)) + rowSums(is.na())
+  # 
+  # test <- map(boot_pred, ~sum(calc_payoff_const_gamma(quotes_line_sorted[all_complete], buy = .$Low, sell = .$High, both_first = 234567)))
+  # 
+  # na_row_bool <- rowSums(is.na(nn$nn.idx)) == 0
+  
+  # nn_idx[4418184, ]
+  # quotes_line[4418184, ]
+  
+  
+  
+  
+  ```
+  
+  ## Neuronale Netzwerke
+  
+  ## Autoregressive Modelle
+  
