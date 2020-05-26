@@ -184,7 +184,7 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
     metrics = c('accuracy')
   )
   
-  model %>% keras::fit(
+  history <- model %>% keras::fit(
     train_data,
     train_labels,
     epochs = 50,
@@ -192,17 +192,23 @@ fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_g
     validation_split = 0.2
   )
   
-  return(model)
+  return(list(model = model, history = history))
 }
 
-# model_low_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
-# save_model_hdf5(model_low_100, "models/model_low_100.hdf5")
-model_low_100 <- load_model_hdf5("models/model_low_100.hdf5")
+low_win_3_bin_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 100)
+# save_model_hdf5(low_win_3_bin_100$model, "models/low_win_3_bin_100_model.hdf5")
+saveRDS(low_win_3_bin_100$history, "data/low_win_3_bin_100_history.hdf5")
+low_win_3_bin_100$model <- load_model_hdf5("data/low_win_3_bin_100_model.hdf5")
 
-# model_high_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 100)
-# save_model_hdf5(model_high_100, "models/model_high_100.hdf5")
-model_high_100 <- load_model_hdf5("models/model_low_100.hdf5")
+high_win_3_bin_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "high_0", 100)
+# save_model_hdf5(high_win_3_bin_100$model, "models/high_win_3_bin_100_model.hdf5")
+saveRDS(high_win_3_bin_100$history, "data/high_win_3_bin_100_history.hdf5")
+high_win_3_bin_100$model <- load_model_hdf5("data/high_win_3_bin_100_model.hdf5")
 
+close_win_3_bin_100 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "close_0", 100)
+# save_model_hdf5(close_win_3_bin_100$model, "models/close_win_3_bin_100_model.hdf5")
+saveRDS(close_win_3_bin_100$history, "data/close_win_3_bin_100_history.hdf5")
+close_win_3_bin_100$model <- load_model_hdf5("data/close_win_3_bin_100_model.hdf5")
 
 ```
 
@@ -326,7 +332,7 @@ sum(calc_payoff_const_gamma(test, buy = 97, sell = 103, both_first = both_first)
       metrics = c('accuracy')
     )
     
-    model %>% keras::fit(
+    history <- model %>% keras::fit(
       train_data,
       train_labels,
       epochs = 50,
@@ -334,7 +340,7 @@ sum(calc_payoff_const_gamma(test, buy = 97, sell = 103, both_first = both_first)
       validation_split = 0.2
     )
     
-    return(model)
+    return(list(model = model, history = history))
   }
   
   
