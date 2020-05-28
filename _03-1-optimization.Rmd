@@ -1,0 +1,81 @@
+## Einfache Optimierungen
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+  library(purrr)
+  library(pbmcapply)
+  library(tidyr)
+  library(ggplot2)
+  library(data.table)
+  library(dtplyr)
+  library(arrow)
+  library(microbenchmark)
+  library(profvis)
+  library(dqrng)
+  library(keras)
+  library(magrittr)
+})
+```
+
+
+Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festzulegen. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhälntisse unter 1 kennzeichnen unterlegene Strategien. 
+
+```{r,  echo=TRUE}
+print("some test")
+```
+
+
+egal
+
+``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
+# 
+# variation_factor_open_file_name <- "data/variation_factor_open.feather"
+# 
+# if (file.exists(variation_factor_open_file_name)) {
+#   bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
+# } else {
+#   
+#   opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
+#     sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
+#   }
+#   
+#   quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
+#   # quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
+#   
+#   data <- quotes_clean %>%
+#     dplyr::group_by(Ticker) %>%
+#     dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
+#     ungroup() %>%
+#     rename(Close_0 = "Close") %>%
+#     select(-Ticker)
+#   data <- normalize_quotes(data, "Close_1", names(data))
+#   data <- tidyr::drop_na(data)
+#   rm(quotes_clean)
+#   
+#   set.seed(123456)
+#   both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
+#   
+#   scale_fct <- sum(calc_payoff_const_gamma(data, both_first = both_first))
+#   opt_payoff_sym(0.01, data, "Open", both_first, scale_fct)
+#   
+#   bootstraped_variation_factor_open <- bootstrap_variation_factor(
+#     move = seq(0, 0.1, 0.01), 
+#     data = data, 
+#     both_first = both_first, 
+#     R = 100,
+#     mc.cores = 4
+#   )
+#   
+#   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
+#   
+# }
+# 
+# plot_variation_factor(bootstraped_variation_factor_open)
+
+```
+
+Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei varierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: 
+
