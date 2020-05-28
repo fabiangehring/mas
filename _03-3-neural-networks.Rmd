@@ -5,6 +5,7 @@
 library(tidyverse)
 library(magrittr)
 library(keras)
+library(arrow)
 source("R/03-analysis.R")
 
 data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
@@ -40,8 +41,8 @@ if (all(ind_categorical_model_paths, file.exists)) {
   ind_categorical_labels_close <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col) %$% groups
   ind_categorical_labels <- tibble(low = ind_categorical_labels_low, high = ind_categorical_labels_high, close = ind_categorical_labels_close)
   
-  write_csv(ind_categorical_labels[train_idx, ], "data/ind_categorical_labels_train.csv")
-  write_csv(select(data_wide_3, -Ticker, -Date), "data/ind_categorical_data_train.csv")
+  write_feather(ind_categorical_labels[train_idx, ], "data/ind_categorical_labels_train.feather")
+  write_feather(select(data_wide_3, -Ticker, -Date), "data/ind_categorical_data_train.feather")
   
   # Execute jupyter notebook: py/fit_ind_categorical_model.ipynb
 }
