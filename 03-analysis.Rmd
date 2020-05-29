@@ -2,29 +2,73 @@
 
 
 ```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
-# suppressPackageStartupMessages({
-#   library(dplyr)
-#   library(stringr)
-#   library(purrr)
-#   library(pbmcapply)
-#   library(tidyr)
-#   library(ggplot2)
-#   library(data.table)
-#   library(dtplyr)
-#   library(arrow)
-#   library(microbenchmark)
-#   library(profvis)
-#   library(dqrng)
-#   library(keras)
-#   library(magrittr)
-# })
-# 
-# source("R/02-data.R")
-# source("R/03-analysis.R")
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+  library(purrr)
+  library(pbmcapply)
+  library(tidyr)
+  library(ggplot2)
+  library(data.table)
+  library(dtplyr)
+  library(arrow)
+  library(microbenchmark)
+  library(profvis)
+  library(dqrng)
+  library(keras)
+  library(magrittr)
+  library(gglorenz)
+})
 
-# Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
-# Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
-# Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
+source("R/02-data.R")
+source("R/03-analysis.R")
+
+Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
+
+```
+
+
+
+
+
+```{r, knn-data-preparation, echo=FALSE}
+
+quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
+window <- 3
+data_wide_3_all <- quotes_clean %>%
+  dplyr::group_by(Ticker) %>%
+  dplyr::group_modify(~widen(., window = window + 1, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
+  normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
+
+# remove unneeded (after normalization) day before window start
+data_wide_3 <- dplyr::select(data_wide_3_all, c("Ticker", "Date", str_subset(names(data_wide_3_all), paste0("_[^", window + 1, "]$"))))
+
+# drop NA (for window and current)
+data_wide_3 <- tidyr::drop_na(data_wide_3)
+
+# remove current date except "Open"
+data_wide_3 <- dplyr::select(data_wide_3, c("Ticker", "Date", "Open_0", str_subset(names(data_wide_3), paste0("_[^", 0, "]$"))))
+
+# sort columns nicely
+data_wide_3 <- data_wide_3 %>% dplyr::select(c("Ticker", "Date"), sort(stringr::str_subset(names(.), "_[0-9]+$"), decreasing = TRUE))
+
+# arrow::write_feather(data_wide_3, "data/data_wide_3.feather")
+# data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+# data_wide_3_hash <- digest::digest(data_wide_3)
+
+
+id_cols <- c("Ticker", "Date")
+data_wide_3_all <- data_wide_3[, id_cols] %>% inner_join(data_wide_3_all, by = id_cols)
+# arrow::write_feather(data_wide_3_all, "data/data_wide_3_all.feather")
+# data_wide_3_all <- arrow::read_feather("data/data_wide_3_all.feather")
+# data_wide_3_all_hash <- digest::digest(data_wide_3_all)
+
+rm(quotes_clean)
+
 ```
 
 Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:

@@ -13,11 +13,16 @@ suppressPackageStartupMessages({
   library(kableExtra)
   library(purrr)
   library(tidyr)
+  library(arrow)
+  library(ggplot2)
 })
 
 source("global.R")
 source("R/download_scripts.R")
 source("R/02-data.R")
+source("R/03-analysis.R")
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+
 
 # load stocks_raw
 file_stocks_raw <- here::here(paste0("data/stocks_raw.feather"))
@@ -101,60 +106,87 @@ summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
 Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten. Allen gemeinsam ist, dass die Bereinigung keinen Ausschluss der Daten zur Folge hat, sondern betroffene Werte als "Nicht verfügbar, (NA)" klassifiziert werden. Diese Unterscheidung ist insbesondere bei rollierender Betrachtung eines Zeitfensters der Vergangenheit von Bedeutung.
 
 ``` {r, echo=FALSE}
-quotes_clean <- quotes_raw
+file_quotes_clean <- here::here(paste0("data/quotes_clean.feather"))
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- quotes_raw
+}
+
 ```
 
 ```{r, filter-data-adjusted, echo=FALSE}
 wrong_corporate_action_threshold <- 0.001
-quotes_clean <- na_wrong_corporate_actions(quotes_clean, wrong_corporate_action_threshold)
-quotes_clean <- adjust_quotes(quotes_clean)
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- na_wrong_corporate_actions(quotes_clean, wrong_corporate_action_threshold)
+  quotes_clean <- adjust_quotes(quotes_clean)
+}
 ```
 1. **Entfernen von fehlerhaften Adjustierungsdaten**  
 Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte aus. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken müssen. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferne auf, dass auch einige sehr sehr kleine (im Bereich $-10^{-6}$), wenn auch postive Werte gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
 
 ```{r, filter-data-measure-order, echo=FALSE}
-quotes_clean <- na_unreasonable_measure_order(quotes_clean)
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- na_unreasonable_measure_order(quotes_clean)
+}
 ```
 1. **Entfernen von Einträgen mit unerwarterer Reihenfolge**  
 Die Werte für Open, Low, High und Close implizieren eine klare Reihenfolge. Keine anderer der Werte darf höher als das High oder kleiner als das Low sein. Ist dies der Fall, werden die entsprechenden Werte von der Analyse ausgeschlossen.
 
 ```{r, filter-data-typo, echo=FALSE}
 max_typo_ratio <- 8
-quotes_clean <- na_typos(quotes_clean, max_typo_ratio)
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- na_typos(quotes_clean, max_typo_ratio)
+}
 ```
 1. **Erkennen und Ausschluss von Tippfehlern**  
 Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.
 
 ```{r, filter-data-no-intraday-moves, echo=FALSE}
-quotes_clean <- na_no_intraday_moves(quotes_clean)
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- na_no_intraday_moves(quotes_clean)
+}
 ```
 1. **Fehlende Preisbewegungen innerhalb des Tages**  
 Der Aktienkurs eines grösseren Unternehens bewegt sich typischerweise auch an ruhigen Börsentagen immer ein wenig. Die vorhandenen Preise  liegen mit der Genauigkeit mehrer Nachkommastellen vor. Unterscheiden sich hierbei Tagestiefst- und Tageshöchstpreis nicht, muss von einem Datenfehler ausgegangen werden. Einträge ohne Preisbewegung innerhalb des Tages werden daher von der Analyse ausgeschlossen.
 
 ```{r, filter-data-no-daily-changes, echo=FALSE}
-quotes_clean <- quotes_clean %>%
-  group_by(Ticker) %>%
-  dplyr::group_modify(~na_no_daily_changes(.)) %>%
-  ungroup()
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- quotes_clean %>%
+    group_by(Ticker) %>%
+    dplyr::group_modify(~na_no_daily_changes(.)) %>%
+    ungroup()
+}
 ```
 1. **Fehlende Kursbewegungen über nacheinanderfolgende Börsentage**  
 Ähnlich wie bei den Preisbewegungen innerhalb des Tages verhält es sich auch bei Bewegungen über sich folgende Börsentage hinweg. Es ist zu erwarten, dass sich mindestens einer der fünf betrachteten Preise vom Vortag unterscheidet. Ist dies nicht der Fall, wird der Eintrag ausgeschlossen.
 
 ```{r, filter-data-too-large-daily-changes, echo=FALSE}
 too_large_daily_change_ratio <- 2
-quotes_clean <- quotes_clean %>%
-  group_by(Ticker) %>%
-  dplyr::group_modify(~na_too_large_daily_changes(., too_large_daily_change_ratio)) %>%
-  ungroup()
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- quotes_clean %>%
+    group_by(Ticker) %>%
+    dplyr::group_modify(~na_too_large_daily_changes(., too_large_daily_change_ratio)) %>%
+    ungroup()
+}
 ```
 1. **Aussergewöhnlich hohe Preisbewegungen**  
 Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen wie sie in dieser Arbeit betrachtet werden aber selten. Die Chance, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) um mehr als einen Faktor `r too_large_daily_change_ratio` unterscheidet erachten wir als kleiner, als dass es sich dabei um einen Datenfehler handelt. Entsprechende Einträge werden deshalb entfernt.
 
 ```{r, filter-data-extremes, echo=FALSE}
-index_factor <- 100 / quotes_clean$Adjusted
-quotes_clean <- normalize_quotes(quotes_clean, base_col = "Adjusted", target_cols = c("Low", "High", "Close", "Open"))
-quotes_clean<- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close", "Adjusted"), tail = 0.01)
-quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
+if (!file.exists(file_quotes_clean)) {
+  index_factor <- 100 / quotes_clean$Adjusted
+  quotes_clean <- normalize_quotes(quotes_clean, base_col = "Adjusted", target_cols = c("Low", "High", "Close", "Open"))
+  quotes_clean <- na_extremes(quotes_clean, col = c("Open", "Low", "High", "Close", "Adjusted"), tail = 0.01)
+  quotes_clean <- mutate_at(quotes_clean, c("Open", "Low", "High", "Close", "Adjusted"),  ~. / index_factor)
+}
+
+if (!file.exists(file_quotes_clean)) {
+  quotes_clean <- quotes_clean %>% select(-Adjusted)
+  write_feather(quotes_clean, paste0("data/quotes_clean.feather"))
+  quotes_clean <- read_feather(paste0("data/quotes_clean.feather"))
+  quotes_clean_hash <- digest::digest(quotes_clean)
+} else {
+  quotes_clean <- read_feather(paste0("data/quotes_clean.feather"))
+}
 ```
 1. **Ausschluss von Extremwerten**  
 Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.
@@ -162,26 +194,53 @@ Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von d
 Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r sum(rowSums(is.na(quotes_clean)) != 0)`. Für die Analyse bleiben somit `r sum(rowSums(is.na(quotes_clean)) == 0)` verwendbare Einträge.
 
 
-```{r, echo=FALSE}
-# TODO: remove
-quotes_clean <- quotes_clean %>% select(-Adjusted)
-
-# arrow::write_feather(quotes_clean, paste0("data/quotes_clean.feather"))
-# quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
-# quates_clean_hash <- digest::digest(quotes_clean)
-
-```
-
-
 ### Normalisierung
 
-Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) normalisiert.
+Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
 
+Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits erwähnt - quadratisch auf Preisveränderungen reagiert liegt, lohnt sich an dieser Stelle eine Untersuchung der Daten auf (zu) einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass insbesondere lernende Algorithmen insbesondere diese einzelnen Beobachtungen optimiert. Weniger einflussreiche aber häufiger realsierite Beobachtungen gingen darin unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
 
-```{r, reorganize-one-line, echo=FALSE}
-# quotes_line <- quotes_clean %>%
-#   group_by(Ticker) %>%
-#   dplyr::group_modify(~reorganize_to_one_line(.)) %>%
-#   ungroup()
+Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs über alle für in der Analyse berücksichtigten Datensätze. Hierfür werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei geneu gleichverteiltem Beitrag jedes einzlenen Eintrages zum Payoff würde eine Gerade mit Steiguzng 45° resultieren. Je stärker der einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
+
+```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, fig.pos = '!H'}
+
+if (!file.exists("data/data_wide_0_all.feather")) {
+  window <- 0
+  data_wide_0_all <- quotes_clean %>%
+    dplyr::group_by(Ticker) %>%
+    dplyr::group_modify(~widen(., window = window + 1, cols = c("Close"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+    dplyr::ungroup() %>%
+    dplyr::rename(Close_0 = "Close") %>%
+    normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
+  
+  data_wide_0_all <- drop_na(data_wide_0_all)
+  arrow::write_feather(data_wide_0_all, "data/data_wide_0_all.feather")
+  data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
+  # data_wide_0_all_hash <- digest(data_wide_0_all)
+} else {
+  data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
+}
+
+set.seed(123456)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_0_all), replace = TRUE)]
+payoff <- calc_payoff_const_gamma(data_wide_0_all, both_first = both_first)
+
+n_steps <- 100
+payoff_sorted <- sort(payoff)
+x <- seq(0, 1, length.out = n_steps)
+y <- quantile(cumsum(payoff_sorted), seq(0, 1, length.out = n_steps)) / sum(payoff_sorted)
+
+ggplot(tibble(x = x, y = y), aes(x = x, y = y)) + 
+  geom_line() +
+  scale_x_continuous(labels = scales::percent) + 
+  scale_y_continuous(labels = scales::percent) + 
+  geom_abline(linetype = "dashed") +
+  ggtitle("Lorenzkurve des Payoffs") + 
+  xlab("Kumulativer Anteil der Datenpunkte") + 
+  ylab("Kumulativer Anteil des Payoffs") + 
+  theme_bw()
+
 ```
 
+
+Im vorliegenden Fall weist die Lorenzkurve eine gutsichtbare Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituatioen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve quasi auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten den erfolgreich war. Die bereinigten Daten zeigen sowohl die gewünschte Variabilität ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.
