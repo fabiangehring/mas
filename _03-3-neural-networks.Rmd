@@ -20,12 +20,14 @@ test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 
 ### Unabhängige Vorhersagewerte
 
-```{r, echo=FALSE}
+#### Ohne Berücksichtigung der Ordinalität
+
+```{r nn-indipendent-categorical, echo=FALSE}
 
 ### model for close
 n_groups_per_col <- 30
 ind_categorical_model_names <- c("indipendent_categorical_low", "indipendent_categorical_high", "indipendent_categorical_close")
-ind_categorical_model_paths <- paste0("models/", ind_categorical_model_names, ".hdf5")
+ind_categorical_model_paths <- paste0("data/", ind_categorical_model_names, ".hdf5")
 
 if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
   ind_categorical_models <- map(ind_categorical_model_paths, load_model_hdf5) %>% setNames(ind_categorical_model_names)
@@ -47,37 +49,72 @@ if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
 
 
 ```{python}
-
-import pandas as pd
-import feather
-
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.utils.np_utils import to_categorical
-
-n_groups_per_col = 30
-ind_categorical_data_train = pd.read_feather("../data/ind_categorical_data_train.feather")
-ind_categorical_labels_train = pd.read_feather("../data/ind_categorical_labels_train.feather")
-
-train_data = ind_categorical_data_train.to_numpy()
-train_label_low = to_categorical(ind_categorical_labels_train.low.to_numpy(), n_groups_per_col)
-train_label_high = to_categorical(ind_categorical_labels_train.high.to_numpy(), n_groups_per_col)
-train_label_close = to_categorical(ind_categorical_labels_train.close.to_numpy(), n_groups_per_col)
-
-def fit_ind_categorical_model(train_data, train_labels):
-    
-    model = Sequential()
-    model.add(Dense(units=512, activation='relu', input_shape=(train_data.shape[1],)))
-    model.add(Dense(units=512, activation='relu'))
-    model.add(Dense(n_groups_per_col, activation='softmax'))
-    
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-    model.fit(train_data, train_labels, batch_size=512, epochs=20, verbose=1)
-
-indipendent_categorical_low = fit_ind_categorical_model(train_data, train_label_low)
+# 
+# import pandas as pd
+# import feather
+# 
+# from keras.models import Sequential
+# from keras.layers import Dense
+# from keras.utils.np_utils import to_categorical
+# 
+# n_groups_per_col = 30
+# ind_categorical_data_train = pd.read_feather("../data/ind_categorical_data_train.feather")
+# ind_categorical_labels_train = pd.read_feather("../data/ind_categorical_labels_train.feather")
+# 
+# train_data = ind_categorical_data_train.to_numpy()
+# train_label_low = to_categorical(ind_categorical_labels_train.low.to_numpy(), n_groups_per_col)
+# train_label_high = to_categorical(ind_categorical_labels_train.high.to_numpy(), n_groups_per_col)
+# train_label_close = to_categorical(ind_categorical_labels_train.close.to_numpy(), n_groups_per_col)
+# 
+# def fit_ind_categorical_model(train_data, train_labels):
+#     
+#     model = Sequential()
+#     model.add(Dense(units=512, activation='relu', input_shape=(train_data.shape[1],)))
+#     model.add(Dense(units=512, activation='relu'))
+#     model.add(Dense(n_groups_per_col, activation='softmax'))
+#     
+#     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# 
+#     model.fit(train_data, train_labels, batch_size=512, epochs=20, verbose=1)
+# 
+# indipendent_categorical_low = fit_ind_categorical_model(train_data, train_label_low)
 ```
 
+
+```{r nn-indipendent-binary, echo=FALSE}
+
+n_groups_per_col <- 30
+ind_binary_model_names <- c("indipendent_binary_low", "indipendent_binary_high", "indipendent_binary_close")
+ind_binary_model_paths <- paste0("data/", ind_binary_model_names, ".hdf5")
+
+if (all(map_lgl(ind_binary_model_paths, file.exists))) {
+  ind_binary_models <- map(ind_binary_model_paths, load_model_hdf5) %>% setNames(ind_binary_model_names)
+} else {
+  stop(paste0("At least one indipendent_binary model does not exist. Please execute python code first."))
+  
+  ind_binary_labels_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col) %$% groups
+  ind_binary_labels_low <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_low))
+  
+  ind_binary_labels_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col) %$% groups
+  ind_binary_labels_high <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_high))
+
+  ind_binary_labels_close <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col) %$% groups
+  ind_binary_labels_close <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_close))
+
+  write_feather(ind_binary_labels_low[train_idx, ], "data/ind_binary_labels_low_train.feather")
+  write_feather(ind_binary_labels_high[train_idx, ], "data/ind_binary_labels_high_train.feather")
+  write_feather(ind_binary_labels_close[train_idx, ], "data/ind_binary_labels_close_train.feather")
+
+  write_feather(select(data_wide_3, -Ticker, -Date)[train_idx, ], "data/ind_binary_data_train.feather")
+  
+  # Execute jupyter notebook: py/fit_ind_binary_model.ipynb
+}
+
+```
+
+
+
+#### Mit Berücksichtigung der Ordinalität
 
 
 

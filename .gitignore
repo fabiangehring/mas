@@ -8,6 +8,7 @@
 data/*.csv
 data/*.rds
 data/*.feather
+data/*.hdf5
 
 # Temporary bookdown files
 Masterarbeit.log
