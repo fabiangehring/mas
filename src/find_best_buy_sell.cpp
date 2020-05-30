@@ -9,23 +9,26 @@ NumericVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob
   const int n_group_high = high_prob.ncol();
   const int n_group_close = close_prob.ncol();
   
-  NumericVector out = NumericVector(64);
+  NumericVector out = NumericVector(n_data);
   
   for (int i = 0; i<n_data; i++) {
+    double best_payoff = 0.0;
     for (int buy_sell_id = 0; buy_sell_id < n_buy_sell; buy_sell_id++) {
-      
+      double curr_payoff = 0.0;
       int price_id = 0;
       for (int group_low = 0; group_low < n_group_low; group_low++) {
         for (int group_high = 0; group_high < n_group_high; group_high++) {
           for (int group_close = 0; group_close < n_group_close; group_close++) {
-            double prob = low_prob(i, group_low) * high_prob(i, group_high) * close_prob(i, group_close);
-            out[price_id] = prob;
+            curr_payoff += low_prob(i, group_low) * high_prob(i, group_high) * close_prob(i, group_close) * payoffs(price_id, buy_sell_id);
             price_id++;
           }
         }
       }
-      
+      if (curr_payoff > best_payoff) {
+        best_payoff = curr_payoff;
+      }
     }
+    out[i] = best_payoff;
   }
   return out;
 }
