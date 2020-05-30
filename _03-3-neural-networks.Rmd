@@ -6,8 +6,11 @@ library(tidyverse)
 library(magrittr)
 library(keras)
 library(arrow)
+library(pbmcapply)
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 source("R/03-analysis.R")
+
+Rcpp::sourceCpp('src/find_best_buy_sell.cpp')
 
 data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
@@ -56,7 +59,7 @@ if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
 ```
 
 
-```{r nn-indipendent-categorical-plotting, fig.cap='Verteilung prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
+```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
 curr_eval_id <- 53
 
 low_prob <- unlist(ind_categorical_models$low_pred_prob[curr_eval_id, ], use.names = FALSE)
@@ -68,7 +71,7 @@ hist_data_high <- eval_hist_data(ind_categorical_discretization_high$borders, hi
 hist_data_close <- eval_hist_data(ind_categorical_discretization_close$borders, close_prob, "Schluss")
 plot_price_histogram(
   data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
-  title = "Verteilung prognostizierter Tiefst-, Höchst- und Schlusspreise"
+  title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise"
 )
 ```
 
@@ -82,38 +85,65 @@ mid_prices <- bind_rows(
   select(Bucket, mid, type) %>%
   pivot_wider(names_from = type, values_from = mid)
 
-
+# find all prices scenarios
 price_combinations <- expand(mid_prices, Low, High, Close) %>%
   rename(Close_0 = "Close") %>%
   mutate(Close_1 = 100)
 
-implausible_price_combinations <- which(
+implausible_price_combinations_idx <- which(
   price_combinations$Close_0 < price_combinations$Low | 
     price_combinations$Close_0 > price_combinations$High |
     !is.finite(price_combinations$Low) | 
     !is.finite(price_combinations$High) | 
     !is.finite(price_combinations$Close_0)
 )
-price_combinations[implausible_price_combinations, ] <- NA
+plausible_price_combinations_idx <- setdiff(seq_len(nrow(price_combinations)), implausible_price_combinations_idx)
+price_combinations[implausible_price_combinations_idx, ] <- 100
 
+# find all buy sell scenarios
 buy_sell_combinations <- expand(mid_prices, Low, High) %>% select(buy = Low, sell = High)
-implausible_buy_sell_combinations <- buy_sell_combinations$buy > buy_sell_combinations$sell |
-  !is.finite(buy_sell_combinations$buy) | 
-  !is.finite(buy_sell_combinations$sell) 
-buy_sell_combinations[implausible_buy_sell_combinations, ] <- NA
+implausible_buy_sell_combinations_idx <- which((buy_sell_combinations$buy > buy_sell_combinations$sell) |
+                                                 !is.finite(buy_sell_combinations$buy) | 
+                                                 !is.finite(buy_sell_combinations$sell))
+plausible_buy_sell_combinations_idx <- setdiff(seq_len(nrow(buy_sell_combinations)), implausible_buy_sell_combinations_idx)
+buy_sell_combinations$buy[implausible_buy_sell_combinations_idx] <- -Inf
+buy_sell_combinations$sell[implausible_buy_sell_combinations_idx] <- Inf
+
 
 buy_first_payoffs <- map2_dfc(
   .x = buy_sell_combinations$buy, 
   .y = buy_sell_combinations$sell, 
   .f = ~calc_payoff_const_gamma(price_combinations, buy = .x, sell = .y, both_first = "buy")
-) %>% as.matrix()
-
-test <- find_best_buy_sell(
-  low_prob = ind_categorical_models$low_pred_prob,
-  high_prob = ind_categorical_models$high_pred_prob,
-  close_prob = ind_categorical_models$close_pred_prob,
-  payoffs = buy_first_payoffs
 )
+
+sample_n <- 10000
+
+
+find_best_buy_sell_parallel <- function(probs, payoffs) {
+  find_best_buy_sell(
+    low_prob = probs$low_prob,
+    high_prob = probs$high_prob,
+    close_prob = probs$close_prob,
+    payoffs = payoffs
+  )
+}
+
+n_cores <- 3
+chunk2 <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
+
+low_prob <- as.matrix(ind_categorical_models$low_pred_prob) %>% unname() %>%.[seq_len(sample_n), ]
+high_prob <- as.matrix(ind_categorical_models$high_pred_prob) %>% unname() %>% .[seq_len(sample_n), ]
+close_prob <- as.matrix(ind_categorical_models$close_pred_prob) %>% unname() %>% .[seq_len(sample_n), ]
+payoffs <- as.matrix(buy_first_payoffs) %>% unname()
+
+split_probs <- map(chunk2(seq_len(sample_n), n_cores), ~list(low_prob = low_prob[., ], high_prob = high_prob[., ], close_prob = close_prob[., ]))
+out <- pbmclapply(X = split_probs, FUN = find_best_buy_sell_parallel, payoffs = payoffs, mc.cores = n_cores) %>% unlist()
+
+bench <- buy_sell_combinations[out, ]
+
+test_sample <- data_wide_3_all[test_idx, ] %>% select(Close_1, Low = Low_0, High = High_0, Close_0) %>% .[seq_len(sample_n), ]
+sum(calc_payoff_const_gamma(test_sample))
+sum(calc_payoff_const_gamma(test_sample, buy = bench$buy, sell = bench$sell))
 
 
 all_prob <- expand(tibble(low_prob = low_prob, high_prob = high_prob, close_prob = close_prob), low_prob, high_prob, close_prob) %>%
