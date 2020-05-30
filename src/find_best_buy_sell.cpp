@@ -2,17 +2,23 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix payoffs) {
+IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix payoffs) {
   const int n_data = low_prob.nrow();
   const int n_buy_sell = payoffs.ncol();
   const int n_group_low = low_prob.ncol();
   const int n_group_high = high_prob.ncol();
   const int n_group_close = close_prob.ncol();
   
-  NumericVector out = NumericVector(n_data);
+  IntegerVector out = IntegerVector(n_data);
   
   for (int i = 0; i<n_data; i++) {
+  
+    if (i % 1000 == 0) {
+      Rprintf("%i\n", i);
+    }
+
     double best_payoff = 0.0;
+    int best_buy_sell_id = -1;
     for (int buy_sell_id = 0; buy_sell_id < n_buy_sell; buy_sell_id++) {
       double curr_payoff = 0.0;
       int price_id = 0;
@@ -26,18 +32,20 @@ NumericVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob
       }
       if (curr_payoff > best_payoff) {
         best_payoff = curr_payoff;
+        best_buy_sell_id = buy_sell_id;
       }
     }
-    out[i] = best_payoff;
+    out[i] = best_buy_sell_id + 1;
   }
   return out;
 }
 
 /*** R
-low_prob <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1), ncol = 4, byrow = TRUE)
-high_prob <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1), ncol = 4, byrow = TRUE)
-close_prob <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1), ncol = 4, byrow = TRUE)
-payoffs <- matrix(rep(1:64, 3), ncol = 3)
 
-find_best_buy_sell(low_prob, high_prob, close_prob, payoffs)
+low_prob <- matrix(rep(0.1, 30 * 100000), ncol = 30)
+high_prob <- matrix(rep(0.1, 30 * 100000), ncol = 30)
+close_prob <- matrix(rep(0.1, 30 * 100000), ncol = 30)
+payoffs <- matrix(rep(1:10000, 750), ncol = 750)
+
+a <- system.time({find_best_buy_sell(low_prob, high_prob, close_prob, payoffs)})
 */

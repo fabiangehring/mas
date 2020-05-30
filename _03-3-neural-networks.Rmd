@@ -75,19 +75,18 @@ plot_price_histogram(
 ```{r nn-indipendent-categorical-evaluation}
 
 mid_prices <- bind_rows(
-  mutate(ind_categorical_discretization_low$borders, prob = 1, type = "Low"),
-  mutate(ind_categorical_discretization_high$borders, prob = 2, type = "High"),
-  mutate(ind_categorical_discretization_close$borders, prob = 3, type = "Close")
+  mutate(ind_categorical_discretization_low$borders, type = "Low"),
+  mutate(ind_categorical_discretization_high$borders, type = "High"),
+  mutate(ind_categorical_discretization_close$borders, type = "Close")
 ) %>% mutate(mid = (lower + upper) / 2) %>%
-  select(Bucket, mid, type, prob) %>%
-  pivot_wider(names_from = type, values_from = c("mid", "prob"))
-
-
+  select(Bucket, mid, type) %>%
+  pivot_wider(names_from = type, values_from = mid)
 
 
 price_combinations <- expand(mid_prices, Low, High, Close) %>%
   rename(Close_0 = "Close") %>%
   mutate(Close_1 = 100)
+
 implausible_price_combinations <- which(
   price_combinations$Close_0 < price_combinations$Low | 
     price_combinations$Close_0 > price_combinations$High |
@@ -96,7 +95,6 @@ implausible_price_combinations <- which(
     !is.finite(price_combinations$Close_0)
 )
 price_combinations[implausible_price_combinations, ] <- NA
-
 
 buy_sell_combinations <- expand(mid_prices, Low, High) %>% select(buy = Low, sell = High)
 implausible_buy_sell_combinations <- buy_sell_combinations$buy > buy_sell_combinations$sell |
@@ -108,10 +106,19 @@ buy_first_payoffs <- map2_dfc(
   .x = buy_sell_combinations$buy, 
   .y = buy_sell_combinations$sell, 
   .f = ~calc_payoff_const_gamma(price_combinations, buy = .x, sell = .y, both_first = "buy")
-) %>% as.matrix() %>% t()
+) %>% as.matrix()
+
+test <- find_best_buy_sell(
+  low_prob = ind_categorical_models$low_pred_prob,
+  high_prob = ind_categorical_models$high_pred_prob,
+  close_prob = ind_categorical_models$close_pred_prob,
+  payoffs = buy_first_payoffs
+)
 
 
-microbenchmark::microbenchmark({buy_first_payoffs %*% rnorm(27000)}, times = 100)
+all_prob <- expand(tibble(low_prob = low_prob, high_prob = high_prob, close_prob = close_prob), low_prob, high_prob, close_prob) %>%
+  mutate(prob = low_prob * high_prob * close_prob)
+
 
 ```
 
