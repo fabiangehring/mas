@@ -11,7 +11,7 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
   
   double r_close_0_close_1;
   double r_first_close_1;
-  double r_first_close_0;
+  double r_close_0_first;
   double r_second_close_1;
   double r_second_first;
   double r_close_0_second;
@@ -44,17 +44,20 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
       I_second = true;
     }
     
+    Rprintf("Ifirst: %i\n", I_first);
+    Rprintf("Isecond: %i\n", I_second);
+    
     // calc returns
     if (return_type == "cont") {
       r_first_close_1 = log(first[i]/close_1[i]);
-      r_first_close_0 = log(first[i]/close_0[i]);
+      r_close_0_first = log(close_0[i]/first[i]);
       r_second_close_1 = log(second[i]/close_1[i]);
       r_second_first = log(second[i]/first[i]);
       r_close_0_second = log(close_0[i]/second[i]);
       r_close_0_close_1 = log(close_0[i]/close_1[i]);
     } else if (return_type == "disc") {
       r_first_close_1 = first[i]/close_1[i]-1;
-      r_first_close_0 = first[i]/close_0[i]-1;
+      r_close_0_first = close_0[i]/first[i]-1;
       r_second_close_1 = second[i]/close_1[i]-1;
       r_second_first = second[i]/first[i]-1;
       r_close_0_second = close_0[i]/second[i]-1;
@@ -68,7 +71,7 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
     if (!I_first and !I_second) {
       out[i] = gamma_cash_1 * pow(r_close_0_close_1, 2);
     } else if (I_first and !I_second) {
-      out[i] = gamma_cash_1 * pow(r_first_close_1, 2) + gamma_cash_first * pow(r_first_close_0, 2);
+      out[i] = gamma_cash_1 * pow(r_first_close_1, 2) + gamma_cash_first * pow(r_close_0_first, 2);
     } else  if (!I_first and I_second) {
       out[i] = gamma_cash_1 * pow(r_second_close_1, 2) + gamma_cash_second * pow(r_close_0_second, 2);
     } else {
@@ -86,14 +89,15 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
 #         10,    8,    12,        9
 # )
 # 
+# 
 # calc_payoff_per_title(
-#   close_1 = quotes_line_test_1$Close_1, 
+#   close_1 = quotes_line_test_1$Close_1,
 #   close_0 = quotes_line_test_1$Close_0,
 #   first = quotes_line_test_1$Low,
-#   second  = quotes_line_test_1$High, 
-#   low = quotes_line_test_1$Low, 
-#   high = quotes_line_test_1$High, 
-#   gamma = 0.2, 
+#   second  = quotes_line_test_1$High,
+#   low = quotes_line_test_1$Low,
+#   high = quotes_line_test_1$High,
+#   gamma = 0.2,
 #   return_type = "disc"
 # )
 */

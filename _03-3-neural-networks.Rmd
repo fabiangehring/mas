@@ -7,6 +7,7 @@ library(magrittr)
 library(keras)
 library(arrow)
 source("R/03-analysis.R")
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 
 data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
@@ -55,22 +56,40 @@ if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
 ```
 
 
-```{r nn-indipendent-categorical-plotting}
-
-curr_eval_id <- 119
+```{r nn-indipendent-categorical-plotting, fig.cap='Verteilung prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
+curr_eval_id <- 53
 
 low_prob <- unlist(ind_categorical_models$low_pred_prob[curr_eval_id, ], use.names = FALSE)
 high_prob <- unlist(ind_categorical_models$high_pred_prob[curr_eval_id, ], use.names = FALSE)
 close_prob <- unlist(ind_categorical_models$close_pred_prob[curr_eval_id, ], use.names = FALSE)
 
-hist_data_low <- eval_hist_data(ind_categorical_discretization_low$borders, low_prob, "Low")
-hist_data_high <- eval_hist_data(ind_categorical_discretization_high$borders, high_prob, "High")
-hist_data_close <- eval_hist_data(ind_categorical_discretization_close$borders, close_prob, "Close")
-plot_price_histogram(bind_rows(hist_data_low, hist_data_high, hist_data_close), "Some test")
-
+hist_data_low <- eval_hist_data(ind_categorical_discretization_low$borders, low_prob, "Tief")
+hist_data_high <- eval_hist_data(ind_categorical_discretization_high$borders, high_prob, "Hoch")
+hist_data_close <- eval_hist_data(ind_categorical_discretization_close$borders, close_prob, "Schluss")
+plot_price_histogram(
+  data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
+  title = "Verteilung prognostizierter Tiefst-, Höchst- und Schlusspreise"
+)
 ```
 
+```{r nn-indipendent-categorical-evaluation}
 
+price_combinations <- bind_rows(
+  mutate(ind_categorical_discretization_low$borders, type = "Low"),
+  mutate(ind_categorical_discretization_high$borders, type = "High"),
+  mutate(ind_categorical_discretization_close$borders, type = "Close")
+) %>% mutate(mid = (lower + upper) / 2) %>%
+  select(Bucket, mid, type) %>%
+  pivot_wider(names_from = type, values_from = mid) %>%
+  expand(Low, High, Close) %>%
+  rename(Close_0 = "Close") %>%
+  mutate(Close_1 = 100)
+
+set.seed(654951)
+both_first <- c("buy", "sell")[sample(c(1, 2), length(test_idx), replace = TRUE)]
+calc_payoff_const_gamma(price_combinations[32, ], buy = 10, sell = 100, both_first = "buy")
+
+```
 
 
 

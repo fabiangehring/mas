@@ -741,7 +741,8 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
   groups_prev_test <- rep(0L, length(test_idx))
   
   # init border table
-  border_names <- map(cols, ~paste0(., c("_lower", "_upper"))) %>% unlist()
+  # border_names <- map(cols, ~paste0(., c("_lower", "_upper"))) %>% unlist()
+  border_names <- c("lower", "upper")
   borders <- map(seq_len(length(cols) * 2), ~rep(NA_real_, n_groups_per_col^length(cols))) %>% 
     set_names(border_names) %>% 
     tibble::as_tibble() %>%
@@ -883,7 +884,7 @@ plot_price_histogram <- function(data, title = NULL) {
     scale_y_continuous(labels = scales::percent) + 
     ggplot2::ggtitle(title) + 
     ggplot2::xlab("Preis") +
-    ggplot2::ylab("Wahrscheintlichkeit") + 
+    ggplot2::ylab("Wahrscheinlichkeit") + 
     ggplot2::scale_fill_discrete(name = "Typ") +
     theme_bw()
 }
