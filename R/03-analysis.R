@@ -796,11 +796,32 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
   list(groups = groups, borders = borders)
 }
 
+#' Prepare data to create histogram
+#'
+#' @param borders A data.frame with columns ending with "lower" and "upper"
+#' @param prob A vector of prbabilities for every bucket in borders.
+#' @param group The name that should be added in columns group of the output
+#'
+#' @return A data.frame with columns "lower", "upper" and "prob". If group is given this is added in a column "group"
+#' @export
+#'
+#' @examples
+eval_hist_data <- function(borders, prob, group = NULL) {
+  stopifnot(nrow(borders) == length(prob))
+  borders %>%
+    mutate(prob = prob) %>%
+    rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>%
+    rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>%
+    select("lower", "upper", "prob") %>%
+    mutate(group = group)
+}
+
 
 #' Plot price histogram
 #' Negative and positive infinity values are replaced by extrapolating the closest bin.
 #' 
-#' @param data A data.frame with columns "lower", "upper" and "prob" and optionally "group"
+#' @param data A data.frame with columns "lower", "upper" and "prob". If also an optional column "group" is included
+#' several overlapping historgrams are plotted
 #' @param title A character with the title
 #'
 #' @return A ggplot2 object
@@ -847,7 +868,7 @@ plot_price_histogram <- function(data, title = NULL) {
   ## use standard breaks and labels
   breaks <- seq(from = floor(min(data$lower)), to = ceiling(max(data$lower)))
   labels <- breaks
-  
+
   p <- ggplot(data, aes(ymin = 0))
   if ("group" %in% names(data)) {
     p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob, fill = group), alpha = 0.5)
