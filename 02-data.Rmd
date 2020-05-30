@@ -20,8 +20,8 @@ suppressPackageStartupMessages({
 source("global.R")
 source("R/download_scripts.R")
 source("R/02-data.R")
-source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+source("R/03-analysis.R")
 
 
 # load stocks_raw

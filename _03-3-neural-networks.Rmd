@@ -6,8 +6,8 @@ library(tidyverse)
 library(magrittr)
 library(keras)
 library(arrow)
-source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+source("R/03-analysis.R")
 
 data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
@@ -87,7 +87,7 @@ price_combinations <- bind_rows(
 
 set.seed(654951)
 both_first <- c("buy", "sell")[sample(c(1, 2), length(test_idx), replace = TRUE)]
-calc_payoff_const_gamma(price_combinations[32, ], buy = 10, sell = 100, both_first = "buy")
+calc_payoff_const_gamma(price_combinations, buy = 10, sell = 100, both_first = "buy")
 
 ```
 

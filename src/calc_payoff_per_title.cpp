@@ -43,10 +43,7 @@ NumericVector calc_payoff_per_title(NumericVector close_1, NumericVector close_0
     } else if (first[i] < second[i] and second[i] <= high[i] and prev_price[i] < second[i]) {
       I_second = true;
     }
-    
-    Rprintf("Ifirst: %i\n", I_first);
-    Rprintf("Isecond: %i\n", I_second);
-    
+
     // calc returns
     if (return_type == "cont") {
       r_first_close_1 = log(first[i]/close_1[i]);
