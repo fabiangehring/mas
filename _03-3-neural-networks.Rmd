@@ -74,20 +74,41 @@ plot_price_histogram(
 
 ```{r nn-indipendent-categorical-evaluation}
 
-price_combinations <- bind_rows(
+mid_prices <- bind_rows(
   mutate(ind_categorical_discretization_low$borders, type = "Low"),
   mutate(ind_categorical_discretization_high$borders, type = "High"),
   mutate(ind_categorical_discretization_close$borders, type = "Close")
 ) %>% mutate(mid = (lower + upper) / 2) %>%
   select(Bucket, mid, type) %>%
-  pivot_wider(names_from = type, values_from = mid) %>%
-  expand(Low, High, Close) %>%
+  pivot_wider(names_from = type, values_from = mid)
+
+price_combinations <- expand(mid_prices, Low, High, Close) %>%
   rename(Close_0 = "Close") %>%
   mutate(Close_1 = 100)
+implausible_price_combinations <- which(
+  price_combinations$Close_0 < price_combinations$Low | 
+    price_combinations$Close_0 > price_combinations$High |
+    !is.finite(price_combinations$Low) | 
+    !is.finite(price_combinations$High) | 
+    !is.finite(price_combinations$Close_0)
+)
+price_combinations[implausible_price_combinations, ] <- NA
 
-set.seed(654951)
-both_first <- c("buy", "sell")[sample(c(1, 2), length(test_idx), replace = TRUE)]
-calc_payoff_const_gamma(price_combinations, buy = 10, sell = 100, both_first = "buy")
+
+buy_sell_combinations <- expand(mid_prices, Low, High) %>% select(buy = Low, sell = High)
+implausible_buy_sell_combinations <- buy_sell_combinations$buy > buy_sell_combinations$sell |
+  !is.finite(buy_sell_combinations$buy) | 
+  !is.finite(buy_sell_combinations$sell) 
+buy_sell_combinations[implausible_buy_sell_combinations, ] <- NA
+
+buy_first_payoffs <- map2_dfc(
+  .x = buy_sell_combinations$buy, 
+  .y = buy_sell_combinations$sell, 
+  .f = ~calc_payoff_const_gamma(price_combinations, buy = .x, sell = .y, both_first = "buy")
+) %>% as.matrix() %>% t()
+
+
+microbenchmark::microbenchmark({buy_first_payoffs %*% rnorm(27000)}, times = 100)
 
 ```
 
