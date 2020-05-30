@@ -75,12 +75,15 @@ plot_price_histogram(
 ```{r nn-indipendent-categorical-evaluation}
 
 mid_prices <- bind_rows(
-  mutate(ind_categorical_discretization_low$borders, type = "Low"),
-  mutate(ind_categorical_discretization_high$borders, type = "High"),
-  mutate(ind_categorical_discretization_close$borders, type = "Close")
+  mutate(ind_categorical_discretization_low$borders, prob = 1, type = "Low"),
+  mutate(ind_categorical_discretization_high$borders, prob = 2, type = "High"),
+  mutate(ind_categorical_discretization_close$borders, prob = 3, type = "Close")
 ) %>% mutate(mid = (lower + upper) / 2) %>%
-  select(Bucket, mid, type) %>%
-  pivot_wider(names_from = type, values_from = mid)
+  select(Bucket, mid, type, prob) %>%
+  pivot_wider(names_from = type, values_from = c("mid", "prob"))
+
+
+
 
 price_combinations <- expand(mid_prices, Low, High, Close) %>%
   rename(Close_0 = "Close") %>%
