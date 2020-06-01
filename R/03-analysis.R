@@ -49,6 +49,7 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "max")
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
 calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell = quotes_line$Close_0, both_first = "min", gamma = 0.2, return_type = "disc") {
+  
   stopifnot(all(buy <= sell, na.rm = TRUE))
   
   if (length(buy) == 1L && nrow(quotes_line) > 1) buy <- rep(buy, nrow(quotes_line))
@@ -806,7 +807,7 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
 #' @param crossentropy One of "categorical" (non-ordinal) or "binary" (ordinal)
 #'
 #' @return
-#' A list with elements "discretization" and "pred".
+#' A list with elements "discretization" and "pred" for the testing set.
 #' @export
 #'
 #' @examples
@@ -831,6 +832,26 @@ get_neural_model <- function(data_wide, type = "ind", crossentropy = "categorica
     nn$pred$low = read_feather(model_paths[1])
     nn$pred$high = read_feather(model_paths[2])
     nn$pred$close = read_feather(model_paths[3])
+    
+    if (crossentropy == "binary") {
+      
+      translate_cum_prob <- function(cum_prob) {
+        col_names <- names(cum_prob)
+        n_col <- ncol(cum_prob)
+        n_row <- nrow(cum_prob)
+        for (i in tail(seq_len(n_col), -1)) {
+          cum_prob[[i]] <- pmin(cum_prob[[i]], cum_prob[[i-1]])
+        }
+        cum_prob - set_names(bind_cols(cum_prob[, head(1 + seq_len(n_col), -1)], tmp = rep(0, n_row)), col_names)
+      }
+      
+      nn$pred$low <- translate_cum_prob(nn$pred$low)
+      nn$pred$high <- translate_cum_prob(nn$pred$high)
+      nn$pred$close <- translate_cum_prob(nn$pred$close)
+    }
+    
+    
+    
     return(nn)
   } else {
     stop(paste0("At least one neural network model does not exist. Please execute python code first."))
@@ -843,17 +864,32 @@ get_neural_model <- function(data_wide, type = "ind", crossentropy = "categorica
     
     write_feather(labels[train_idx, ], paste0(path, "labels_train.feather"))
     
-    train_cols <- setdiff(names(data_wide), c("Ticker", "Date", "Close_0", "Low_0", "High_0"))
-    max_window <- max(as.integer(str_extract(train_cols, "[0-9]+$")))
-    train_cols <- train_cols[!str_detect(train_cols, paste0(max_window, "$"))]
-    
-    write_feather(select(data_wide, train_cols)[train_idx, ], paste0(path, "data_train.feather"))
+    data_short <- shorten_data(data_wide)
+    write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
     write_feather(select(data_wide, train_cols)[test_idx, ], paste0(path, "data_test.feather"))
     
     # Execute jupyter notebook: py/*.ipynb
   }
 }
 
+
+#' Remove columns from wide data that should not be used for model estimation
+#'
+#' @param data_wide A data.frame containing columns not usable for training or estimaton (i.e Ticker, date, etc.) plus
+#' all data from window lying mostly back and the current data.
+#'
+#' @return
+#' A data.frame only containing data necessary for training and estimation.
+#' @export
+#'
+#' @examples
+#' shorten_data(tibble(Date = 1, Ticker = "ABC", Close_3 = 100, Close_2 = 100, Open_2 = 100, Low_1 = 100, High_0 = 200))
+shorten_data <- function(data_wide) {
+  train_cols <- setdiff(names(data_wide), c("Ticker", "Date", "Close_0", "Low_0", "High_0"))
+  max_window <- max(as.integer(str_extract(train_cols, "[0-9]+$")))
+  train_cols <- train_cols[!str_detect(train_cols, paste0(max_window, "$"))]
+  select(data_wide, train_cols)
+}
 
 #' Prepare data to create histogram
 #'
@@ -959,7 +995,7 @@ plot_price_histogram <- function(data, title = NULL) {
 #' neural_model <- list(discretization = discretization, pred = pred)
 #' plot_neural_sample_histogram(1, neural_model)
 plot_neural_sample_histogram <- function(eval_id, neural_model, title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise") {
-
+  
   hist_data_low <- eval_hist_data(
     borders = neural_model$discretization$low$borders, 
     prob = unlist(neural_model$pred$low[eval_id, ], use.names = FALSE), 
@@ -1089,8 +1125,8 @@ eval_buy_sell_scenarios <- function(mid_prices) {
 #' buy_first_payoffs <- map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
 #' sell_first_payoffs <-map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
 #' both_first <- "buy"
-#' find_optimal_buy_sell(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, 1)
-find_optimal_buy_sell <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, mc.cores = getOption("mc.cores", 2L)) {
+#' find_optimal_buy_sell_idx(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, 1)
+find_optimal_buy_sell_idx <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, mc.cores = getOption("mc.cores", 2L)) {
   
   stopifnot(length(unique(c(nrow(low_pred_prob), nrow(high_pred_prob), nrow(close_pred_prob)))) == 1)
   stopifnot(length(both_first) == nrow(low_pred_prob))
@@ -1132,4 +1168,58 @@ find_optimal_buy_sell <- function(low_pred_prob, high_pred_prob, close_pred_prob
   ) %>% unlist(use.names = FALSE)
 }
 
+
+
+#' Predict optimal buy sell prices for test set
+#'
+#' @param neural_model A neural model object with the elements discretization and pred.
+#' @param data_wide A data.frame with wide data
+#' @param both_first A character vector with entries "buy" or "sell" indication which action should be daone first
+#' @param test_idx A vector of indices for the test set
+#' @param sample_idx A vecor of sub indices of the test set. This is useful if for testing purposes only some entries
+#' should be evaluated
+#' @param mc.cores A integer indicating how many cores should be used during parallel computation
+#'
+#' @return
+#' A data.frame with columns buy and sell representing the optimal buy and sell prices for each entry in the test set.
+#' @export
+#'
+#' @examples
+find_optimal_buy_sell <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
+  
+  stopifnot(length(unique(c(
+    length(test_idx), 
+    nrow(neural_model$pred$low),
+    nrow(neural_model$pred$high),
+    nrow(neural_model$pred$close)
+  ))) == 1)
+  
+  mid_prices <- eval_mid_prices(neural_model$discretization)
+  price_scenarios <- eval_price_scenarios(mid_prices)
+  buy_sell_scenarios <- eval_buy_sell_scenarios(mid_prices)
+  
+  buy_first_payoffs <- map2_dfc(
+    .x = buy_sell_scenarios$buy, 
+    .y = buy_sell_scenarios$sell, 
+    .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
+  )
+  
+  sell_first_payoffs <- map2_dfc(
+    .x = buy_sell_scenarios$buy, 
+    .y = buy_sell_scenarios$sell, 
+    .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
+  )
+  
+  optimal_buy_sell_idx <- find_optimal_buy_sell_idx(
+    low_pred_prob = neural_model$pred$low[sample_idx, ],
+    high_pred_prob = neural_model$pred$high[sample_idx, ],
+    close_pred_prob = neural_model$pred$close[sample_idx, ],
+    buy_first_payoffs = buy_first_payoffs,
+    sell_first_payoffs = sell_first_payoffs,
+    both_first = both_first[test_idx][sample_idx],
+    mc.cores = 3
+  )
+  
+  buy_sell_scenarios[optimal_buy_sell_idx, ]
+}
 

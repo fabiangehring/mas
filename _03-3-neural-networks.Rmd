@@ -29,7 +29,6 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = 
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
 ind_categorical <- get_neural_model(data_wide_3_all, type = "ind", crossentropy = "categorical")
-
 ```
 
 
@@ -38,87 +37,19 @@ plot_neural_sample_histogram(53, ind_categorical)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
-mid_prices <- eval_mid_prices(ind_categorical$discretization)
-price_scenarios <- eval_price_scenarios(mid_prices)
-buy_sell_scenarios <- eval_buy_sell_scenarios(mid_prices)
-
-buy_first_payoffs <- map2_dfc(
-  .x = buy_sell_scenarios$buy, 
-  .y = buy_sell_scenarios$sell, 
-  .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
-)
-
-sell_first_payoffs <- map2_dfc(
-  .x = buy_sell_scenarios$buy, 
-  .y = buy_sell_scenarios$sell, 
-  .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
-)
-
-sample_n <- length(test_idx)
-REMOVE
-sample_n <- 10000
-
-optimal_buy_sell_idx <- find_optimal_buy_sell(
-  low_pred_prob = ind_categorical$pred$low[seq_len(sample_n), ],
-  high_pred_prob = ind_categorical$pred$high[seq_len(sample_n), ],
-  close_pred_prob = ind_categorical$pred$close[seq_len(sample_n), ],
-  buy_first_payoffs = buy_first_payoffs,
-  sell_first_payoffs = sell_first_payoffs,
-  both_first = both_first[test_idx][seq_len(sample_n)],
-  mc.cores = 3
-)
-
-bench <- buy_sell_scenarios[optimal_buy_sell_idx, ]
-
-test_sample <- data_wide_3_all[test_idx, ] %>% select(Close_1, Low = Low_0, High = High_0, Close_0) %>% .[seq_len(sample_n), ]
-sum(calc_payoff_const_gamma(test_sample))
-sum(calc_payoff_const_gamma(test_sample, buy = bench$buy, sell = bench$sell))
-
+sample_idx <- seq_len(5000)
+ind_categorical_buy_sell <- find_optimal_buy_sell(ind_categorical, data_wide_3_all, both_first, test_idx, sample_idx)
 ```
-
-```{r nn-indipendent-binary, echo=FALSE}
-
-n_groups_per_col <- 30
-
-ind_binary_model_names <- c("low_pred_prob",  "high_pred_prob", "close_pred_prob")
-ind_binary_model_paths <- paste0("data/models/ind/binary/", ind_binary_model_names, ".feather")
-
-if (all(map_lgl(ind_binary_model_paths, file.exists))) {
-  ind_binary_pred <- map(ind_binary_model_paths, read_feather) %>% setNames(ind_binary_model_names)
-} else {
-  stop(paste0("At least one ind_binary model does not exist. Please execute python code first."))
-  
-  ind_binary_labels_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col) %$% groups
-  ind_binary_labels_low <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_low))
-  
-  ind_binary_labels_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col) %$% groups
-  ind_binary_labels_high <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_high))
-  
-  ind_binary_labels_close <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col) %$% groups
-  ind_binary_labels_close <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=ind_binary_labels_close))
-  
-  write_feather(ind_binary_labels_low[train_idx, ], "data/ind_binary_labels_low_train.feather")
-  write_feather(ind_binary_labels_high[train_idx, ], "data/ind_binary_labels_high_train.feather")
-  write_feather(ind_binary_labels_close[train_idx, ], "data/ind_binary_labels_close_train.feather")
-  write_feather(select(data_wide_3, -Ticker, -Date)[train_idx, ], "data/ind_binary_data_train.feather")
-  
-  write_feather(ind_binary_labels_low[test_idx, ], "data/ind_binary_labels_low_test.feather")
-  write_feather(ind_binary_labels_high[test_idx, ], "data/ind_binary_labels_high_test.feather")
-  write_feather(ind_binary_labels_close[test_idx, ], "data/ind_binary_labels_close_test.feather")
-  write_feather(select(data_wide_3, -Ticker, -Date)[test_idx, ], "data/ind_binary_data_test.feather")
-  
-  # Execute jupyter notebook: py/fit_ind_binary_model.ipynb
-}
-
-```
-
-
 
 #### Mit Berücksichtigung der Ordinalität
 
-```{r nn-indipendent-binary-training, echo=FALSE}
-ind_categorical <- get_nn_model(data_wide_3_all, type = "ind", crossentropy = "categorical")
+```{r nn-indipendent-binary, echo=FALSE}
+ind_binary <- get_neural_model(data_wide_3_all, type = "ind", crossentropy = "binary")
 
+```
+
+```{r nn-indipendent-binary-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
+plot_neural_sample_histogram(53, ind_binary)
 ```
 
 
@@ -377,6 +308,16 @@ keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_
 print("done")
 
 ```
+
+
+### Modellvergleich
+
+```{r nn-models-compare}
+test_sample <- data_wide_3_all %>% .[test_idx, ] %>% .[sample_idx, ] %>% rename(Low = "Low_0", High = "High_0")
+sum(calc_payoff_const_gamma(test_sample, both_first = both_first[test_idx][sample_idx]))
+sum(calc_payoff_const_gamma(test_sample, buy = ind_categorical_buy_sell$buy, sell = ind_categorical_buy_sell$sell, both_first = both_first[test_idx][sample_idx]))
+```
+
 
 ##### Old
 
