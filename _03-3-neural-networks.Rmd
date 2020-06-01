@@ -1,7 +1,7 @@
 ## Neuronale Netzwerke
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, results="hide"}
 library(tidyverse)
 library(magrittr)
 library(keras)
@@ -18,7 +18,6 @@ data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
 set.seed(321654)
 train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
 test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
-
 ```
 
 
@@ -116,7 +115,7 @@ buy_first_payoffs <- map2_dfc(
   .f = ~calc_payoff_const_gamma(price_combinations, buy = .x, sell = .y, both_first = "buy")
 )
 
-sample_n <- 10000
+sample_n <- 100
 
 
 find_best_buy_sell_parallel <- function(probs, payoffs) {
@@ -131,24 +130,19 @@ find_best_buy_sell_parallel <- function(probs, payoffs) {
 n_cores <- 3
 chunk2 <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
 
-low_prob <- as.matrix(ind_categorical_models$low_pred_prob) %>% unname() %>%.[seq_len(sample_n), ]
-high_prob <- as.matrix(ind_categorical_models$high_pred_prob) %>% unname() %>% .[seq_len(sample_n), ]
-close_prob <- as.matrix(ind_categorical_models$close_pred_prob) %>% unname() %>% .[seq_len(sample_n), ]
+low_prob <- as.matrix(ind_categorical_models$low_pred_prob) %>% unname() %>%.[seq_len(sample_n),, drop = FALSE]
+high_prob <- as.matrix(ind_categorical_models$high_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
+close_prob <- as.matrix(ind_categorical_models$close_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
 payoffs <- as.matrix(buy_first_payoffs) %>% unname()
 
 split_probs <- map(chunk2(seq_len(sample_n), n_cores), ~list(low_prob = low_prob[., ], high_prob = high_prob[., ], close_prob = close_prob[., ]))
-out <- pbmclapply(X = split_probs, FUN = find_best_buy_sell_parallel, payoffs = payoffs, mc.cores = n_cores) %>% unlist()
+out <- pbmclapply(X = split_probs, FUN = find_best_buy_sell_parallel, payoffs = payoffs, mc.cores = n_cores) %>% unlist(use.names = FALSE)
 
 bench <- buy_sell_combinations[out, ]
 
 test_sample <- data_wide_3_all[test_idx, ] %>% select(Close_1, Low = Low_0, High = High_0, Close_0) %>% .[seq_len(sample_n), ]
 sum(calc_payoff_const_gamma(test_sample))
 sum(calc_payoff_const_gamma(test_sample, buy = bench$buy, sell = bench$sell))
-
-
-all_prob <- expand(tibble(low_prob = low_prob, high_prob = high_prob, close_prob = close_prob), low_prob, high_prob, close_prob) %>%
-  mutate(prob = low_prob * high_prob * close_prob)
-
 
 ```
 
