@@ -96,65 +96,40 @@ plot_price_histogram(
 
 ```{r nn-indipendent-categorical-evaluation}
 
-price_scenarios <- eval_price_scenarios(ind_categorical$discretization)
-
-eval_buy_sell_scenarios <- function() {
-  # find all buy sell scenarios
-buy_sell_combinations <- expand(mid_prices, Low, High) %>% select(buy = Low, sell = High)
-implausible_buy_sell_combinations_idx <- which((buy_sell_combinations$buy > buy_sell_combinations$sell) |
-                                                 !is.finite(buy_sell_combinations$buy) | 
-                                                 !is.finite(buy_sell_combinations$sell))
-plausible_buy_sell_combinations_idx <- setdiff(seq_len(nrow(buy_sell_combinations)), implausible_buy_sell_combinations_idx)
-buy_sell_combinations$buy[implausible_buy_sell_combinations_idx] <- -Inf
-buy_sell_combinations$sell[implausible_buy_sell_combinations_idx] <- Inf
-}
-
+mid_prices <- eval_mid_prices(ind_categorical$discretization)
+price_scenarios <- eval_price_scenarios(mid_prices)
+buy_sell_scenarios <- eval_buy_sell_scenarios(mid_prices)
 
 buy_first_payoffs <- map2_dfc(
-  .x = buy_sell_combinations$buy, 
-  .y = buy_sell_combinations$sell, 
+  .x = buy_sell_scenarios$buy, 
+  .y = buy_sell_scenarios$sell, 
   .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
 )
 
 sell_first_payoffs <- map2_dfc(
-  .x = buy_sell_combinations$buy, 
-  .y = buy_sell_combinations$sell, 
+  .x = buy_sell_scenarios$buy, 
+  .y = buy_sell_scenarios$sell, 
   .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
 )
 
-find_optimal_buy_sell <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, mc.cores = getOption("mc.cores", 2L)) {
-  
-  find_best_buy_sell_parallel <- function(probs, payoffs) {
-    find_best_buy_sell(
-      low_prob = probs$low_prob,
-      high_prob = probs$high_prob,
-      close_prob = probs$close_prob,
-      buy_first_payoffs = buy_first_payoffs, 
-      sell_first_payoffs = sell_first_payoffs
-    )
-  }
-  
-  chunk2 <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
-  
-  low_prob <- as.matrix(low_pred_prob) %>% unname() %>%.[seq_len(sample_n),, drop = FALSE]
-  high_prob <- as.matrix(high_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
-  close_prob <- as.matrix(close_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
-  buy_first_payoffs <- as.matrix(buy_first_payoffs) %>% unname()
-  sell_first_payoffs <- as.matrix(buy_first_payoffs) %>% unname()
-  
-  split_probs <- map(chunk2(seq_len(sample_n), mc.cores), ~list(low_prob = low_prob[., ], high_prob = high_prob[., ], close_prob = close_prob[., ]))
-  pbmclapply(
-    X = split_probs,
-    FUN = find_best_buy_sell_parallel, 
-    buy_first_payoffs = buy_first_payoffs, 
-    sell_first_payoffs = sell_first_payoffs,
-    mc.cores = mc.cores
-  ) %>% unlist(use.names = FALSE)
-  
-}
+sample_n <- length(test_idx)
+REMOVE
+sample_n <- 100
 
+set.seed(123456)
+both_first <- c("buy", "sell")[sample(c(1, 2), length(test_idx), replace = TRUE)]
 
-bench <- buy_sell_combinations[out, ]
+optimal_buy_sell_idx <- find_optimal_buy_sell(
+  low_pred_prob = ind_categorical$pred$low[seq_len(sample_n), ],
+  high_pred_prob = ind_categorical$pred$high[seq_len(sample_n), ],
+  close_pred_prob = ind_categorical$pred$close[seq_len(sample_n), ],
+  buy_first_payoffs = buy_first_payoffs,
+  sell_first_payoffs = sell_first_payoffs,
+  both_first = both_first[seq_len(sample_n)],
+  mc.cores = 3
+)
+
+bench <- buy_sell_scenarios[optimal_buy_sell_idx, ]
 
 test_sample <- data_wide_3_all[test_idx, ] %>% select(Close_1, Low = Low_0, High = High_0, Close_0) %>% .[seq_len(sample_n), ]
 sum(calc_payoff_const_gamma(test_sample))
@@ -332,7 +307,7 @@ test$High <- ifelse(!is.finite(test$Low ), 103, test$Low)
 test$Close_0 <- ifelse(!is.finite(test$Low ), 100, test$Low)
 
 
-set.seed(654951)
+set.seed(123456)
 both_first <- c("buy", "sell")[sample(c(1, 2), nrow(test), replace = TRUE)]
 
 calc_payoff_const_gamma(tibble(Close_1 = 100, Low = 102, High = 105, Close_0 = 103), buy = -Inf, sell = Inf, both_first = "buy")

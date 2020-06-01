@@ -50,7 +50,7 @@ gamma_cash <- function(price, gamma) {
 #' calc_payoff_const_gamma(quotes_line_test_2, buy = quotes_line_test_2$Low, sell = quotes_line_test_2$High, both_first = "min")
 calc_payoff_const_gamma <- function(quotes_line, buy = quotes_line$Close_0, sell = quotes_line$Close_0, both_first = "min", gamma = 0.2, return_type = "disc") {
   stopifnot(all(buy <= sell, na.rm = TRUE))
-
+  
   if (length(buy) == 1L && nrow(quotes_line) > 1) buy <- rep(buy, nrow(quotes_line))
   if (length(sell) == 1L && nrow(quotes_line) > 1) sell <- rep(sell, nrow(quotes_line))
   
@@ -837,7 +837,7 @@ eval_hist_data <- function(borders, prob, group = NULL) {
 #' )
 #' plot_price_histogram(data, title = "Verteilung Sell-Preise")
 plot_price_histogram <- function(data, title = NULL) {
-
+  
   if ("group" %in% names(data)) {
     data <- data %>% group_by(group) %>% arrange(lower, .by_group = TRUE)
   } else {
@@ -848,7 +848,7 @@ plot_price_histogram <- function(data, title = NULL) {
   neg_inf_idx <- which(lower == -Inf)
   lower[neg_inf_idx] <- lower[neg_inf_idx + 1] - (lower[neg_inf_idx + 2] - lower[neg_inf_idx + 1])
   data$lower <- lower
-
+  
   upper <- data$upper
   pos_inf_idx <- which(upper == Inf)
   upper[pos_inf_idx] <- upper[pos_inf_idx - 1] + (upper[pos_inf_idx - 1] - upper[pos_inf_idx - 2])
@@ -869,14 +869,14 @@ plot_price_histogram <- function(data, title = NULL) {
   ## use standard breaks and labels
   breaks <- seq(from = floor(min(data$lower)), to = ceiling(max(data$lower)))
   labels <- breaks
-
+  
   p <- ggplot(data, aes(ymin = 0))
   if ("group" %in% names(data)) {
     p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob, fill = group), alpha = 0.5)
   } else {
     p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob), alpha = 0.5, show.legend = FALSE)
   }
-
+  
   p + 
     xlab("number of obs") + 
     ylab("value") +
@@ -904,7 +904,7 @@ plot_price_histogram <- function(data, title = NULL) {
 #' discretization <- list(low = discretization_low, high = discretization_high, close = discretization_close)
 #' eval_mid_prices(discretization)
 eval_mid_prices <- function(discretization) {
-   bind_rows(
+  bind_rows(
     mutate(discretization$low$borders, type = "Low"),
     mutate(discretization$high$borders, type = "High"),
     mutate(discretization$close$borders, type = "Close")
@@ -923,9 +923,10 @@ eval_mid_prices <- function(discretization) {
 #' @export 
 #'
 #' @examples
-#' eval_price_scenarios(tibble(Bucket = 1:2, Low = c(102, 102), High = c(100, 106), Close = c(-Inf, 104)))
+#' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
+#' eval_price_scenarios(mid_prices)
 eval_price_scenarios <- function(mid_prices) {
- 
+  
   # find all prices scenarios
   price_scenarios <- expand_grid(
     Low = mid_prices$Low,
@@ -948,7 +949,91 @@ eval_price_scenarios <- function(mid_prices) {
 }
 
 
+#' Eval buy sell scenarios. Implausible values (Low > High) or one of both not finite, both values of that row 
+#' are set to -Inf (buy) and Inf (sell).
+#'
+#' @param mid_prices A data.frame with at least columns "Low" and "High"
+#'
+#' @return A
+#' @export
+#'
+#' @examples
+#' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
+#' eval_buy_sell_scenarios(mid_prices)
+eval_buy_sell_scenarios <- function(mid_prices) {
+  buy_sell_combinations <- expand_grid(buy = mid_prices$Low, sell = mid_prices$High)
+  implausible_buy_sell_combinations_idx <- which(
+    (buy_sell_combinations$buy > buy_sell_combinations$sell) | !is.finite(buy_sell_combinations$buy) | !is.finite(buy_sell_combinations$sell)
+  )
+  buy_sell_combinations$buy[implausible_buy_sell_combinations_idx] <- -Inf
+  buy_sell_combinations$sell[implausible_buy_sell_combinations_idx] <- Inf
+  buy_sell_combinations
+}
 
 
+
+#' Find optimal buy sell prices for given probability distributions of price scenarios
+#'
+#' @param low_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every low bucket
+#' @param high_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every high bucket
+#' @param close_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every close bucket
+#' @param buy_first_payoffs A data.frame(n_price_scenarios = n_probabilites^3, n_buy_sell_scenarios) with payoffs for every price and bus-sell scenarios if buy is executed first
+#' @param sell_first_payoffs A data.frame(n_price_scenarios = n_probabilites^3, n_buy_sell_scenarios) with payoffs for every price and bus-sell scenarios if sell is executed first
+#' @param both_first A character vector with entries "buy" or "sell" indicating what actions should be performed first
+#' @param mc.cores Integer with the number of cores to use in parallel computations
+#'
+#' @return A integer vector of optimal bus sell scenario for every entry
+#' @export
+#'
+#' @examples
+#' set.seed(1)
+#' low_pred_prob <- as_tibble(t(c(0.1, 0.2, 0.3, 0.4)))
+#' high_pred_prob <- as_tibble(t(c(0.2, 0.3, 0.1, 0.4)))
+#' close_pred_prob <- as_tibble(t(c(0.3, 0.4, 0.2, 0.1)))
+#' buy_first_payoffs <- map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
+#' sell_first_payoffs <-map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
+#' both_first <- "buy"
+#' find_optimal_buy_sell(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, 1)
+find_optimal_buy_sell <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, mc.cores = getOption("mc.cores", 2L)) {
+  
+  stopifnot(length(unique(c(nrow(low_pred_prob), nrow(high_pred_prob), nrow(close_pred_prob)))) == 1)
+  stopifnot(length(both_first) == nrow(low_pred_prob))
+  
+  find_best_buy_sell_parallel <- function(probs, buy_first_payoffs_mat, sell_first_payoffs_mat) {
+    find_best_buy_sell(
+      low_prob = probs$low_pred_prob_mat,
+      high_prob = probs$high_pred_prob_mat,
+      close_prob = probs$close_pred_prob_mat,
+      buy_first_payoffs = buy_first_payoffs_mat, 
+      sell_first_payoffs = sell_first_payoffs_mat, 
+      both_first = both_first
+    )
+  }
+  
+  chunk2 <- function(x,n) {
+    if (n == 1) return(x)
+    split(x, cut(seq_along(x), min(n, length(x)), labels = FALSE))
+  }
+  
+  low_pred_prob_mat <- as.matrix(low_pred_prob)
+  high_pred_prob_mat <- as.matrix(high_pred_prob)
+  close_pred_prob_mat <- as.matrix(close_pred_prob)
+  
+  split_probs <- map(
+    .x = chunk2(seq_len(nrow(low_pred_prob)), mc.cores), 
+    .f = ~list(
+      low_pred_prob_mat = low_pred_prob_mat[., , drop = FALSE], 
+      high_pred_prob_mat = high_pred_prob_mat[., ,drop = FALSE], 
+      close_pred_prob_mat = close_pred_prob_mat[., ,drop = FALSE]
+    )
+  )
+  pbmclapply(
+    X = split_probs,
+    FUN = find_best_buy_sell_parallel, 
+    buy_first_payoffs_mat = as.matrix(buy_first_payoffs), 
+    sell_first_payoffs_mat = as.matrix(sell_first_payoffs),
+    mc.cores = mc.cores
+  ) %>% unlist(use.names = FALSE)
+}
 
 
