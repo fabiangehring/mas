@@ -28,23 +28,30 @@ test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 ```{r nn-indipendent-categorical-training, echo=FALSE}
 n_groups_per_col <- 30
 
-ind_categorical_discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col)
-ind_categorical_discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col)
-ind_categorical_discretization_close <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col)
+ind_categorical = NULL
+ind_categorical$discretization <- list(
+  low = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col),
+  high = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col),
+  close = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col)
+)
 
 ### model for close
-ind_categorical_model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
-ind_categorical_model_paths <- paste0("data/models/ind/categorical/", ind_categorical_model_names, ".feather")
+model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
+model_paths <- paste0("data/models/ind/categorical/", ind_categorical_model_names, ".feather")
 
 if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
-  ind_categorical_models <- map(ind_categorical_model_paths, read_feather) %>% setNames(ind_categorical_model_names)
+  ind_categorical$pred$low = read_feather(model_paths[1])
+  ind_categorical$pred$high = read_feather(model_paths[2])
+  ind_categorical$pred$close = read_feather(model_paths[3])
+  
 } else {
   stop(paste0("At least one ind_categorical model does not exist. Please execute python code first."))
   
-  ind_categorical_labels_low <- ind_categorical_discretization_low %$% groups
-  ind_categorical_labels_high <- ind_categorical_discretization_high %$% groups
-  ind_categorical_labels_close <- ind_categorical_discretization_close %$% groups
-  ind_categorical_labels <- tibble(low = ind_categorical_labels_low, high = ind_categorical_labels_high, close = ind_categorical_labels_close)
+  ind_categorical_labels <- tibble(
+    low = ind_categorical$discretization$low %$% groups,
+    high = ind_categorical$discretization$high %$% groups, 
+    close = ind_categorical$discretization$close %$% groups
+  )
   
   write_feather(ind_categorical_labels[train_idx, ], "data/ind_categorical_labels_train.feather")
   write_feather(select(data_wide_3, -Ticker, -Date)[train_idx, ], "data/ind_categorical_data_train.feather")
@@ -55,19 +62,32 @@ if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
   # Execute jupyter notebook: py/fit_ind_categorical_model.ipynb
 }
 
+rm(c("model_names", "model_paths"))
+
 ```
 
 
 ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
 curr_eval_id <- 53
 
-low_prob <- unlist(ind_categorical_models$low_pred_prob[curr_eval_id, ], use.names = FALSE)
-high_prob <- unlist(ind_categorical_models$high_pred_prob[curr_eval_id, ], use.names = FALSE)
-close_prob <- unlist(ind_categorical_models$close_pred_prob[curr_eval_id, ], use.names = FALSE)
+hist_data_low <- eval_hist_data(
+  borders = ind_categorical$discretization$low$borders, 
+  prob = unlist(ind_categorical$pred$low[curr_eval_id, ], use.names = FALSE), 
+  group = "Tief"
+)
 
-hist_data_low <- eval_hist_data(ind_categorical_discretization_low$borders, low_prob, "Tief")
-hist_data_high <- eval_hist_data(ind_categorical_discretization_high$borders, high_prob, "Hoch")
-hist_data_close <- eval_hist_data(ind_categorical_discretization_close$borders, close_prob, "Schluss")
+hist_data_high <- eval_hist_data(
+  borders = ind_categorical$discretization$high$borders, 
+  prob = unlist(ind_categorical$pred$high[curr_eval_id, ], use.names = FALSE), 
+  group = "Hoch"
+)
+
+hist_data_close <- eval_hist_data(
+  borders = ind_categorical$discretization$close$borders, 
+  prob = unlist(ind_categorical$pred$close[curr_eval_id, ], use.names = FALSE), 
+  group = "Schluss"
+)
+
 plot_price_histogram(
   data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
   title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise"
@@ -76,30 +96,10 @@ plot_price_histogram(
 
 ```{r nn-indipendent-categorical-evaluation}
 
-mid_prices <- bind_rows(
-  mutate(ind_categorical_discretization_low$borders, type = "Low"),
-  mutate(ind_categorical_discretization_high$borders, type = "High"),
-  mutate(ind_categorical_discretization_close$borders, type = "Close")
-) %>% mutate(mid = (lower + upper) / 2) %>%
-  select(Bucket, mid, type) %>%
-  pivot_wider(names_from = type, values_from = mid)
+price_scenarios <- eval_price_scenarios(ind_categorical$discretization)
 
-# find all prices scenarios
-price_combinations <- expand(mid_prices, Low, High, Close) %>%
-  rename(Close_0 = "Close") %>%
-  mutate(Close_1 = 100)
-
-implausible_price_combinations_idx <- which(
-  price_combinations$Close_0 < price_combinations$Low | 
-    price_combinations$Close_0 > price_combinations$High |
-    !is.finite(price_combinations$Low) | 
-    !is.finite(price_combinations$High) | 
-    !is.finite(price_combinations$Close_0)
-)
-plausible_price_combinations_idx <- setdiff(seq_len(nrow(price_combinations)), implausible_price_combinations_idx)
-price_combinations[implausible_price_combinations_idx, ] <- 100
-
-# find all buy sell scenarios
+eval_buy_sell_scenarios <- function() {
+  # find all buy sell scenarios
 buy_sell_combinations <- expand(mid_prices, Low, High) %>% select(buy = Low, sell = High)
 implausible_buy_sell_combinations_idx <- which((buy_sell_combinations$buy > buy_sell_combinations$sell) |
                                                  !is.finite(buy_sell_combinations$buy) | 
@@ -107,36 +107,52 @@ implausible_buy_sell_combinations_idx <- which((buy_sell_combinations$buy > buy_
 plausible_buy_sell_combinations_idx <- setdiff(seq_len(nrow(buy_sell_combinations)), implausible_buy_sell_combinations_idx)
 buy_sell_combinations$buy[implausible_buy_sell_combinations_idx] <- -Inf
 buy_sell_combinations$sell[implausible_buy_sell_combinations_idx] <- Inf
+}
 
 
 buy_first_payoffs <- map2_dfc(
   .x = buy_sell_combinations$buy, 
   .y = buy_sell_combinations$sell, 
-  .f = ~calc_payoff_const_gamma(price_combinations, buy = .x, sell = .y, both_first = "buy")
+  .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
 )
 
-sample_n <- 100
+sell_first_payoffs <- map2_dfc(
+  .x = buy_sell_combinations$buy, 
+  .y = buy_sell_combinations$sell, 
+  .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
+)
 
-
-find_best_buy_sell_parallel <- function(probs, payoffs) {
-  find_best_buy_sell(
-    low_prob = probs$low_prob,
-    high_prob = probs$high_prob,
-    close_prob = probs$close_prob,
-    payoffs = payoffs
-  )
+find_optimal_buy_sell <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, mc.cores = getOption("mc.cores", 2L)) {
+  
+  find_best_buy_sell_parallel <- function(probs, payoffs) {
+    find_best_buy_sell(
+      low_prob = probs$low_prob,
+      high_prob = probs$high_prob,
+      close_prob = probs$close_prob,
+      buy_first_payoffs = buy_first_payoffs, 
+      sell_first_payoffs = sell_first_payoffs
+    )
+  }
+  
+  chunk2 <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
+  
+  low_prob <- as.matrix(low_pred_prob) %>% unname() %>%.[seq_len(sample_n),, drop = FALSE]
+  high_prob <- as.matrix(high_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
+  close_prob <- as.matrix(close_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
+  buy_first_payoffs <- as.matrix(buy_first_payoffs) %>% unname()
+  sell_first_payoffs <- as.matrix(buy_first_payoffs) %>% unname()
+  
+  split_probs <- map(chunk2(seq_len(sample_n), mc.cores), ~list(low_prob = low_prob[., ], high_prob = high_prob[., ], close_prob = close_prob[., ]))
+  pbmclapply(
+    X = split_probs,
+    FUN = find_best_buy_sell_parallel, 
+    buy_first_payoffs = buy_first_payoffs, 
+    sell_first_payoffs = sell_first_payoffs,
+    mc.cores = mc.cores
+  ) %>% unlist(use.names = FALSE)
+  
 }
 
-n_cores <- 3
-chunk2 <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
-
-low_prob <- as.matrix(ind_categorical_models$low_pred_prob) %>% unname() %>%.[seq_len(sample_n),, drop = FALSE]
-high_prob <- as.matrix(ind_categorical_models$high_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
-close_prob <- as.matrix(ind_categorical_models$close_pred_prob) %>% unname() %>% .[seq_len(sample_n),, drop = FALSE]
-payoffs <- as.matrix(buy_first_payoffs) %>% unname()
-
-split_probs <- map(chunk2(seq_len(sample_n), n_cores), ~list(low_prob = low_prob[., ], high_prob = high_prob[., ], close_prob = close_prob[., ]))
-out <- pbmclapply(X = split_probs, FUN = find_best_buy_sell_parallel, payoffs = payoffs, mc.cores = n_cores) %>% unlist(use.names = FALSE)
 
 bench <- buy_sell_combinations[out, ]
 

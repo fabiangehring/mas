@@ -2,10 +2,11 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix payoffs) {
+IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix buy_first_payoffs, NumericMatrix sell_first_payoffs, CharacterVector both_first) {
   
   const int n_data = low_prob.nrow();
-  const int n_buy_sell = payoffs.ncol();
+  const int n_buy_sell = buy_first_payoffs.ncol();
+  
   const int n_group_low = low_prob.ncol();
   const int n_group_high = high_prob.ncol();
   const int n_group_close = close_prob.ncol();
@@ -13,6 +14,13 @@ IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob
   IntegerVector out = IntegerVector(n_data);
   
   for (int i = 0; i<n_data; i++) {
+    NumericMatrix payoffs;
+    if (both_first[i] == "buy") {
+      payoffs = buy_first_payoffs;
+    } else if (both_first[i] == "sell") {
+      payoffs = sell_first_payoffs;
+    }
+    
     double best_payoff = 0.0;
     int best_buy_sell_id = -1;
     for (int buy_sell_id = 0; buy_sell_id < n_buy_sell; buy_sell_id++) {
@@ -37,13 +45,15 @@ IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob
 }
 
 /*** R
-# n <- 100
+# set.seed(1)
+# n <- 1000
+# both_first <- c("buy", "sell")[sample(c(1, 2), n, replace = TRUE)]
 # low_prob <- matrix(rnorm(30*n), ncol = 30)
 # high_prob <- matrix(rnorm(30*n), ncol = 30)
 # close_prob <- matrix(rnorm(30*n), ncol = 30)
-# payoffs <- matrix(rnorm(30^3 * 750), ncol = 750)
-# 
-# find_best_buy_sell(low_prob, high_prob, close_prob, payoffs)
+# buy_first_payoffs <- matrix(rnorm(30^3 * 750), ncol = 750)
+# sell_first_payoffs <- matrix(rnorm(30^3 * 750), ncol = 750)
+# find_best_buy_sell(low_prob, high_prob, close_prob, buy_first_payoffs, sell_first_payoffs, both_first)
 
 ### Validation (for element 1)
 # element_id <- 1

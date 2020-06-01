@@ -890,6 +890,64 @@ plot_price_histogram <- function(data, title = NULL) {
 }
 
 
+#' Eval mid prices for discretization borders
+#'
+#' @param discretization A list with elements "low", "high" and "close". Each element is a list itself and has element "borders" with the data.frame with "Bucket", "lower" and "upper" column.
+#'
+#' @export A data.frame with columns "Bucket", "Low", "High" and "Close" with the buckets mit prices
+#' @export
+#'
+#' @examples
+#' discretization_low <- list(borders = tibble(Bucket = c(1, 2), lower = c(101, 102), upper = c(102, 103)))
+#' discretization_high <- list(borders = tibble(Bucket = c(1, 2), lower = c(100, 105), upper = c(101, 106)))
+#' discretization_close <- list(borders = tibble(Bucket = c(1, 2), lower = c(-Inf, 103), upper = c(300, 105)))
+#' discretization <- list(low = discretization_low, high = discretization_high, close = discretization_close)
+#' eval_mid_prices(discretization)
+eval_mid_prices <- function(discretization) {
+   bind_rows(
+    mutate(discretization$low$borders, type = "Low"),
+    mutate(discretization$high$borders, type = "High"),
+    mutate(discretization$close$borders, type = "Close")
+  ) %>% mutate(mid = (lower + upper) / 2) %>%
+    select(Bucket, mid, type) %>%
+    pivot_wider(names_from = type, values_from = mid)
+}
+
+
+#' Evaluate all crossjoin price scenarios. For not plausible values (order of values not as expected
+#' Low <= Close <= High or one of the values is not finite) the whole row is set to 100. Additionally a column "Close_1" with value 100 is added.
+#' 
+#' @param discretization A data.frame with columns "Bucket", "Low", "High" and "Close".
+#'
+#' @return A data.frame with columns "Low", "High", "Close_0" and "Close_1"
+#' @export 
+#'
+#' @examples
+#' eval_price_scenarios(tibble(Bucket = 1:2, Low = c(102, 102), High = c(100, 106), Close = c(-Inf, 104)))
+eval_price_scenarios <- function(mid_prices) {
+ 
+  # find all prices scenarios
+  price_scenarios <- expand_grid(
+    Low = mid_prices$Low,
+    High = mid_prices$High, 
+    Close = mid_prices$Close
+  ) %>%
+    rename(Close_0 = "Close") %>%
+    mutate(Close_1 = 100)
+  
+  implausible_price_scenarios_idx <- which(
+    price_scenarios$Close_0 < price_scenarios$Low | 
+      price_scenarios$Close_0 > price_scenarios$High |
+      !is.finite(price_scenarios$Low) | 
+      !is.finite(price_scenarios$High) | 
+      !is.finite(price_scenarios$Close_0)
+  )
+  plausible_price_scenarios_idx <- setdiff(seq_len(nrow(price_scenarios)), implausible_price_scenarios_idx)
+  price_scenarios[implausible_price_scenarios_idx, ] <- 100
+  price_scenarios
+}
+
+
 
 
 
