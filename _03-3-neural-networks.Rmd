@@ -15,9 +15,11 @@ Rcpp::sourceCpp('src/find_best_buy_sell.cpp')
 data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
 
-set.seed(321654)
+set.seed(123456)
 train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
 test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = TRUE)]
+
 ```
 
 
@@ -26,76 +28,16 @@ test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
 #### Ohne Berücksichtigung der Ordinalität
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
-n_groups_per_col <- 30
-
-ind_categorical = NULL
-ind_categorical$discretization <- list(
-  low = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col),
-  high = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col),
-  close = multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Close_0", n_groups_per_col)
-)
-
-### model for close
-model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
-model_paths <- paste0("data/models/ind/categorical/", ind_categorical_model_names, ".feather")
-
-if (all(map_lgl(ind_categorical_model_paths, file.exists))) {
-  ind_categorical$pred$low = read_feather(model_paths[1])
-  ind_categorical$pred$high = read_feather(model_paths[2])
-  ind_categorical$pred$close = read_feather(model_paths[3])
-  
-} else {
-  stop(paste0("At least one ind_categorical model does not exist. Please execute python code first."))
-  
-  ind_categorical_labels <- tibble(
-    low = ind_categorical$discretization$low %$% groups,
-    high = ind_categorical$discretization$high %$% groups, 
-    close = ind_categorical$discretization$close %$% groups
-  )
-  
-  write_feather(ind_categorical_labels[train_idx, ], "data/ind_categorical_labels_train.feather")
-  write_feather(select(data_wide_3, -Ticker, -Date)[train_idx, ], "data/ind_categorical_data_train.feather")
-  
-  write_feather(ind_categorical_labels[test_idx, ], "data/ind_categorical_labels_test.feather")
-  write_feather(select(data_wide_3, -Ticker, -Date)[test_idx, ], "data/ind_categorical_data_test.feather")
-  
-  # Execute jupyter notebook: py/fit_ind_categorical_model.ipynb
-}
-
-rm(c("model_names", "model_paths"))
+ind_categorical <- get_neural_model(data_wide_3_all, type = "ind", crossentropy = "categorical")
 
 ```
 
 
 ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
-curr_eval_id <- 53
-
-hist_data_low <- eval_hist_data(
-  borders = ind_categorical$discretization$low$borders, 
-  prob = unlist(ind_categorical$pred$low[curr_eval_id, ], use.names = FALSE), 
-  group = "Tief"
-)
-
-hist_data_high <- eval_hist_data(
-  borders = ind_categorical$discretization$high$borders, 
-  prob = unlist(ind_categorical$pred$high[curr_eval_id, ], use.names = FALSE), 
-  group = "Hoch"
-)
-
-hist_data_close <- eval_hist_data(
-  borders = ind_categorical$discretization$close$borders, 
-  prob = unlist(ind_categorical$pred$close[curr_eval_id, ], use.names = FALSE), 
-  group = "Schluss"
-)
-
-plot_price_histogram(
-  data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
-  title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise"
-)
+plot_neural_sample_histogram(53, ind_categorical)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
-
 mid_prices <- eval_mid_prices(ind_categorical$discretization)
 price_scenarios <- eval_price_scenarios(mid_prices)
 buy_sell_scenarios <- eval_buy_sell_scenarios(mid_prices)
@@ -114,10 +56,7 @@ sell_first_payoffs <- map2_dfc(
 
 sample_n <- length(test_idx)
 REMOVE
-sample_n <- 100
-
-set.seed(123456)
-both_first <- c("buy", "sell")[sample(c(1, 2), length(test_idx), replace = TRUE)]
+sample_n <- 10000
 
 optimal_buy_sell_idx <- find_optimal_buy_sell(
   low_pred_prob = ind_categorical$pred$low[seq_len(sample_n), ],
@@ -125,7 +64,7 @@ optimal_buy_sell_idx <- find_optimal_buy_sell(
   close_pred_prob = ind_categorical$pred$close[seq_len(sample_n), ],
   buy_first_payoffs = buy_first_payoffs,
   sell_first_payoffs = sell_first_payoffs,
-  both_first = both_first[seq_len(sample_n)],
+  both_first = both_first[test_idx][seq_len(sample_n)],
   mc.cores = 3
 )
 
@@ -136,8 +75,6 @@ sum(calc_payoff_const_gamma(test_sample))
 sum(calc_payoff_const_gamma(test_sample, buy = bench$buy, sell = bench$sell))
 
 ```
-
-
 
 ```{r nn-indipendent-binary, echo=FALSE}
 
@@ -178,6 +115,14 @@ if (all(map_lgl(ind_binary_model_paths, file.exists))) {
 
 
 #### Mit Berücksichtigung der Ordinalität
+
+```{r nn-indipendent-binary-training, echo=FALSE}
+ind_categorical <- get_nn_model(data_wide_3_all, type = "ind", crossentropy = "categorical")
+
+```
+
+
+
 
 
 

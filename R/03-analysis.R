@@ -205,10 +205,8 @@ widen <- function(data, window, cols = names(data), keep = NULL) {
   
   # name columns in case of single feature
   if (length(cols) == 1) names(data_widened) <- paste0(cols, "_", names(data_widened))
-  
   bind_cols(unnest(data_widened, cols = names(data_widened)), data[, keep])
 }
-
 
 
 #' Split data into a query part (the values to search for) and the data part (where to find the data) for a given date.
@@ -797,6 +795,66 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
   list(groups = groups, borders = borders)
 }
 
+
+#' Load neural model
+#' If the model is available on disk it will be loaded and returned. If not all necessary files can be found, an error
+#' is thrown. In such situations the input files for the model should be written to disk and the python scripts for
+#' training should be run.
+#'
+#' @param data_wide A data.frame containing the "wide" data history of the model
+#' @param type One of "ind" (indipendent) or "dep" (dependent)
+#' @param crossentropy One of "categorical" (non-ordinal) or "binary" (ordinal)
+#'
+#' @return
+#' A list with elements "discretization" and "pred".
+#' @export
+#'
+#' @examples
+#' get_neural_model(data_wide_3_all)
+get_neural_model <- function(data_wide, type = "ind", crossentropy = "categorical") {
+  
+  path <- paste0("data/models/", type, "/", crossentropy, "/")
+  n_groups_per_col <- 30
+  
+  ### model for close
+  model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
+  model_paths <- paste0(path, model_names, ".feather")
+  
+  nn = NULL
+  nn$discretization <- list(
+    low = multivariate_discretization(data_wide, train_idx, test_idx, "Low_0", n_groups_per_col),
+    high = multivariate_discretization(data_wide, train_idx, test_idx, "High_0", n_groups_per_col),
+    close = multivariate_discretization(data_wide, train_idx, test_idx, "Close_0", n_groups_per_col)
+  )
+  
+  if (all(map_lgl(model_paths, file.exists))) {
+    nn$pred$low = read_feather(model_paths[1])
+    nn$pred$high = read_feather(model_paths[2])
+    nn$pred$close = read_feather(model_paths[3])
+    return(nn)
+  } else {
+    stop(paste0("At least one neural network model does not exist. Please execute python code first."))
+    
+    labels <- tibble(
+      low = nn$discretization$low %$% groups,
+      high = nn$discretization$high %$% groups, 
+      close = nn$discretization$close %$% groups
+    )
+    
+    write_feather(labels[train_idx, ], paste0(path, "labels_train.feather"))
+    
+    train_cols <- setdiff(names(data_wide), c("Ticker", "Date", "Close_0", "Low_0", "High_0"))
+    max_window <- max(as.integer(str_extract(train_cols, "[0-9]+$")))
+    train_cols <- train_cols[!str_detect(train_cols, paste0(max_window, "$"))]
+    
+    write_feather(select(data_wide, train_cols)[train_idx, ], paste0(path, "data_train.feather"))
+    write_feather(select(data_wide, train_cols)[test_idx, ], paste0(path, "data_test.feather"))
+    
+    # Execute jupyter notebook: py/*.ipynb
+  }
+}
+
+
 #' Prepare data to create histogram
 #'
 #' @param borders A data.frame with columns ending with "lower" and "upper"
@@ -854,18 +912,6 @@ plot_price_histogram <- function(data, title = NULL) {
   upper[pos_inf_idx] <- upper[pos_inf_idx - 1] + (upper[pos_inf_idx - 1] - upper[pos_inf_idx - 2])
   data$upper <- upper
   
-  ## use actual borders as lobels (except for Inf and -Inf which should be left blank)
-  # labels_lower <- lower
-  # labels_lower[neg_inf_idx] <- ""
-  # labels_upper <- upper
-  # labels_upper[pos_inf_idx] <- ""
-  # break_order <- order(c(lower, upper))
-  # breaks <- c(lower, upper)[break_order]
-  # duplicated_breaks <- duplicated(breaks)
-  # breaks <- breaks[!duplicated_breaks]
-  # labels <- c(labels_lower, labels_upper)[break_order]
-  # labels <- labels[!duplicated_breaks]
-  
   ## use standard breaks and labels
   breaks <- seq(from = floor(min(data$lower)), to = ceiling(max(data$lower)))
   labels <- breaks
@@ -888,6 +934,56 @@ plot_price_histogram <- function(data, title = NULL) {
     ggplot2::scale_fill_discrete(name = "Typ") +
     theme_bw()
 }
+
+
+#' Plot a histogram for specific neural model prediction (typically test sample).
+#'
+#' @param eval_id An integer value specifying the id to plot
+#' @param neural_model A neural model object with at least the elements discretization and pred.
+#' @param title A character specifying the title of the plot
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' discretization_low <- list(borders = tibble(Bucket = c(1, 2), lower = c(101, 102), upper = c(102, 103)))
+#' discretization_high <- list(borders = tibble(Bucket = c(1, 2), lower = c(103, 104), upper = c(104, 105)))
+#' discretization_close <- list(borders = tibble(Bucket = c(1, 2), lower = c(102, 103), upper = c(103, 104)))
+#' discretization <- list(low = discretization_low, high = discretization_high, close = discretization_close)
+#' 
+#' pred <- list(
+#'   low = as_tibble(t(c(0.4, 0.6))), 
+#'   high = as_tibble(t(c(0.3, 0.7))),
+#'   close = as_tibble(t(c(0.8, 0.2)))
+#' )
+#' neural_model <- list(discretization = discretization, pred = pred)
+#' plot_neural_sample_histogram(1, neural_model)
+plot_neural_sample_histogram <- function(eval_id, neural_model, title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise") {
+
+  hist_data_low <- eval_hist_data(
+    borders = neural_model$discretization$low$borders, 
+    prob = unlist(neural_model$pred$low[eval_id, ], use.names = FALSE), 
+    group = "Tief"
+  )
+  
+  hist_data_high <- eval_hist_data(
+    borders = neural_model$discretization$high$borders, 
+    prob = unlist(neural_model$pred$high[eval_id, ], use.names = FALSE), 
+    group = "Hoch"
+  )
+  
+  hist_data_close <- eval_hist_data(
+    borders = neural_model$discretization$close$borders, 
+    prob = unlist(neural_model$pred$close[eval_id, ], use.names = FALSE), 
+    group = "Schluss"
+  )
+  
+  plot_price_histogram(
+    data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
+    title = title
+  )
+}
+
 
 
 #' Eval mid prices for discretization borders
