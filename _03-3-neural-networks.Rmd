@@ -10,7 +10,8 @@ library(pbmcapply)
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 source("R/03-analysis.R")
 
-Rcpp::sourceCpp('src/find_best_buy_sell.cpp')
+Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
+Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
 
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
 

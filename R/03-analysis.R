@@ -1422,13 +1422,12 @@ find_optimal_buy_sell_idx_ind <- function(low_pred_prob, high_pred_prob, close_p
 
 find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, mc.cores = getOption("mc.cores", 2L)) {
   
-  stopifnot(length(both_first) == nrow(pred_prob))
+  # TODO: comment in
+  # stopifnot(length(both_first) == nrow(pred_prob))
   
-  find_best_buy_sell_parallel <- function(probs, buy_first_payoffs_mat, sell_first_payoffs_mat) {
+  find_best_buy_sell_parallel <- function(probs_mat, buy_first_payoffs_mat, sell_first_payoffs_mat) {
     find_best_buy_sell_dep(
-      low_prob = probs$low_pred_prob_mat,
-      high_prob = probs$high_pred_prob_mat,
-      close_prob = probs$close_pred_prob_mat,
+      probs_mat,
       buy_first_payoffs = buy_first_payoffs_mat, 
       sell_first_payoffs = sell_first_payoffs_mat, 
       both_first = both_first
@@ -1440,18 +1439,13 @@ find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_fir
     split(x, cut(seq_along(x), min(n, length(x)), labels = FALSE))
   }
   
-  low_pred_prob_mat <- as.matrix(low_pred_prob)
-  high_pred_prob_mat <- as.matrix(high_pred_prob)
-  close_pred_prob_mat <- as.matrix(close_pred_prob)
-  
+  pred_prob_mat <- as.matrix(pred_prob)
+
   split_probs <- map(
-    .x = chunk2(seq_len(nrow(low_pred_prob)), mc.cores), 
-    .f = ~list(
-      low_pred_prob_mat = low_pred_prob_mat[., , drop = FALSE], 
-      high_pred_prob_mat = high_pred_prob_mat[., ,drop = FALSE], 
-      close_pred_prob_mat = close_pred_prob_mat[., ,drop = FALSE]
-    )
+    .x = chunk2(seq_len(nrow(pred_prob)), mc.cores), 
+    .f = ~pred_prob_mat[., , drop = FALSE] 
   )
+  
   pbmclapply(
     X = split_probs,
     FUN = find_best_buy_sell_parallel, 
@@ -1460,7 +1454,6 @@ find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_fir
     mc.cores = mc.cores
   ) %>% unlist(use.names = FALSE)
 }
-
 
 
 
@@ -1534,10 +1527,12 @@ find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_
 #' @examples
 find_optimal_buy_sell_dep <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
   
-  stopifnot(length(unique(c(
-    length(test_idx), 
-    nrow(neural_model$pred)
-  ))) == 1)
+  browser()
+  
+  # stopifnot(length(unique(c(
+  #   length(test_idx), 
+  #   nrow(neural_model$pred)
+  # ))) == 1)
   
   price_scenarios <- eval_price_scenarios_dep(neural_model$discretization$borders)
   buy_sell_scenarios <- eval_buy_sell_scenarios_dep(price_scenarios)
@@ -1554,10 +1549,8 @@ find_optimal_buy_sell_dep <- function(neural_model, data_wide, both_first, test_
     .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
   )
   
-  optimal_buy_sell_idx <- find_optimal_buy_sell_idx(
-    low_pred_prob = neural_model$pred$low[sample_idx, ],
-    high_pred_prob = neural_model$pred$high[sample_idx, ],
-    close_pred_prob = neural_model$pred$close[sample_idx, ],
+  optimal_buy_sell_idx <- find_optimal_buy_sell_idx_dep(
+    pred_prob = neural_model$pred,
     buy_first_payoffs = buy_first_payoffs,
     sell_first_payoffs = sell_first_payoffs,
     both_first = both_first[test_idx][sample_idx],

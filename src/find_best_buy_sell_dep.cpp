@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-IntegerVector find_best_buy_sell_dep(NumericMatrix prob,  NumericMatrix buy_first_payoffs, NumericMatrix sell_first_payoffs, CharacterVector both_first) {
+IntegerVector find_best_buy_sell_dep(NumericMatrix prob, NumericMatrix buy_first_payoffs, NumericMatrix sell_first_payoffs, CharacterVector both_first) {
   
   const int n_data = prob.nrow();
   const int n_buy_sell = buy_first_payoffs.ncol();
@@ -39,20 +39,15 @@ IntegerVector find_best_buy_sell_dep(NumericMatrix prob,  NumericMatrix buy_firs
 
 /*** R
 # set.seed(1)
-# n <- 1000
+# n <- 100
 # both_first <- c("buy", "sell")[sample(c(1, 2), n, replace = TRUE)]
 # prob <- matrix(rnorm(1000*n), ncol = 1000)
 # buy_first_payoffs <- matrix(rnorm(1000 * 750), ncol = 750)
 # sell_first_payoffs <- matrix(rnorm(1000 * 750), ncol = 750)
 # find_best_buy_sell_dep(prob, buy_first_payoffs, sell_first_payoffs, both_first)
-
-### Validation (for element 1)
+# 
+# ### Validation (for element 1)
+# find_best_buy_sell_dep(prob, buy_first_payoffs, buy_first_payoffs, both_first)
 # element_id <- 1
-# prob <- expand_grid(
-#   low_prob = as.vector(low_prob[element_id, ]),
-#   high_prob = as.vector(high_prob[element_id, ]),
-#   close_prob = as.vector(close_prob[element_id, ])
-# ) %>% mutate(prob = low_prob * high_prob*close_prob) %$% prob
-# which.max(map_dbl(as_tibble(payoffs) %>% as.list(), ~sum(.*prob)))
-
+# which.max(map_dbl(as_tibble(buy_first_payoffs) %>% as.list(), ~sum(.*prob[1, ])))
 */
