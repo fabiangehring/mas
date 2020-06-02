@@ -815,7 +815,7 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
 #' @export
 #'
 #' @examples
-#' get_neural_model(data_wide_3_all)
+#' get_neural_model_ind(data_wide_3_all)
 get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical") {
   
   type <- "ind"
@@ -925,7 +925,7 @@ get_neural_model_dep <- function(data_wide, architecture, crossentropy, n_groups
     
     data_short <- shorten_data(data_wide)
     write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
-    write_feather(select(data_wide, train_cols)[test_idx, ], paste0(path, "data_test.feather"))
+    write_feather(data_short[test_idx, ], paste0(path, "data_test.feather"))
     
     # Execute jupyter notebook: py/*.ipynb
   }
@@ -947,7 +947,7 @@ shorten_data <- function(data_wide) {
   train_cols <- setdiff(names(data_wide), c("Ticker", "Date", "Close_0", "Low_0", "High_0"))
   max_window <- max(as.integer(str_extract(train_cols, "[0-9]+$")))
   train_cols <- train_cols[!str_detect(train_cols, paste0(max_window, "$"))]
-  select(data_wide, train_cols)
+  select(data_wide, all_of(train_cols))
 }
 
 #' Prepare data to create histogram
