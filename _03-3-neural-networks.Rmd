@@ -12,13 +12,14 @@ source("R/03-analysis.R")
 
 Rcpp::sourceCpp('src/find_best_buy_sell.cpp')
 
-data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
 data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
 
 set.seed(123456)
-train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
-test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
+train_idx <- sample(x = nrow(data_wide_3_all), size = floor(0.8 * nrow(data_wide_3_all)))
+test_idx <- setdiff(seq_len(nrow(data_wide_3_all)), train_idx)
 both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = TRUE)]
+
+sample_idx <- seq_len(500)
 
 ```
 
@@ -28,7 +29,7 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = 
 #### Ohne Berücksichtigung der Ordinalität
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
-ind_categorical <- get_neural_model(data_wide_3_all, type = "ind", crossentropy = "categorical")
+ind_categorical <- get_neural_model_ind(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical")
 ```
 
 
@@ -37,27 +38,37 @@ plot_neural_sample_histogram(53, ind_categorical)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
-sample_idx <- seq_len(5000)
-ind_categorical_buy_sell <- find_optimal_buy_sell(ind_categorical, data_wide_3_all, both_first, test_idx, sample_idx)
+ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_3_all, both_first, test_idx, sample_idx)
 ```
 
 #### Mit Berücksichtigung der Ordinalität
 
-```{r nn-indipendent-binary, echo=FALSE}
-ind_binary <- get_neural_model(data_wide_3_all, type = "ind", crossentropy = "binary")
-
+```{r nn-dependent-binary, echo=FALSE}
+ind_binary <- get_neural_model_ind(data_wide_3_all, architecture = "2_dense_512", crossentropy = "binary")
 ```
 
-```{r nn-indipendent-binary-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
+
+```{r nn-dependent-binary-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
 plot_neural_sample_histogram(53, ind_binary)
 ```
 
 
-
-
+```{r nn-indipendent-categorical-evaluation}
+ind_binary_buy_sell <- find_optimal_buy_sell_ind(ind_binary, data_wide_3_all, both_first, test_idx, sample_idx)
+```
 
 
 ### Abhängigige Vorhersagewerte
+#### Ohne Berücksichtigung der Ordinalität
+
+```{r nn-indipendent-categorical-training, echo=FALSE}
+ind_categorical <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical", n_groups_per_col = 10)
+```
+
+
+
+#### Mit Berücksichtigung der Ordinalität
+
 
 
 ```{r, keras-individual-categorial, echo=FALSE}

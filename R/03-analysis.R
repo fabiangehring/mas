@@ -740,8 +740,11 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
   groups_prev_test <- rep(0L, length(test_idx))
   
   # init border table
-  # border_names <- map(cols, ~paste0(., c("_lower", "_upper"))) %>% unlist()
-  border_names <- c("lower", "upper")
+  if (length(cols) == 1) {
+    border_names <- c("lower", "upper")
+  } else {
+    border_names <- map(cols, ~paste0(., c("_lower", "_upper"))) %>% unlist()
+  }
   borders <- map(seq_len(length(cols) * 2), ~rep(NA_real_, n_groups_per_col^length(cols))) %>% 
     set_names(border_names) %>% 
     tibble::as_tibble() %>%
@@ -779,6 +782,8 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
       } else {
         group_offset <- curr_group * n_groups_per_col
       }
+      
+      curr_breaks[duplicated(curr_breaks)] <- NA
       groups_curr_train[curr_train_group_idx] <- group_offset + as.integer(cut(curr_train_values, breaks = curr_breaks)) - 1
       curr_test_group_idx <- which(groups_prev_test == curr_group)
       curr_test_values <- data_test[[curr_col]][curr_test_group_idx]
@@ -872,22 +877,20 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
   }
 }
 
-
-get_neural_model_dep <- function(data_wide, architecture, crossentropy = "categorical") {
+get_neural_model_dep <- function(data_wide, architecture, crossentropy, n_groups_per_col) {
   
   type <- "dep"
   path <- paste0("data/models/", type, "/", crossentropy, "/", architecture, "/")
-  n_groups_per_col <- 30
   
   ### model for close
   model_names <- c("pred_prob")
   model_paths <- paste0(path, model_names, ".feather")
   
   nn = NULL
-  nn$discretization <- multivariate_discretization(data_wide, train_idx, test_idx, c("Low_0", "High_0"), n_groups_per_col)
+  nn$discretization <- multivariate_discretization(data_wide, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), n_groups_per_col)
   
   if (all(map_lgl(model_paths, file.exists))) {
-    nn$pred= read_feather(model_paths)
+    nn$pred = read_feather(model_paths)
     
     if (crossentropy == "binary") {
       
@@ -901,23 +904,23 @@ get_neural_model_dep <- function(data_wide, architecture, crossentropy = "catego
         cum_prob - set_names(bind_cols(cum_prob[, head(1 + seq_len(n_col), -1)], tmp = rep(0, n_row)), col_names)
       }
       
-      nn$pred$low <- translate_cum_prob(nn$pred$low)
-      nn$pred$high <- translate_cum_prob(nn$pred$high)
-      nn$pred$close <- translate_cum_prob(nn$pred$close)
+      seq_1 <- seq(0 * n_groups_per_col + 1, by = 1, length.out = n_groups_per_col)
+      cum_prob[, seq_1] <- translate_cum_prob(cum_prob[, seq_1])
+      
+      seq_2 <- seq(0 * n_groups_per_col + 1, by = 1, length.out = n_groups_per_col)
+      cum_prob[, seq_2] <- translate_cum_prob(cum_prob[, seq_2])
+      
+      seq_3 <- seq(0 * n_groups_per_col + 1, by = 1, length.out = n_groups_per_col)
+      cum_prob[, seq_3] <- translate_cum_prob(cum_prob[, seq_3])
+      
+      nn$pred <- cum_prob
     }
-    
-    
     
     return(nn)
   } else {
     stop(paste0("At least one neural network model does not exist. Please execute python code first."))
     
-    labels <- tibble(
-      low = nn$discretization$low %$% groups,
-      high = nn$discretization$high %$% groups, 
-      close = nn$discretization$close %$% groups
-    )
-    
+    labels <- tibble(labels = nn$discretization %$% groups)
     write_feather(labels[train_idx, ], paste0(path, "labels_train.feather"))
     
     data_short <- shorten_data(data_wide)
@@ -927,7 +930,6 @@ get_neural_model_dep <- function(data_wide, architecture, crossentropy = "catego
     # Execute jupyter notebook: py/*.ipynb
   }
 }
-
 
 
 #' Remove columns from wide data that should not be used for model estimation
