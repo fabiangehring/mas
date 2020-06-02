@@ -18,33 +18,37 @@ suppressPackageStartupMessages({
   library(keras)
   library(magrittr)
 })
+
+data_wide_3 <- arrow::read_feather("data/steps/data_wide_3.feather")
+data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
+
+set.seed(123456)
+train_idx <- sample(x = nrow(data_wide_3), size = floor(0.8 * nrow(data_wide_3)))
+test_idx <- setdiff(seq_len(nrow(data_wide_3)), train_idx)
+
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = TRUE)]
+
 ```
 
 
 Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festzulegen. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhälntisse unter 1 kennzeichnen unterlegene Strategien. 
 
-```{r,  echo=TRUE}
-print("some test")
-```
-
-
-egal
 
 ``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
-# 
-# variation_factor_open_file_name <- "data/variation_factor_open.feather"
-# 
-# if (file.exists(variation_factor_open_file_name)) {
-#   bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
-# } else {
-#   
-#   opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
-#     sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
-#   }
-#   
-#   quotes_clean <- arrow::read_feather(paste0("data/quotes_clean.feather"))
-#   # quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
-#   
+
+variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
+
+if (file.exists(variation_factor_open_file_name)) {
+  bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
+} else {
+
+  opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
+    sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
+  }
+
+  data <- data_wide_3_all %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0)
+
+#   quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
 #   data <- quotes_clean %>%
 #     dplyr::group_by(Ticker) %>%
 #     dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
@@ -54,28 +58,27 @@ egal
 #   data <- normalize_quotes(data, "Close_1", names(data))
 #   data <- tidyr::drop_na(data)
 #   rm(quotes_clean)
-#   
-#   set.seed(123456)
-#   both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data), replace = TRUE)]
-#   
-#   scale_fct <- sum(calc_payoff_const_gamma(data, both_first = both_first))
-#   opt_payoff_sym(0.01, data, "Open", both_first, scale_fct)
-#   
-#   bootstraped_variation_factor_open <- bootstrap_variation_factor(
-#     move = seq(0, 0.1, 0.01), 
-#     data = data, 
-#     both_first = both_first, 
-#     R = 100,
-#     mc.cores = 4
-#   )
-#   
-#   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
-#   
-# }
-# 
-# plot_variation_factor(bootstraped_variation_factor_open)
+
+  scale_fct_train <- sum(calc_payoff_const_gamma(data[train_idx, ], both_first = both_first[train_idx]))
+  opt_payoff_sym(0.0375, data[train_idx, ], "Open", both_first[train_idx], scale_fct_train)
+  
+  scale_fct_test <- sum(calc_payoff_const_gamma(data[test_idx, ], both_first = both_first[test_idx]))
+  opt_payoff_sym(0.0375, data[train_idx, ], "Open", both_first[test_idx], scale_fct)
+
+  bootstraped_variation_factor_open <- bootstrap_variation_factor(
+    move = seq(0, 0.1, 0.005),
+    data = data[train_idx, ],
+    both_first = both_first[train_idx],
+    R = 100,
+    mc.cores = 3
+  )
+
+  arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
+}
+
+plot_variation_factor(bootstraped_variation_factor_open)
 
 ```
 
-Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei varierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: 
+Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: 
 

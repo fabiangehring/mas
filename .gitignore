@@ -5,10 +5,7 @@
 .Ruserdata
 
 # Data
-data/*.csv
-data/*.rds
-data/*.feather
-data/*.hdf5
+data
 
 # Temporary bookdown files
 Masterarbeit.log

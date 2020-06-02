@@ -969,6 +969,121 @@ eval_hist_data <- function(borders, prob, group = NULL) {
 }
 
 
+#' Load neural model
+#' If the model is available on disk it will be loaded and returned. If not all necessary files can be found, an error
+#' is thrown. In such situations the input files for the model should be written to disk and the python scripts for
+#' training should be run.
+#'
+#' @param data_wide A data.frame containing the "wide" data history of the model
+#' @param type One of "ind" (indipendent) or "dep" (dependent)
+#' @param crossentropy One of "categorical" (non-ordinal) or "binary" (ordinal)
+#'
+#' @return
+#' A list with elements "discretization" and "pred" for the testing set.
+#' @export
+#'
+#' @examples
+#' get_neural_model(data_wide_3_all)
+get_neural_model <- function(data_wide, type = "ind", crossentropy = "categorical") {
+  
+  path <- paste0("data/models/", type, "/", crossentropy, "/")
+  n_groups_per_col <- 30
+  
+  ### model for close
+  model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
+  model_paths <- paste0(path, model_names, ".feather")
+  
+  nn = NULL
+  nn$discretization <- list(
+    low = multivariate_discretization(data_wide, train_idx, test_idx, "Low_0", n_groups_per_col),
+    high = multivariate_discretization(data_wide, train_idx, test_idx, "High_0", n_groups_per_col),
+    close = multivariate_discretization(data_wide, train_idx, test_idx, "Close_0", n_groups_per_col)
+  )
+  
+  if (all(map_lgl(model_paths, file.exists))) {
+    nn$pred$low = read_feather(model_paths[1])
+    nn$pred$high = read_feather(model_paths[2])
+    nn$pred$close = read_feather(model_paths[3])
+    
+    if (crossentropy == "binary") {
+      
+      translate_cum_prob <- function(cum_prob) {
+        col_names <- names(cum_prob)
+        n_col <- ncol(cum_prob)
+        n_row <- nrow(cum_prob)
+        for (i in tail(seq_len(n_col), -1)) {
+          cum_prob[[i]] <- pmin(cum_prob[[i]], cum_prob[[i-1]])
+        }
+        cum_prob - set_names(bind_cols(cum_prob[, head(1 + seq_len(n_col), -1)], tmp = rep(0, n_row)), col_names)
+      }
+      
+      nn$pred$low <- translate_cum_prob(nn$pred$low)
+      nn$pred$high <- translate_cum_prob(nn$pred$high)
+      nn$pred$close <- translate_cum_prob(nn$pred$close)
+    }
+    
+    
+    
+    return(nn)
+  } else {
+    stop(paste0("At least one neural network model does not exist. Please execute python code first."))
+    
+    labels <- tibble(
+      low = nn$discretization$low %$% groups,
+      high = nn$discretization$high %$% groups, 
+      close = nn$discretization$close %$% groups
+    )
+    
+    write_feather(labels[train_idx, ], paste0(path, "labels_train.feather"))
+    
+    data_short <- shorten_data(data_wide)
+    write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
+    write_feather(select(data_wide, train_cols)[test_idx, ], paste0(path, "data_test.feather"))
+    
+    # Execute jupyter notebook: py/*.ipynb
+  }
+}
+
+
+#' Remove columns from wide data that should not be used for model estimation
+#'
+#' @param data_wide A data.frame containing columns not usable for training or estimaton (i.e Ticker, date, etc.) plus
+#' all data from window lying mostly back and the current data.
+#'
+#' @return
+#' A data.frame only containing data necessary for training and estimation.
+#' @export
+#'
+#' @examples
+#' shorten_data(tibble(Date = 1, Ticker = "ABC", Close_3 = 100, Close_2 = 100, Open_2 = 100, Low_1 = 100, High_0 = 200))
+shorten_data <- function(data_wide) {
+  train_cols <- setdiff(names(data_wide), c("Ticker", "Date", "Close_0", "Low_0", "High_0"))
+  max_window <- max(as.integer(str_extract(train_cols, "[0-9]+$")))
+  train_cols <- train_cols[!str_detect(train_cols, paste0(max_window, "$"))]
+  select(data_wide, train_cols)
+}
+
+#' Prepare data to create histogram
+#'
+#' @param borders A data.frame with columns ending with "lower" and "upper"
+#' @param prob A vector of prbabilities for every bucket in borders.
+#' @param group The name that should be added in columns group of the output
+#'
+#' @return A data.frame with columns "lower", "upper" and "prob". If group is given this is added in a column "group"
+#' @export
+#'
+#' @examples
+eval_hist_data <- function(borders, prob, group = NULL) {
+  stopifnot(nrow(borders) == length(prob))
+  borders %>%
+    mutate(prob = prob) %>%
+    rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>%
+    rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>%
+    select("lower", "upper", "prob") %>%
+    mutate(group = group)
+}
+
+
 #' Plot price histogram
 #' Negative and positive infinity values are replaced by extrapolating the closest bin.
 #' 
@@ -1078,7 +1193,6 @@ plot_neural_sample_histogram <- function(eval_id, neural_model, title = "Histogr
 }
 
 
-
 #' Eval mid prices for discretization borders
 #'
 #' @param discretization A list with elements "low", "high" and "close". Each element is a list itself and has element "borders" with the data.frame with "Bucket", "lower" and "upper" column.
@@ -1102,6 +1216,40 @@ eval_mid_prices <- function(discretization) {
     pivot_wider(names_from = type, values_from = mid)
 }
 
+
+#' Evaluate all crossjoin price scenarios. For not plausible values (order of values not as expected
+#' Low <= Close <= High or one of the values is not finite) the whole row is set to 100. Additionally a column "Close_1" with value 100 is added.
+#' 
+#' @param discretization A data.frame with columns "Bucket", "Low", "High" and "Close".
+#'
+#' @return A data.frame with columns "Low", "High", "Close_0" and "Close_1"
+#' @export 
+#'
+#' @examples
+#' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
+#' eval_price_scenarios(mid_prices)
+eval_price_scenarios <- function(mid_prices) {
+  
+  # find all prices scenarios
+  price_scenarios <- expand_grid(
+    Low = mid_prices$Low,
+    High = mid_prices$High, 
+    Close = mid_prices$Close
+  ) %>%
+    rename(Close_0 = "Close") %>%
+    mutate(Close_1 = 100)
+  
+  implausible_price_scenarios_idx <- which(
+    price_scenarios$Close_0 < price_scenarios$Low | 
+      price_scenarios$Close_0 > price_scenarios$High |
+      !is.finite(price_scenarios$Low) | 
+      !is.finite(price_scenarios$High) | 
+      !is.finite(price_scenarios$Close_0)
+  )
+  plausible_price_scenarios_idx <- setdiff(seq_len(nrow(price_scenarios)), implausible_price_scenarios_idx)
+  price_scenarios[implausible_price_scenarios_idx, ] <- 100
+  price_scenarios
+}
 
 #' Evaluate all crossjoin price scenarios. For not plausible values (order of values not as expected
 #' Low <= Close <= High or one of the values is not finite) the whole row is set to 100. Additionally a column "Close_1" with value 100 is added.
@@ -1226,6 +1374,94 @@ find_optimal_buy_sell_idx <- function(low_pred_prob, high_pred_prob, close_pred_
 }
 
 
+#' Eval buy sell scenarios. Implausible values (Low > High) or one of both not finite, both values of that row 
+#' are set to -Inf (buy) and Inf (sell).
+#'
+#' @param mid_prices A data.frame with at least columns "Low" and "High"
+#'
+#' @return A
+#' @export
+#'
+#' @examples
+#' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
+#' eval_buy_sell_scenarios(mid_prices)
+eval_buy_sell_scenarios <- function(mid_prices) {
+  buy_sell_combinations <- expand_grid(buy = mid_prices$Low, sell = mid_prices$High)
+  implausible_buy_sell_combinations_idx <- which(
+    (buy_sell_combinations$buy > buy_sell_combinations$sell) | !is.finite(buy_sell_combinations$buy) | !is.finite(buy_sell_combinations$sell)
+  )
+  buy_sell_combinations$buy[implausible_buy_sell_combinations_idx] <- -Inf
+  buy_sell_combinations$sell[implausible_buy_sell_combinations_idx] <- Inf
+  buy_sell_combinations
+}
+
+
+
+#' Find optimal buy sell prices for given probability distributions of price scenarios
+#'
+#' @param low_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every low bucket
+#' @param high_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every high bucket
+#' @param close_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every close bucket
+#' @param buy_first_payoffs A data.frame(n_price_scenarios = n_probabilites^3, n_buy_sell_scenarios) with payoffs for every price and bus-sell scenarios if buy is executed first
+#' @param sell_first_payoffs A data.frame(n_price_scenarios = n_probabilites^3, n_buy_sell_scenarios) with payoffs for every price and bus-sell scenarios if sell is executed first
+#' @param both_first A character vector with entries "buy" or "sell" indicating what actions should be performed first
+#' @param mc.cores Integer with the number of cores to use in parallel computations
+#'
+#' @return A integer vector of optimal bus sell scenario for every entry
+#' @export
+#'
+#' @examples
+#' set.seed(1)
+#' low_pred_prob <- as_tibble(t(c(0.1, 0.2, 0.3, 0.4)))
+#' high_pred_prob <- as_tibble(t(c(0.2, 0.3, 0.1, 0.4)))
+#' close_pred_prob <- as_tibble(t(c(0.3, 0.4, 0.2, 0.1)))
+#' buy_first_payoffs <- map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
+#' sell_first_payoffs <-map_dfc(seq_len(10), ~rnorm(ncol(low_pred_prob)^3))
+#' both_first <- "buy"
+#' find_optimal_buy_sell_idx(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, 1)
+find_optimal_buy_sell_idx <- function(low_pred_prob, high_pred_prob, close_pred_prob, buy_first_payoffs, sell_first_payoffs, both_first, mc.cores = getOption("mc.cores", 2L)) {
+  
+  stopifnot(length(unique(c(nrow(low_pred_prob), nrow(high_pred_prob), nrow(close_pred_prob)))) == 1)
+  stopifnot(length(both_first) == nrow(low_pred_prob))
+  
+  find_best_buy_sell_parallel <- function(probs, buy_first_payoffs_mat, sell_first_payoffs_mat) {
+    find_best_buy_sell(
+      low_prob = probs$low_pred_prob_mat,
+      high_prob = probs$high_pred_prob_mat,
+      close_prob = probs$close_pred_prob_mat,
+      buy_first_payoffs = buy_first_payoffs_mat, 
+      sell_first_payoffs = sell_first_payoffs_mat, 
+      both_first = both_first
+    )
+  }
+  
+  chunk2 <- function(x,n) {
+    if (n == 1) return(x)
+    split(x, cut(seq_along(x), min(n, length(x)), labels = FALSE))
+  }
+  
+  low_pred_prob_mat <- as.matrix(low_pred_prob)
+  high_pred_prob_mat <- as.matrix(high_pred_prob)
+  close_pred_prob_mat <- as.matrix(close_pred_prob)
+  
+  split_probs <- map(
+    .x = chunk2(seq_len(nrow(low_pred_prob)), mc.cores), 
+    .f = ~list(
+      low_pred_prob_mat = low_pred_prob_mat[., , drop = FALSE], 
+      high_pred_prob_mat = high_pred_prob_mat[., ,drop = FALSE], 
+      close_pred_prob_mat = close_pred_prob_mat[., ,drop = FALSE]
+    )
+  )
+  pbmclapply(
+    X = split_probs,
+    FUN = find_best_buy_sell_parallel, 
+    buy_first_payoffs_mat = as.matrix(buy_first_payoffs), 
+    sell_first_payoffs_mat = as.matrix(sell_first_payoffs),
+    mc.cores = mc.cores
+  ) %>% unlist(use.names = FALSE)
+}
+
+
 
 #' Predict optimal buy sell prices for test set
 #'
@@ -1243,6 +1479,59 @@ find_optimal_buy_sell_idx <- function(low_pred_prob, high_pred_prob, close_pred_
 #'
 #' @examples
 find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
+  
+  stopifnot(length(unique(c(
+    length(test_idx), 
+    nrow(neural_model$pred$low),
+    nrow(neural_model$pred$high),
+    nrow(neural_model$pred$close)
+  ))) == 1)
+  
+  mid_prices <- eval_mid_prices(neural_model$discretization)
+  price_scenarios <- eval_price_scenarios(mid_prices)
+  buy_sell_scenarios <- eval_buy_sell_scenarios(mid_prices)
+  
+  buy_first_payoffs <- map2_dfc(
+    .x = buy_sell_scenarios$buy, 
+    .y = buy_sell_scenarios$sell, 
+    .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
+  )
+  
+  sell_first_payoffs <- map2_dfc(
+    .x = buy_sell_scenarios$buy, 
+    .y = buy_sell_scenarios$sell, 
+    .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "sell")
+  )
+  
+  optimal_buy_sell_idx <- find_optimal_buy_sell_idx(
+    low_pred_prob = neural_model$pred$low[sample_idx, ],
+    high_pred_prob = neural_model$pred$high[sample_idx, ],
+    close_pred_prob = neural_model$pred$close[sample_idx, ],
+    buy_first_payoffs = buy_first_payoffs,
+    sell_first_payoffs = sell_first_payoffs,
+    both_first = both_first[test_idx][sample_idx],
+    mc.cores = 3
+  )
+  
+  buy_sell_scenarios[optimal_buy_sell_idx, ]
+}
+
+#' Predict optimal buy sell prices for test set
+#'
+#' @param neural_model A neural model object with the elements discretization and pred.
+#' @param data_wide A data.frame with wide data
+#' @param both_first A character vector with entries "buy" or "sell" indication which action should be daone first
+#' @param test_idx A vector of indices for the test set
+#' @param sample_idx A vecor of sub indices of the test set. This is useful if for testing purposes only some entries
+#' should be evaluated
+#' @param mc.cores A integer indicating how many cores should be used during parallel computation
+#'
+#' @return
+#' A data.frame with columns buy and sell representing the optimal buy and sell prices for each entry in the test set.
+#' @export
+#'
+#' @examples
+find_optimal_buy_sell <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
   
   stopifnot(length(unique(c(
     length(test_idx), 
