@@ -217,7 +217,7 @@ data_wide_10 <- quotes_clean %>%
 rev_lags <- rev(seq_len(window))
 data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_lags),  paste0("Low_", rev_lags), paste0("High_", rev_lags), paste0("Close_", rev_lags))
 
-arrow::write_feather(data_wide_10, "data/data_wide_10.feather")
+arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
 # data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
 # data_wide_10_hash <- digest::digest(data_wide_10)
 
