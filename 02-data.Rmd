@@ -198,6 +198,35 @@ Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quot
 
 Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
 
+
+
+```{r, knn-data-preparation, echo=FALSE}
+
+# quotes_clean <- arrow::read_feather(paste0("data/steps/quotes_clean.feather"))
+window <- 10
+data_wide_10 <- quotes_clean %>%
+  dplyr::group_by(Ticker) %>%
+  dplyr::group_modify(~widen(., window = window, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
+  normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date"))) %>%
+  drop_na()
+
+# sort columns nicely
+
+rev_lags <- rev(seq_len(window))
+data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_lags),  paste0("Low_", rev_lags), paste0("High_", rev_lags), paste0("Close_", rev_lags))
+
+arrow::write_feather(data_wide_10, "data/data_wide_10.feather")
+# data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
+# data_wide_10_hash <- digest::digest(data_wide_10)
+
+rm(quotes_clean)
+
+```
+
+
+
 Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits erwähnt - quadratisch auf Preisveränderungen reagiert liegt, lohnt sich an dieser Stelle eine Untersuchung der Daten auf (zu) einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass insbesondere lernende Algorithmen insbesondere diese einzelnen Beobachtungen optimiert. Weniger einflussreiche aber häufiger realsierite Beobachtungen gingen darin unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
 
 Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs über alle für in der Analyse berücksichtigten Datensätze. Hierfür werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei geneu gleichverteiltem Beitrag jedes einzlenen Eintrages zum Payoff würde eine Gerade mit Steiguzng 45° resultieren. Je stärker der einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
