@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-IntegerVector find_best_buy_sell(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix buy_first_payoffs, NumericMatrix sell_first_payoffs, CharacterVector both_first) {
+IntegerVector find_best_buy_sell_ind(NumericMatrix low_prob, NumericMatrix high_prob, NumericMatrix close_prob, NumericMatrix buy_first_payoffs, NumericMatrix sell_first_payoffs, CharacterVector both_first) {
   
   const int n_data = low_prob.nrow();
   const int n_buy_sell = buy_first_payoffs.ncol();

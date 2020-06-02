@@ -44,7 +44,7 @@ ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide
 #### Mit Berücksichtigung der Ordinalität
 
 ```{r nn-dependent-binary, echo=FALSE}
-ind_binary <- get_neural_model_ind(data_wide_3_all, architecture = "2_dense_512", crossentropy = "binary")
+ind_binary <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "binary")
 ```
 
 
@@ -62,9 +62,13 @@ ind_binary_buy_sell <- find_optimal_buy_sell_ind(ind_binary, data_wide_3_all, bo
 #### Ohne Berücksichtigung der Ordinalität
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
-ind_categorical <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical", n_groups_per_col = 10)
+dep_categorical <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical", n_groups_per_col = 10)
 ```
 
+
+```{r nn-indipendent-categorical-evaluation}
+dep_categorical_buy_sell <- find_optimal_buy_sell_dep(dep_categorical, data_wide_3_all, both_first, test_idx, sample_idx)
+```
 
 
 #### Mit Berücksichtigung der Ordinalität
