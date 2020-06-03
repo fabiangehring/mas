@@ -206,7 +206,7 @@ data_wide_10 <- quotes_clean %>%
 
 # sort columns nicely
 
-rev_lags <- rev(seq_len(window))
+rev_lags <- rev(seq_len(window + 1) - 1)
 data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_lags),  paste0("Low_", rev_lags), paste0("High_", rev_lags), paste0("Close_", rev_lags))
 
 arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
@@ -232,27 +232,30 @@ Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der 
 Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs über alle für in der Analyse berücksichtigten Datensätze. Hierfür werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei geneu gleichverteiltem Beitrag jedes einzlenen Eintrages zum Payoff würde eine Gerade mit Steiguzng 45° resultieren. Je stärker der einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
 
 ```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, fig.pos = '!H'}
+# 
+# if (!file.exists("data/data_wide_0_all.feather")) {
+#   window <- 0
+#   data_wide_0_all <- quotes_clean %>%
+#     dplyr::group_by(Ticker) %>%
+#     dplyr::group_modify(~widen(., window = window + 1, cols = c("Close"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+#     dplyr::ungroup() %>%
+#     dplyr::rename(Close_0 = "Close") %>%
+#     normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
+#   
+#   data_wide_0_all <- drop_na(data_wide_0_all)
+#   arrow::write_feather(data_wide_0_all, "data/data_wide_0_all.feather")
+#   data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
+#   # data_wide_0_all_hash <- digest(data_wide_0_all)
+# } else {
+#   data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
+# }
 
-if (!file.exists("data/data_wide_0_all.feather")) {
-  window <- 0
-  data_wide_0_all <- quotes_clean %>%
-    dplyr::group_by(Ticker) %>%
-    dplyr::group_modify(~widen(., window = window + 1, cols = c("Close"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
-    dplyr::ungroup() %>%
-    dplyr::rename(Close_0 = "Close") %>%
-    normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
-  
-  data_wide_0_all <- drop_na(data_wide_0_all)
-  arrow::write_feather(data_wide_0_all, "data/data_wide_0_all.feather")
-  data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
-  # data_wide_0_all_hash <- digest(data_wide_0_all)
-} else {
-  data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
-}
 
 set.seed(123456)
-both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_0_all), replace = TRUE)]
-payoff <- calc_payoff_const_gamma(data_wide_0_all, both_first = both_first)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
+payoff <- data_wide_10 %>%
+  select(Close_1, Low = "Low_0", High = "High_0", Close_0) %>%
+  calc_payoff_const_gamma(both_first = both_first)
 
 n_steps <- 100
 payoff_sorted <- sort(payoff)
@@ -272,4 +275,4 @@ ggplot(tibble(x = x, y = y), aes(x = x, y = y)) +
 ```
 
 
-Im vorliegenden Fall weist die Lorenzkurve eine gutsichtbare Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituatioen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve quasi auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten den erfolgreich war. Die bereinigten Daten zeigen sowohl die gewünschte Variabilität ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.
+Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituatioen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve quasi auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten den erfolgreich war. Die bereinigten Daten zeigen sowohl die gewünschte Variabilität ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.

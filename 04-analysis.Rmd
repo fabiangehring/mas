@@ -1,0 +1,49 @@
+# Analyse
+
+
+```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+  library(purrr)
+  library(pbmcapply)
+  library(tidyr)
+  library(ggplot2)
+  library(data.table)
+  library(dtplyr)
+  library(arrow)
+  library(microbenchmark)
+  library(profvis)
+  library(dqrng)
+  library(keras)
+  library(magrittr)
+  library(gglorenz)
+})
+
+source("R/02-data.R")
+source("R/03-analysis.R")
+
+Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
+
+```
+
+
+Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
+
+- Einfache Optimierungen
+- Klassifikationsverfahren (KNN):
+- Neuronale Netzwerke (RNN, LTSM):
+- Autogressive Modelle (GARCH)
+
+Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht, sondern diese gänzlich zum Tagesschlusskurz durchführt. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Ausage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Grenze Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel \@ref(forschungsfrage) ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.[^Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Exsistenz ist aber bei der Interprätation der Ergebnisse dennoch inneressant, da die Payoffs der gefundenen Strategien diebezüglich als untere Grenzen des Payoffs betrachtet werden können.
+
+```{r child="_04-1-optimization.Rmd", echo=FALSE}
+```
+
+```{r child="_04-2-knn.Rmd", echo=FALSE}
+```
+
+```{r child="_04-3-neural-networks.Rmd", echo=FALSE}
+```
