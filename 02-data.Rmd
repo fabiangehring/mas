@@ -25,7 +25,7 @@ source("R/03-analysis.R")
 
 
 # load stocks_raw
-file_stocks_raw <- here::here(paste0("data/stocks_raw.feather"))
+file_stocks_raw <- here::here(paste0("data/steps/stocks_raw.feather"))
 if (file.exists(file_stocks_raw)) {
   stocks_raw <- arrow::read_feather(file_stocks_raw)
 } else {
