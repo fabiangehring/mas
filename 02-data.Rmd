@@ -181,23 +181,15 @@ if (!file.exists(file_quotes_clean)) {
 
 if (!file.exists(file_quotes_clean)) {
   quotes_clean <- quotes_clean %>% select(-Adjusted)
-  write_feather(quotes_clean, paste0("data/quotes_clean.feather"))
-  quotes_clean <- read_feather(paste0("data/quotes_clean.feather"))
+  write_feather(quotes_clean, paste0("data/steps/quotes_clean.feather"))
+  quotes_clean <- read_feather(paste0("data/steps/quotes_clean.feather"))
   quotes_clean_hash <- digest::digest(quotes_clean)
 } else {
-  quotes_clean <- read_feather(paste0("data/quotes_clean.feather"))
+  quotes_clean <- read_feather(paste0("data/steps/quotes_clean.feather"))
 }
 ```
 1. **Ausschluss von Extremwerten**  
 Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht nur linear, sondern gar quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf einzelne extreme Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen innerhalb eines typischen Börsentages machen zu können. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereiches der Analyse. Aus diesem Grund werden nach obigen Breinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einer täglich auf den Eröffnungspreis indexierten Wert.
-
-Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r sum(rowSums(is.na(quotes_clean)) != 0)`. Für die Analyse bleiben somit `r sum(rowSums(is.na(quotes_clean)) == 0)` verwendbare Einträge.
-
-
-### Normalisierung
-
-Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
-
 
 
 ```{r, knn-data-preparation, echo=FALSE}
@@ -222,9 +214,17 @@ arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
 # data_wide_10_hash <- digest::digest(data_wide_10)
 
 rm(quotes_clean)
-
 ```
+1. **Verfügbarkeit durchgängiger Historie**
+Zur Prognose des zukünftigen Preisverlaufs könnte der direkt vorangegange Verlauf von Bedeutung sein. Ein durchgehend verfügbarer Preisverlauf ist im Datensatz allerdings nicht gewährleistet. Es werden daher alle Datensätze auschgeschlossen, für welche keine durchgängige Historie der vorangegangenen 10 Börsentage verfügbar ist. Zu beachten gilt es hierbei, dass nicht alle nachfolgenden Analyseansätze den ganzen Umfang dieser Historie tatsächlich auch verwenden. Um die Vergleichbarkeit der Analyseansätze zu gewährleisten, gilt dieser Ausschluss allerdings generell.
 
+
+Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r nrow(quotes_raw) - nrows(data_wide_10)`. Für die Analyse bleiben somit `r nrows(data_wide_10)` verwendbare Einträge.
+
+
+### Normalisierung
+
+Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
 
 
 Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits erwähnt - quadratisch auf Preisveränderungen reagiert liegt, lohnt sich an dieser Stelle eine Untersuchung der Daten auf (zu) einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass insbesondere lernende Algorithmen insbesondere diese einzelnen Beobachtungen optimiert. Weniger einflussreiche aber häufiger realsierite Beobachtungen gingen darin unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
