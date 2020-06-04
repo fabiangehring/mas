@@ -1,49 +1,61 @@
-# Analyse
+## Cloud Infrastruktur
+Gewisse der in dieser Arbeit gemachte Analysen sind sehr rechen- und Speicherintensiv. Sie stellen damit erhöhte Anforderungen an die zur Berechnung eingesetzte Infrastruktur. Für die vorliegenden Analysen stellte sich folgender Setup mit 3 unterschiedlichen virtuellen Maschinentypen (VMs) als geeignet heraus:
+
+-	Datenaufbreitung: Eine Maschine mit 4 Cores und mindestens 32 GB Memory zum Prototyping und die Datenaufbereitung
+-	Multi-CPU: Eine Maschine mit mindestens 16 CPUs zur Berechnung paralleliserbarer Aufgaben (z.B. KNN) auf grösseren Datensätzen
+-	GPU: Eine Maschine mit mindestens 16 GB RAM, 4 CPUs und eine für kleinere Machine Learning Probleme geigneten GPU (bsp. NVIDIA Tesla K80 oder NVIDIA Tesla M60).
+
+Im Rahmen dieser Arbeit wurden deshalb 3 der bekanntesten Cloud-Anbieter ausprobiert. Aus Sicht des Autors unterscheiden sich diese in ihrer Handhabung stärker als dies urspünglich vermutet hätte werden können. Der Aufbau eines geeigneten Infrastruktursetups stellte sich trotz auf den ersten Blick vorgefertigter Varianten als zeitintensiv heraus. Aus Sicht des Autors lohnt sich der Einsatz dieser Zeit allerdings bereits zu Beginn des Projektes. Die eingesetzte Zeit lässt sich später durch Zeiteinsparnisse aufgrund geeigneter Infrastruktur später wieder aufholen. Hinzu kommt, dass eine einmal gefundene und funktionierende Einstellung auch für spätere Projekte wieder einsetzt werden kann.
+
+Aus diesem Grund seien die gemachten Erkenntnisse an dieser Stelle festgehalten. Allen beschriebenen Lösungen gemein ist, dass sie ein für Studenten freies Start-Kontingent anbieten. Die Ausführungen beziehen sich auf diese. Ebenfalls allen Anbietern gemein ist, dass sich virtuelle Computer mit wenigen Klicks und dem gewünschten Betriebssystem erstellen lassen. Alle 3 getesteten Dienste bieten ferner neben normalen Instanzen auch sogenannte "Spot" Instanzen an. Diese unterscheiden sich von normalen VMs insofern, als dass es sich dabei um Einmalinstanzen handeln, welche nicht beendet und wieder hochgefahren werden können. Einmal beendet erlöschen Spot-Instanzen. Bei grosser Nachfrage nach Rechenkapazität können Spot Instanzen vom Anbieter zudem ohne Vorwarnung heruntergefahren werden. Sie eignen sich daher nur für nicht Unterbrechungsanfällige Prozesse. Im Gegensatz sind sie deutlich günstiger als reguläre Instanzen.
+
+### Microsoft Azure
+Die Cloud-Computing Dienste von Microsoft nennen sich Azure. Die Plattform bietet verschiedene vordefinierter Maschinentypen, welche sich im Wesentlichen in der Anzahl CPU, RAM und persistentem Speicher unterscheiden. Einige Maschinen bieten zudem Zugriff auf eine oder mehrere GPU. 
+
+Beim Test zeigte sich hingegen, dass Account für Bildungseinrichtungen oft keine Maschinen verfügbar waren. Die Verfügbarkeit unterscheidet sich zudem je nach Tageszeit. Während am frühen Morgen Mitteleuropäischer Zeit manchmal Maschinen verfügbar waren, war dies weder am Nachmittag noch am Abend der Fall. Die grösste Maschine, welche beim Test über mehrere Tage hinweg erstellt werden konnte war eine NC6 Instanz mit 6 CPUs 56 GB Memory und einer NVIDIA Tesla K80 GPU. Insbesondere für CPU-lastige Analysen stellte sich dieser Setup als zu wenig gut heraus. 
+
+Wie bei den anderen Anbietern auch unterscheidet sich die Verfügbarkeit der VMs je nach Region. Bei Azure kommt allerdings erschwerend hinzu, dass alle Regionen einzeln durchprobiert werden müssen. Spot Instanzen stehen zudem nur für gewisse Maschinentypen zur Verfügung. Auch für die oben erwähnte Instanz stand beim Test die Spot-Option nicht zur Verfügung.
+
+Spot Instanzen lassen sich vor allem dann gut nutzen, wenn Systemabbilder einfach erstellt und davon später wieder neue Instanzen erzeugt werden können. Azure unterscheidet sich hierbei von seinen Konkurrenten, als dass dies nicht einfach auf Knopfdruck erfolgt. Viel mehr muss manuell eine "Generalisierung" der Instanz vorgenommen werden (Vgl. https://docs.microsoft.com/en-us/azure/virtual-machines/windows/capture-image-resource). 
+
+Die Beurteilung der Qualität der Dokumentation ist subjektiv. Aus Sicht des Autors ist diejenige von Azure weniger ausführlich und selbsterklärend als diejenige der anderen getesteten Kandidaten. 
+
+### Google Cloud
+Die Cloud-Computing Dienste von Google nennen sich "Google Cloud". Neu registrierende Kunden profitieren im Vergleich mit den anderen Anbietern vom höchsten kostenlosen Startguthaben (Azure mit Studenten Account: $100, AWS ($30) mit Github Starter Package ($70): $100, Google Cloud: $300).
+
+Die Management Oberfläche wirkt im Vergleich zu den Konkurrenten besser aufgeräumt. Die Dokumentation ist gut. Als einzige der getesteten Anbieter konnten die VMs zudem völlig individuell gestaltet werden (Anzahl CPU, Memory, Anzahl und Art GPU). 
+
+Als Nachteil entpuppte sich im Test allerdings das komplexe Limitensystem. Fast alle Komponenten unterliegen verschiedenen Limiten. Um eine GPU hinzufügen zu können müssen die beispielsweise gelichzeitig die Limiten für "GPU global", "GPU der gewählten Region" und "GPU des jeweiligen Typs" (Bsp. NVIDIA Tesla K80) erfüllt sein. 
+
+Während die Standardeinstellungen Instanzen von bis zu 24 CPUs erlauben, sind noch mehr Einheiten nicht möglich. Die Standardeinstellung für GPUs beträgt gar 0. Eine Erhöhung der Quote kann im Management Portal beantragt werden. Im Test zeigte sich jedoch, dass sowohl Anträge zu Erhöhung der CPU wie auch GPU Limiten innerhalb weniger Minuten mit dem Verweis auf fehlende Zahlungshistorie automatisch abgelehnt wurden. Die Erstellung einer Instanz mit GPU Support gelang so auch über mehrere Tage hinweg nicht. Schriftliche Kontaktaufnahmen mit Bitte und Begründung der GPU Limite auf 1 wurden wiederholt mit Standard-Antworten abgelehnt. 
+Auch nach telefonischer Kontaktaufnahme mit dem Support gelang es nicht, die Quote zu erhöhen. Das Problem stiess beim Mitarbeitenden von Google zwar auf Verständnis, er selbst konnte die Quote allerdings ebenfalls nicht erhöhen. 
+
+### Amazon Web Services (AWS)
+Das Cloud Computing Angebot von Amazon nennt sich "Elastic Compute Cloud" (Amazon EC2). Als einziger der getesteten Anbieter fällt dieser Anbieter nicht durch nicht verfügbare Maschinentypen oder unzureichenden Limiten auf. Fernen können auch die meisten Maschinen (bis 32 CPU) als Spot Instanzen ausgeführt werden. Da die Imageerstellung zudem sehr einfach auf Knopfdruck erfolgt, können diese sehr kostengünstig verwendet und wiederhergestellt werden. AWS fällt zudem durch eine sehr gute ausführliche Dokumentation auf. So ist beispielsweise die Erstellung eines von der Instanz unabhängigen persistenten Speichers (in AWS-Lingo: EBS) sowie der Prozess zum Mounten ebendieses Schritt-für-Schritt erklärt (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html). Damit kann auch bei der Verwendung von Spot Instanzen dauerhaft gespeichert werden. Ferner sind auch die Preise im Vergleich zur Konkurrenz sehr transparent und wettbewerbsfähig.
+
+Da auch nach längeren Versuchen nur mit AWS der oben beschriebene Ziel-Infrastruktur einer Basis, Multi-CPU und einer einfachen GPU-Instanz erstellt werden konnte, wurde für die vorliegende Arbeit dieser Anbieter als Cloud Computing Lösung verwendet.
+
+## Verwendete Tools
+Für die Analysen der vorliegenden Arbeit hat sich der Einsatz von R als auch Python bewährt. Es zeigte sich, dass beide Tools / Sprachen ihre Stärken in verschiedenen Bereichen haben. Grundsätzlich lässt sich dies so zusammenfassen, dass Datenaufbereitende Schritte in R durchgeführt wurden. Für das Training der neuronalen Netze stellten sich die entsprechenden Bibliotheken von Python als geeigneter heraus.
+
+### R / RStudio Server
+Die Datenaufbereitung und -bereinigung wie die Analysen ohne neuronale Netze wurden in der Sprache R und der Entwicklungsumgebung RStudio Server durchgeführt. Ersteres kann auf eine sehr breite Community mit entsprechend gut dokumentierten Beispielen in diversen Foren zurückgreifen. Ferner hat sich in den letzten Jahren unter dem Namen "tidyverse" eine Sammlung gut unterhaltener und dokumentierter Packages zum defacto-Standard etabliert. Dieses wird von Mitarbeitern der Firma RStudio unterhalten und steht wie für R üblich Open Source zur freien Benützung zur Verfügung. Gleiche Firma ist es auch, welche unter dem Namen RStudio Server eine hostbare Entwicklungsumgebung (IDE) anbietet. Diese wird in einer frei verfügbaren und einer kostenpflichtigen Variante angeboten. Für die Arbeit wurde die freie Version verwendet und es kam nie der Bedarf zum Upgrade auf die kostenpflichtige Version auf. Verschiedene Builds der gängigsten Linux Distributionen stehen auf der Unternehmenswebseite zur Verfügung (Vgl. https://rstudio.com/products/rstudio/download-server/). Der Zugriff auf die IDE erfolgt über den Browser. Das Look and Feel unterscheidet sich nicht von einer ebenfalls frei verfügbaren lokalen Installation. Auf diese Weise lässt sich Code direkt auf den erstellten Cloud Instanzen entwickeln, ohne auf den Komfort von Entwicklungsumgebungen unterstützen zu müssen.
+
+Schwächen bei der Verwendung von R zeigt sich in der inherenten Single-Threadigkeit des Tools. Die Multithreadigkeit kann mit Hilfe zusätzlicher Packages (z.B. parallel, pbapply) erreicht werden und ist insbesondere beim Einsatz auf der oben beschriebenen Multi-CPU Instanz von Relevanz. Zwar stehen mit Keras und Tensorflow auch entsprechende Packages für Deep Learning Ansätze zur Verfügung. Deren Verwendung im Zusammenspiel mit RStudio Server stellte sich im vorliegenden Anwendungsfall allerdings als sehr instabil heraus, was sich in mehrerer Abstürzen der Entwicklungsumgebung manifestierte. 
+Da diese Packages selber lediglich Wrapper auf die gleichnamigen Python Libraries darstellen, stellte sich deren Verwendung direkt in Python als die bevorzugte Variante heraus. 
+
+Zum Austausch zwischen den beiden Sprachen stellte sich dabei der Weg über zwischengespeicherte "Feather" Files als am geeignetsten heraus. Es handelt sich dabei um ein Format, das beide Sprachen auch für grössere Datenmengen sehr performant laden und speichern können. Tatsächlich kann in R / RStudio mit Hilfe des Packages "reticulate" auch Python Code direkt ausgeführt werden, resp. Objekte beider Sprachen automatisch ausgetauscht werden. Auf diesen Austausch wurde aus Einfachheitsüberlegungen allerdings verzichtet.
+
+Gewöhnungsbedürftig ist hingegen die matrix- und verktorbasierte progammierweise in R. Zwar sind gleiche Manipulation auch mit klassischer "loop-Ansätzen" möglich. Diese gehen allerdings mit erheblicher Performanceeinbussen speziell bei Datengrössen wie sie diese Arbeit verwenden einher. Performancekritische Funktionen können aber mit Hilfe des Packages "Rcpp" in C++ geschrieben und einfach mit R verknüpft werden. Dies wurde im Laufe der Arbeit für wenige kritische Funktionen verwendet. Insbesondere bei stark parallelisierbaren Aufgaben, nicht zuletzt auch, um grössere Datenmengen Memory-effizient ausführen zu können.
+
+### Python / (Ana)conda
+Für Python stand keine auf dem Server ausführbare Entwicklungsumgebung zur Verfügung. Da sich der Einsatz von Python im Rahmen des Projektes auf das Training neuronaler Netze beschränkte, reichte das Ausführen eine Jupyter Notebook Servers gut aus. Auf das Notebook lässt sich bei diesem Setup wiederum einfach via Webbrowser zugreifen.
+
+Ebenfalls als wertvoll zeigte sich die Verwendung von kapselbaren conda Environments. Diese erlauben projektspezifische Library Installationen sowohl für Python wie auch R-Bibliotheken. 
+Es zeigt sich, dass das erwähnte Problem der Instabilität von Keras und Tensorflow bei direkter Verwendung der Python Libraries nicht auftauchte. Erwähnenswert ist hier aber, dass für die Verwendung der GPU Version auf dem System sowohl passende Grafiktreiber sowie die zur Tensorflow Version passende Version von CUDA installiert sein muss. Erwähnenswert ist dies inbesondere daher, da es auch bei aktuellster Tensorflow Bibliothek nicht die aktuellste CUDA Version sein durfte. Über die zu verwendenden Versionen gibt die Tensorflow Website Auskunft (https://www.tensorflow.org/install/gpu).
 
 
-```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(stringr)
-  library(purrr)
-  library(pbmcapply)
-  library(tidyr)
-  library(ggplot2)
-  library(data.table)
-  library(dtplyr)
-  library(arrow)
-  library(microbenchmark)
-  library(profvis)
-  library(dqrng)
-  library(keras)
-  library(magrittr)
-  library(gglorenz)
-})
-
-source("R/02-data.R")
-source("R/03-analysis.R")
-
-Rcpp::sourceCpp('src/bootstrap_nn_idx.cpp')
-Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
-Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
-
-```
 
 
-Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
 
-- Einfache Optimierungen
-- Klassifikationsverfahren (KNN):
-- Neuronale Netzwerke (RNN, LTSM):
-- Autogressive Modelle (GARCH)
 
-Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht, sondern diese gänzlich zum Tagesschlusskurz durchführt. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Ausage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Grenze Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel \@ref(forschungsfrage) ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.[^Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Exsistenz ist aber bei der Interprätation der Ergebnisse dennoch inneressant, da die Payoffs der gefundenen Strategien diebezüglich als untere Grenzen des Payoffs betrachtet werden können.
-
-```{r child="_03-1-optimization.Rmd", echo=FALSE}
-```
-
-```{r child="_03-2-knn.Rmd", echo=FALSE}
-```
-
-```{r child="_03-3-neural-networks.Rmd", echo=FALSE}
-```
