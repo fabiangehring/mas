@@ -1,6 +1,5 @@
 # Analyse
 
-
 ```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
 suppressPackageStartupMessages({
   library(dplyr)
@@ -17,7 +16,6 @@ suppressPackageStartupMessages({
   library(dqrng)
   library(keras)
   library(magrittr)
-  library(gglorenz)
 })
 
 source("R/02-data.R")
