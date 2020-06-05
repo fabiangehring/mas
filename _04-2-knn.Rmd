@@ -1,21 +1,57 @@
 ## Klassifikationsverfahren
 
 Some Class text
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(RANN)
+  library(RANN.L1)
+  library(digest)
+  library(pbmcapply)
+})
+```
 
 
+```{r, knn-calculation, echo=FALSE}
 
-```{r, knn-calculation-classic, echo=FALSE}
+data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
+data_knn_3 <- select(data_wide_10, c("Date", levels(interaction(c("Open_", "Low_", "High_", "Close_"), 1:3, sep="")), "Open_0")) %>%
+  arrange(Date)
 
-data_wide_3 <- arrow::read_feather("data/data_wide_3.feather")
+nn_3_eucl_path <- c("data/knn/nn_3_eucl_idx.feather", "data/knn/nn_3_eucl_dists.feather")
+if (!all(map_lgl(nn_3_eucl_path, ~file.exists(.)))) {
+  
+  nn_3_eucl <- find_nn(data = data_knn_3, distance = "euclidean", k = 50, mc.cores = 3)
+  write_feather(nn_3_eucl$idx, nn_3_eucl_path[1])
+  write_feather(nn_3_eucl$dists, nn_3_eucl_path[2])
+  
+  nn_3_eucl$idx <- read_feather(nn_3_eucl_path[1])
+  nn_3_eucl_idx_hash <- digest(nn_3_eucl$idx)
+  
+  nn_3_eucl$dists <- read_feather(nn_3_eucl_path[2])
+  nn_3_eucl_dists_hash <- digest(nn_3_eucl$dists)
 
-knn_eucl_chunkwise <- find_nn_chunkwise(
-  data = arrange(data_wide_3, Date, Ticker),
-  distance = "euclidean",
-  k = 75,
-  n_chunks = 200,
-  mc.cores = 4
-)
+} else {
+  nn_3_eucl_idx <- read_feather(nn_3_eucl_path[1])
+  nn_3_eucl_dists <- read_feather(nn_3_eucl_path[2])
+}
 
-saveRDS(knn_eucl_chunkwise, "data/knn_eucl_chunkwise.rds")
+nn_3_manh_path <- c("data/knn/nn_3_manh_idx.feather", "data/knn/nn_3_manh_dists.feather")
+if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
+  
+  nn_3_manh <- find_nn(data = data_knn_3, distance = "manhattan", k = 50, mc.cores = 3)
+  write_feather(nn_3_manh$idx, nn_3_manh_path[1])
+  write_feather(nn_3_manh$dists, nn_3_manh_path[2])
+  
+  nn_3_manh$idx <- read_feather(nn_3_manh_path[1])
+  nn_3_manh_idx_hash <- digest(nn_3_manh$idx)
+  
+  nn_3_manh$dists <- read_feather(nn_3_manh_path[2])
+  nn_3_manh_dists_hash <- digest(nn_3_manh$dists)
+
+} else {
+  nn_3_manh_idx <- read_feather(nn_3_manh_path[1])
+  nn_3_manh_dists <- read_feather(nn_3_manh_path[2])
+}
 
 ```

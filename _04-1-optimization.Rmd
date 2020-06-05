@@ -22,7 +22,6 @@ suppressPackageStartupMessages({
 source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 
-
 data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 
 set.seed(123456)
@@ -49,31 +48,15 @@ if (file.exists(variation_factor_open_file_name)) {
     sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
   }
 
-  data_variation_factor_3 <- data_wide_10 %>% 
-    select(c(levels(interaction(c("Open_", "Low_", "High_", "Close_"), 1:3,sep=""))), "Open_0")
+  data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
 
-#   quotes_clean <- arrow::read_feather(paste0("archive/data_before_indexing_on_adjusted/quotes_clean.feather"))
-#   data <- quotes_clean %>%
-#     dplyr::group_by(Ticker) %>%
-#     dplyr::group_modify(~widen(., window = 1, cols = "Close", keep = c("Close", "Open", "Low", "High"))) %>%
-#     ungroup() %>%
-#     rename(Close_0 = "Close") %>%
-#     select(-Ticker)
-#   data <- normalize_quotes(data, "Close_1", names(data))
-#   data <- tidyr::drop_na(data)
-#   rm(quotes_clean)
-
-  scale_fct_train <- sum(calc_payoff_const_gamma(data_variation_factor_3[train_idx, ], both_first = both_first[train_idx]))
-  opt_payoff_sym(0.0375, data_variation_factor_3[train_idx, ], "Open", both_first[train_idx], scale_fct_train)
-  
-  scale_fct_test <- sum(calc_payoff_const_gamma(data[test_idx, ], both_first = both_first[test_idx]))
-  opt_payoff_sym(0.0375, data[train_idx, ], "Open", both_first[test_idx], scale_fct)
-
+  scale_fct_train <- sum(calc_payoff_const_gamma(data_variation[train_idx, ], both_first = both_first[train_idx]))
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
-    move = seq(0, 0.1, 0.001),
-    data = data[train_idx, ],
+    col = "Open",
+    move = seq(0.1, 0.11, 0.01),
+    data = data_variation[train_idx, ],
     both_first = both_first[train_idx],
-    R = 100,
+    R = 6,
     mc.cores = 3
   )
 

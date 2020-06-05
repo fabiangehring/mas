@@ -194,8 +194,8 @@ Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von d
 
 ```{r, knn-data-preparation, echo=FALSE}
 
-# quotes_clean <- arrow::read_feather(paste0("data/steps/quotes_clean.feather"))
-window <- 10
+if (!file.exists("data/steps/quotes_clean.feather")) {
+  window <- 10
 data_wide_10 <- quotes_clean %>%
   dplyr::group_by(Ticker) %>%
   dplyr::group_modify(~widen(., window = window, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
@@ -212,6 +212,10 @@ data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_la
 arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
 # data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
 # data_wide_10_hash <- digest::digest(data_wide_10)
+} else {
+# data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
+}
+
 
 rm(quotes_clean)
 ```

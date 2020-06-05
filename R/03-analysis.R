@@ -323,167 +323,236 @@ split_data_query <- function(curr_date, all_dates, data_wide) {
 #' 
 
 
-# output is sorted in arrange(data, Date, Ticker)
-#' Find nearest neighbors chunkwise. Invalid indices (because they point to a later point in time) are replaced with NA. Additionally the output matrices are
-#' organized such that NA values are at the very right.
+#' # output is sorted in arrange(data, Date, Ticker)
+#' #' Find nearest neighbors chunkwise. Invalid indices (because they point to a later point in time) are replaced with NA. Additionally the output matrices are
+#' #' organized such that NA values are at the very right.
+#' #'
+#' #' @param data A data.frame with coluns Date and Ticker and other numeric columns that should be compared. Data.frame must be sorted for "Date" and "Ticker", 
+#' #' otherwise an error will be thrown.
+#' #' @param distance One of c("euclidean", "manhattan"
+#' #' @param k The number of nearest neigbours to find. Notice that these are not guaranteed since invalid indices (since pointing to late pint in time) are
+#' #' replaced by NA.
+#' #' @param n_chunks Number of chunks to split the data into.  
+#' #' @param mc.cores The number of cores for parallel execution
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' #' data <- data.frame(
+#' #'   Date = as.Date(c("2001-01-01", "2001-01-02", "2001-01-02")), 
+#' #'   Ticker = c("A", "A", "A"), 
+#' #'   value = c(1, 3, 1.2)
+#' #' )
+#' #' unkwise(data = data, n_chunks = 1, k = 3)
+#' find_nn_chunkwise <- function(data, distance = "euclidean", k = 75, n_chunks = 500, mc.cores = parallel::detectCores()) {
+#'   
+#'   # check if data is ordered correctly
+#'   if (!all(order(data$Date, data$Ticker) == seq_len(nrow(data)))) stop("data must be sorted for Date and Ticker")
+#'   stopifnot(all(order(data$Date, data$Ticker) == seq_len(nrow(data))))
+#'   
+#'   counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
+#'   
+#'   breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
+#'   split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
+#'   
+#'   # check if all chunk sizes >= k
+#'   chunk_sizes <- diff(map_int(split_dates, ~sum(filter(counts, Date <= .)$cnt)))
+#'   if (any(chunk_sizes < k)) stop("chunk size smaller than k, decrease number of chunks")
+#'   
+#'   
+#'   rann_fct <- if (distance == "euclidean") {RANN::nn2} else if (distance == "manhattan") {RANN.L1::nn2} else stop("distance not supported")
+#'   
+#'   knn_list <- pbmcapply::pbmclapply(rev(seq_along(split_dates)), function(i) {
+#'     prev_split_Date <- ifelse(i > 1, split_dates[[i - 1]], -Inf)
+#'     curr_split_Date <- split_dates[[i]]
+#'     curr_data <- as.matrix(select(filter(data, Date <= curr_split_Date), -Ticker, -Date))
+#'     curr_query <- as.matrix(select(filter(data, Date <= curr_split_Date & Date > prev_split_Date) , -Ticker, -Date))
+#'     rann_fct(curr_data, curr_query, k = k)
+#'   },  mc.cores =  mc.cores)
+#'   
+#'   knn <- purrr::transpose(knn_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
+#'   
+#'   bad_idx <- knn$nn.idx > rep(head(c(0, counts$cum_sum), -1), counts$cnt)
+#'   knn$nn.idx[bad_idx] <- NA
+#'   knn$nn.idx <- drop_na_nn_idx(knn$nn.idx, k)
+#'   
+#'   knn$nn.dists[bad_idx] <- NA
+#'   knn$nn.dists <- drop_na_nn_dists(knn$nn.dists, k)
+#'   
+#'   knn
+#' }
+#' 
+#' 
+#' 
+#' #' Find quote histories in the past that resembles the current the most
+#' #'
+#' #' @param data_wide A data.frame with all columns that need to be used to find the nearest neighbors
+#' #' @param dates The dates for each row of data_wide
+#' #' @param k The number of closest neighbors that should be looked for
+#' #' @param norm The distance measure to use, of "euclidean" or "manhattan".
+#' #' @param mc.cores The number of cores to use for the calculation. 
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' #' dates <- as.Date(c("2020-01-03", "2020-01-02", "2020-01-02"))
+#' #' data_wide <- tibble(
+#' #'   Open_2 = c(93, 103, 104), 
+#' #'   Open_1 = c(99, NA, 100), 
+#' #'   Open_0 = c(103, 98, 100), 
+#' #'   Close_2 = c(102, 105, 98), 
+#' #'   Close_1 = c(102, 103, 101), 
+#' #'   Close_0 = c(98, 99, 103)
+#' #' )
+#' #' find_nn(data_wide, dates)
+#' find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = parallel::detectCores() - 1) {
+#'   
+#'   n <- nrow(data_wide)
+#'   
+#'   # order dates such that indizes are strictly increasing
+#'   date_order <- order(dates)
+#'   dates_ordered <- dates[date_order]
+#'   data_wide_ordered <- data_wide[date_order, ]
+#'   rm(data_wide)
+#'   
+#'   
+#'   #  choose correct nearest neighbor search distance
+#'   if (norm == "euclidean") {
+#'     nn_fct <- RANN::nn2
+#'   } else if (norm == "manhattan") {
+#'     nn_fct <- RANN.L1::nn2
+#'   } else {
+#'     stop("Unexpected value for function argument norm.")
+#'   }
+#'   
+#'   create_dummy_return <- function(width, height) {
+#'     out <- list()
+#'     tmp <- matrix(rep(NA, width * height), ncol = width)
+#'     out$nn.idx <- tmp
+#'     out$nn.dists <- tmp
+#'     out
+#'   }
+#'   
+#'   na_row_bool <- rowSums(is.na(data_wide_ordered)) > 0
+#'   data_wide_filtered <- data_wide_ordered[!na_row_bool, ]
+#'   rm(data_wide_ordered)
+#'   
+#'   dates_filtered <- dates_ordered[!na_row_bool]
+#'   rm(dates_ordered)
+#'   
+#'   unique_dates <- sort(unique(dates_filtered))
+#'   knn_output <- pbmcapply::pbmclapply(seq_along(unique_dates), function(i) {
+#'     curr_date <- unique_dates[i]
+#'     data_query <- split_data_query(curr_date, dates_filtered, data_wide_filtered)
+#'     rm(data_wide_filtered)
+#'     
+#'     if (i == 1) {
+#'       out <- create_dummy_return(k, nrow(data_query$query))
+#'       return(out)
+#'     }
+#'     
+#'     out <- nn_fct(data_query$data_wide, query = data_query$query, min(k, nrow(data_query$data_wide)), treetype = "kd")
+#'     
+#'     if (nrow(data_query$data_wide) < k) {
+#'       tmp <- create_dummy_return(k, nrow(data_query$query))
+#'       tmp$nn.idx[, seq_len(nrow(data_query$data_wide))] <- out[["nn.idx"]]
+#'       tmp$nn.dists[, seq_len(nrow(data_query$data_wide))] <- out[["nn.dists"]]
+#'       out <- tmp
+#'     }
+#'     rm(data_query)
+#'     return(out)
+#'   }, mc.cores = mc.cores)
+#'   
+#'   nn <- list()
+#'   
+#'   # make sure also excluded rows are in the result (as NA rows)
+#'   nn[["nn.idx"]] <- matrix(rep(NA_integer_, k * n), ncol = k)
+#'   nn[["nn.idx"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.idx"]]) %>% do.call(rbind, .)
+#'   
+#'   # take into account in indices that there were excluded rows
+#'   nn[["nn.idx"]] <- matrix(seq_len(n)[!na_row_bool][nn[["nn.idx"]]], ncol = k)
+#'   
+#'   nn[["nn.dists"]] <- matrix(rep(NA_real_, k * n), ncol = k)
+#'   nn[["nn.dists"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.dists"]]) %>% do.call(rbind, .)
+#'   
+#'   # order result in the same way as inputed data
+#'   nn[["nn.idx"]] <- nn[["nn.idx"]][order(date_order), ]
+#'   nn[["nn.idx"]] <- matrix(date_order[nn[["nn.idx"]]], ncol = k)
+#'   
+#'   nn[["nn.dists"]] <- nn[["nn.dists"]][order(date_order), ]
+#'   
+#'   nn
+#' }
+
+
+
+
+#' Find nearest neighbors in the past
 #'
-#' @param data A data.frame with coluns Date and Ticker and other numeric columns that should be compared. Data.frame must be sorted for "Date" and "Ticker", 
-#' otherwise an error will be thrown.
-#' @param distance One of c("euclidean", "manhattan"
-#' @param k The number of nearest neigbours to find. Notice that these are not guaranteed since invalid indices (since pointing to late pint in time) are
-#' replaced by NA.
-#' @param n_chunks Number of chunks to split the data into.  
-#' @param mc.cores The number of cores for parallel execution
+#' @param data A data. frame with numeric columns used for comparison and column "Date"
+#' @param distance One of "euclidean" and "mahnattan"
+#' @param k The number of neighbors to look for
+#' @param mc.cores The number of cores to use for parallel computation
 #'
 #' @return
+#' A list of RANN outputs. One element for each date. 
 #' @export
 #'
 #' @examples
-#' data <- data.frame(
-#'   Date = as.Date(c("2001-01-01", "2001-01-02", "2001-01-02")), 
-#'   Ticker = c("A", "A", "A"), 
-#'   value = c(1, 3, 1.2)
+#' 
+#' data <- tibble(Date = as.Date(c("2020-01-03", "2020-01-02", "2020-01-03", "2020-01-01")), Close_1 = c(100, 101, 102, 103), Close_0 = c(102, 103, 104, 105)) %>%
+#'   arrange(Date)
+#'
+#' find_nn(
+#'   data = data,
+#'   distance = "euclidean",
+#'   k = 5
 #' )
-#' find_nn_chunkwise(data = data, n_chunks = 1, k = 3)
-find_nn_chunkwise <- function(data, distance = "euclidean", k = 75, n_chunks = 500, mc.cores = parallel::detectCores()) {
+find_nn <- function(data, distance, k, mc.cores = getOption("mc.cores", 2L)) {
   
-  # check if data is ordered correctly
-  if (!all(order(data$Date, data$Ticker) == seq_len(nrow(data)))) stop("data must be sorted for Date and Ticker")
-  stopifnot(all(order(data$Date, data$Ticker) == seq_len(nrow(data))))
+  if (any(order(data$Date) != seq_len(nrow(data)))) stop("Data must be sorted by date")
+  unique_dates <- sort(unique(data$Date), decreasing = TRUE)
   
-  counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt))
-  
-  breaks <- nrow(data) / n_chunks * seq_len(n_chunks)
-  split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]])
-  
-  # check if all chunk sizes >= k
-  chunk_sizes <- diff(map_int(split_dates, ~sum(filter(counts, Date <= .)$cnt)))
-  if (any(chunk_sizes < k)) stop("chunk size smaller than k, decrease number of chunks")
-  
-  
-  rann_fct <- if (distance == "euclidean") {RANN::nn2} else if (distance == "manhattan") {RANN.L1::nn2} else stop("distance not supported")
-  
-  knn_list <- pbmcapply::pbmclapply(rev(seq_along(split_dates)), function(i) {
-    prev_split_Date <- ifelse(i > 1, split_dates[[i - 1]], -Inf)
-    curr_split_Date <- split_dates[[i]]
-    curr_data <- as.matrix(select(filter(data, Date <= curr_split_Date), -Ticker, -Date))
-    curr_query <- as.matrix(select(filter(data, Date <= curr_split_Date & Date > prev_split_Date) , -Ticker, -Date))
-    rann_fct(curr_data, curr_query, k = k)
-  },  mc.cores =  mc.cores)
-  
-  knn <- purrr::transpose(knn_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
-  
-  bad_idx <- knn$nn.idx > rep(head(c(0, counts$cum_sum), -1), counts$cnt)
-  knn$nn.idx[bad_idx] <- NA
-  knn$nn.idx <- drop_na_nn_idx(knn$nn.idx, k)
-  
-  knn$nn.dists[bad_idx] <- NA
-  knn$nn.dists <- drop_na_nn_dists(knn$nn.dists, k)
-  
-  knn
-}
-
-
-
-#' Find quote histories in the past that resembles the current the most
-#'
-#' @param data_wide A data.frame with all columns that need to be used to find the nearest neighbors
-#' @param dates The dates for each row of data_wide
-#' @param k The number of closest neighbors that should be looked for
-#' @param norm The distance measure to use, of "euclidean" or "manhattan".
-#' @param mc.cores The number of cores to use for the calculation. 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-#' dates <- as.Date(c("2020-01-03", "2020-01-02", "2020-01-02"))
-#' data_wide <- tibble(
-#'   Open_2 = c(93, 103, 104), 
-#'   Open_1 = c(99, NA, 100), 
-#'   Open_0 = c(103, 98, 100), 
-#'   Close_2 = c(102, 105, 98), 
-#'   Close_1 = c(102, 103, 101), 
-#'   Close_0 = c(98, 99, 103)
-#' )
-#' find_nn(data_wide, dates)
-find_nn <- function(data_wide, dates, k = 50, norm = "euclidean", mc.cores = parallel::detectCores() - 1) {
-  
-  n <- nrow(data_wide)
-  
-  # order dates such that indizes are strictly increasing
-  date_order <- order(dates)
-  dates_ordered <- dates[date_order]
-  data_wide_ordered <- data_wide[date_order, ]
-  rm(data_wide)
-  
-  
-  #  choose correct nearest neighbor search distance
-  if (norm == "euclidean") {
-    nn_fct <- RANN::nn2
-  } else if (norm == "manhattan") {
-    nn_fct <- RANN.L1::nn2
+  fct <- if (distance == "euclidean") {
+    RANN::nn2
+  } else if (distance == "manhattan"){
+    RANN.L1::nn2
   } else {
-    stop("Unexpected value for function argument norm.")
+    stop("Unexpected distance measure.")
   }
   
-  create_dummy_return <- function(width, height) {
-    out <- list()
-    tmp <- matrix(rep(NA, width * height), ncol = width)
-    out$nn.idx <- tmp
-    out$nn.dists <- tmp
+  nn_list <- pbmcapply::pbmclapply(unique_dates, function(curr_date) {
+    curr_data <- select(filter(data, Date < curr_date), -Date)
+    curr_query <- select(filter(data, Date == curr_date), -Date)
+    
+    if (nrow(curr_data) == 0) {
+       out <- list(
+        nn.idx = matrix(rep(NA_integer_, k * nrow(curr_query)), ncol = k),
+        nn.dists =  matrix(rep(NA_real_, k * nrow(curr_query)), ncol = k)
+      )
+    } else {
+      out <- fct(
+        data = curr_data,
+        query = curr_query,
+        k = min(k, nrow(curr_data))
+      ) 
+      
+      if (nrow(out$nn.idx) < k) {
+        nn.idx  <- matrix(rep(NA_integer_, k * nrow(curr_query)), ncol = k)
+        nn.idx[, seq_len(nrow(out$nn.idx))] <- out$nn.idx
+        out$nn.idx <- nn.idx
+        
+        nn.dists <- matrix(rep(NA_real_, k * nrow(curr_query)), ncol = k)
+        nn.dists[, seq_len(nrow(out$nn.dists))] <- out$nn.dists
+        out$nn.dists <- nn.dists 
+      }
+    }
     out
-  }
+  },  mc.cores = mc.cores)
   
-  na_row_bool <- rowSums(is.na(data_wide_ordered)) > 0
-  data_wide_filtered <- data_wide_ordered[!na_row_bool, ]
-  rm(data_wide_ordered)
-  
-  dates_filtered <- dates_ordered[!na_row_bool]
-  rm(dates_ordered)
-  
-  unique_dates <- sort(unique(dates_filtered))
-  knn_output <- pbmcapply::pbmclapply(seq_along(unique_dates), function(i) {
-    curr_date <- unique_dates[i]
-    data_query <- split_data_query(curr_date, dates_filtered, data_wide_filtered)
-    rm(data_wide_filtered)
-    
-    if (i == 1) {
-      out <- create_dummy_return(k, nrow(data_query$query))
-      return(out)
-    }
-    
-    out <- nn_fct(data_query$data_wide, query = data_query$query, min(k, nrow(data_query$data_wide)), treetype = "kd")
-    
-    if (nrow(data_query$data_wide) < k) {
-      tmp <- create_dummy_return(k, nrow(data_query$query))
-      tmp$nn.idx[, seq_len(nrow(data_query$data_wide))] <- out[["nn.idx"]]
-      tmp$nn.dists[, seq_len(nrow(data_query$data_wide))] <- out[["nn.dists"]]
-      out <- tmp
-    }
-    rm(data_query)
-    return(out)
-  }, mc.cores = mc.cores)
-  
-  nn <- list()
-  
-  # make sure also excluded rows are in the result (as NA rows)
-  nn[["nn.idx"]] <- matrix(rep(NA_integer_, k * n), ncol = k)
-  nn[["nn.idx"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.idx"]]) %>% do.call(rbind, .)
-  
-  # take into account in indices that there were excluded rows
-  nn[["nn.idx"]] <- matrix(seq_len(n)[!na_row_bool][nn[["nn.idx"]]], ncol = k)
-  
-  nn[["nn.dists"]] <- matrix(rep(NA_real_, k * n), ncol = k)
-  nn[["nn.dists"]][!na_row_bool, ] <- purrr::map(knn_output,  ~.[["nn.dists"]]) %>% do.call(rbind, .)
-  
-  # order result in the same way as inputed data
-  nn[["nn.idx"]] <- nn[["nn.idx"]][order(date_order), ]
-  nn[["nn.idx"]] <- matrix(date_order[nn[["nn.idx"]]], ncol = k)
-  
-  nn[["nn.dists"]] <- nn[["nn.dists"]][order(date_order), ]
-  
-  nn
+  purrr::transpose(nn_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
 }
 
 
@@ -680,14 +749,13 @@ bootstrap_variation_factor <- function(data, both_first, move, R, col = "Open", 
       scale_fct <- sum(calc_payoff_const_gamma(data[index, ], both_first = both_first[index]))
       opt_payoff_sym(data = data[index, ], move = curr_move, col = col, both_first = both_first[index], scale_fct = scale_fct)
     }, R = R, parallel = "multicore", ncpus = mc.cores)
-    ci <- boot::boot.ci(bootstr, type = "perc")
+    ci <- boot::boot.ci(bootstr, conf = 0.95, type = "perc")
     out <- list(move = curr_move, original = bootstr$t0, bias = mean(bootstr$t) - bootstr$t0, std_error = sd(bootstr$t))
     if (is.null(ci)) {
       out <- c(out, list(lower = bootstr$t0, upper = bootstr$t0))
     } else {
       out <- c(out, list(lower = as.vector(ci$percent[1, 4]), upper = as.vector(ci$percent[1, 5])))
     }
-    out
   })
 }
 
@@ -1440,7 +1508,7 @@ find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_fir
   }
   
   pred_prob_mat <- as.matrix(pred_prob)
-
+  
   split_probs <- map(
     .x = chunk2(seq_len(nrow(pred_prob)), mc.cores), 
     .f = ~pred_prob_mat[., , drop = FALSE] 
@@ -1526,8 +1594,6 @@ find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_
 #'
 #' @examples
 find_optimal_buy_sell_dep <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
-  
-  browser()
   
   # stopifnot(length(unique(c(
   #   length(test_idx), 
