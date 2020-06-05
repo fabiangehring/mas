@@ -17,6 +17,7 @@ suppressPackageStartupMessages({
   library(dqrng)
   library(keras)
   library(magrittr)
+  library(parallel)
 })
 
 source("R/03-analysis.R")
@@ -53,11 +54,11 @@ if (file.exists(variation_factor_open_file_name)) {
   scale_fct_train <- sum(calc_payoff_const_gamma(data_variation[train_idx, ], both_first = both_first[train_idx]))
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
     col = "Open",
-    move = seq(0.1, 0.11, 0.01),
+    move = seq(0, 0.1, 0.001),
     data = data_variation[train_idx, ],
     both_first = both_first[train_idx],
-    R = 6,
-    mc.cores = 3
+    R = 100,
+    mc.cores = ceiling(detectCores() * 0.51)
   )
 
   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
