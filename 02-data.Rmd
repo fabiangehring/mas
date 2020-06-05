@@ -196,24 +196,24 @@ Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von d
 
 if (!file.exists("data/steps/quotes_clean.feather")) {
   window <- 10
-data_wide_10 <- quotes_clean %>%
-  dplyr::group_by(Ticker) %>%
-  dplyr::group_modify(~widen(., window = window, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
-  dplyr::ungroup() %>%
-  dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
-  normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date"))) %>%
-  drop_na()
-
-# sort columns nicely
-
-rev_lags <- rev(seq_len(window + 1) - 1)
-data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_lags),  paste0("Low_", rev_lags), paste0("High_", rev_lags), paste0("Close_", rev_lags))
-
-arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
-# data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
-# data_wide_10_hash <- digest::digest(data_wide_10)
+  data_wide_10 <- quotes_clean %>%
+    dplyr::group_by(Ticker) %>%
+    dplyr::group_modify(~widen(., window = window, cols = c("Close", "Open", "Low", "High"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
+    dplyr::ungroup() %>%
+    dplyr::rename(Close_0 = "Close", Open_0 = "Open", Low_0 = "Low", High_0 = "High") %>%
+    normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date"))) %>%
+    drop_na()
+  
+  # sort columns nicely
+  
+  rev_lags <- rev(seq_len(window + 1) - 1)
+  data_wide_10 <- select(data_wide_10, c("Ticker", "Date"), paste0("Open_", rev_lags),  paste0("Low_", rev_lags), paste0("High_", rev_lags), paste0("Close_", rev_lags))
+  
+  arrow::write_feather(data_wide_10, "data/steps/data_wide_10.feather")
+  # data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
+  # data_wide_10_hash <- digest::digest(data_wide_10)
 } else {
-# data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
+  # data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 }
 
 
@@ -280,3 +280,25 @@ ggplot(tibble(x = x, y = y), aes(x = x, y = y)) +
 
 
 Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituatioen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve quasi auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten den erfolgreich war. Die bereinigten Daten zeigen sowohl die gewünschte Variabilität ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.
+
+
+```{r}
+
+data_wide_10_normed <- data_wide_10 %>% arrange(Ticker, Date)
+
+vol_10 <- data_wide_10_normed %>%
+  mutate(ID = seq_len(nrow(.))) %>% 
+  select(-Date) %>%
+  group_by(Ticker) %>%
+  group_map(function(df, key) {
+    df %>%
+      pivot_longer(-ID) %>%
+      separate(name, c("type", "lag"), sep = "_") %>%
+      pivot_wider(names_from = "type") %>%
+      select(Open, High, Low, Close) %>%
+      volatility(calc = "gk.yz", mean0 = TRUE) %>%
+      .[seq(11, length(.), 11)]
+  })
+
+
+```
