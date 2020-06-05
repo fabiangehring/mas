@@ -27,7 +27,7 @@ data_knn_3 <- select(data_wide_10, c("Date", levels(interaction(c("Open_", "Low_
 nn_3_eucl_path <- c("data/knn/nn_3_eucl_idx.feather", "data/knn/nn_3_eucl_dists.feather")
 if (!all(map_lgl(nn_3_eucl_path, ~file.exists(.)))) {
   
-  nn_3_eucl <- find_nn(data = data_knn_3, distance = "euclidean", k = 50, mc.cores = ceiling(detectCores() * 0.55))
+  nn_3_eucl <- find_nn(data = data_knn_3, distance = "euclidean", k = 50, mc.cores = ceiling(detectCores() * 0.51))
   write_feather(as_tibble(nn_3_eucl$nn.idx), nn_3_eucl_path[1])
   write_feather(as_tibble(nn_3_eucl$nn.dists), nn_3_eucl_path[2])
   
@@ -45,7 +45,7 @@ if (!all(map_lgl(nn_3_eucl_path, ~file.exists(.)))) {
 nn_3_manh_path <- c("data/knn/nn_3_manh_idx.feather", "data/knn/nn_3_manh_dists.feather")
 if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
   
-  nn_3_manh <- find_nn(data = data_knn_3, distance = "manhattan", k = 50, mc.cores = ceiling(detectCores() * 0.55))
+  nn_3_manh <- find_nn(data = data_knn_3, distance = "manhattan", k = 50, mc.cores = ceiling(detectCores() * 0.51))
   write_feather(as_tibble(nn_3_manh$nn.idx), nn_3_manh_path[1])
   write_feather(as_tibble(nn_3_manh$nn.dists), nn_3_manh_path[2])
   
