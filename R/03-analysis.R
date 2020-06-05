@@ -523,7 +523,7 @@ find_nn <- function(data, distance, k, mc.cores = getOption("mc.cores", 2L)) {
     stop("Unexpected distance measure.")
   }
   
-  nn_list <- pbmcapply::pbmclapply(unique_dates, function(curr_date) {
+  nn_list <- pbmclapply(unique_dates, function(curr_date) {
     curr_data <- select(filter(data, Date < curr_date), -Date)
     curr_query <- select(filter(data, Date == curr_date), -Date)
     
@@ -541,16 +541,16 @@ find_nn <- function(data, distance, k, mc.cores = getOption("mc.cores", 2L)) {
       
       if (nrow(out$nn.idx) < k) {
         nn.idx  <- matrix(rep(NA_integer_, k * nrow(curr_query)), ncol = k)
-        nn.idx[, seq_len(nrow(out$nn.idx))] <- out$nn.idx
+        nn.idx[, seq_len(ncol(out$nn.idx))] <- out$nn.idx
         out$nn.idx <- nn.idx
         
         nn.dists <- matrix(rep(NA_real_, k * nrow(curr_query)), ncol = k)
-        nn.dists[, seq_len(nrow(out$nn.dists))] <- out$nn.dists
+        nn.dists[, seq_len(ncol(out$nn.dists))] <- out$nn.dists
         out$nn.dists <- nn.dists 
       }
     }
     out
-  },  mc.cores = mc.cores)
+  }, mc.cores = mc.cores)
   
   purrr::transpose(nn_list) %>% map(~do.call(rbind, .[rev(seq_along(.))]))
 }

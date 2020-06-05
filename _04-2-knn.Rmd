@@ -9,6 +9,10 @@ suppressPackageStartupMessages({
   library(digest)
   library(pbmcapply)
 })
+
+source("R/03-analysis.R")
+
+
 ```
 
 
