@@ -1,4 +1,6 @@
-## Cloud Infrastruktur
+# Infrastruktur und Tools
+
+## Cloud Setup
 Gewisse der in dieser Arbeit gemachte Analysen sind sehr rechen- und Speicherintensiv. Sie stellen damit erhöhte Anforderungen an die zur Berechnung eingesetzte Infrastruktur. Für die vorliegenden Analysen stellte sich folgender Setup mit 3 unterschiedlichen virtuellen Maschinentypen (VMs) als geeignet heraus:
 
 -	Datenaufbreitung: Eine Maschine mit 4 Cores und mindestens 32 GB Memory zum Prototyping und die Datenaufbereitung
@@ -32,11 +34,11 @@ Während die Standardeinstellungen Instanzen von bis zu 24 CPUs erlauben, sind n
 Auch nach telefonischer Kontaktaufnahme mit dem Support gelang es nicht, die Quote zu erhöhen. Das Problem stiess beim Mitarbeitenden von Google zwar auf Verständnis, er selbst konnte die Quote allerdings ebenfalls nicht erhöhen. 
 
 ### Amazon Web Services (AWS)
-Das Cloud Computing Angebot von Amazon nennt sich "Elastic Compute Cloud" (Amazon EC2). Als einziger der getesteten Anbieter fällt dieser Anbieter nicht durch nicht verfügbare Maschinentypen oder unzureichenden Limiten auf. Fernen können auch die meisten Maschinen (bis 32 CPU) als Spot Instanzen ausgeführt werden. Da die Imageerstellung zudem sehr einfach auf Knopfdruck erfolgt, können diese sehr kostengünstig verwendet und wiederhergestellt werden. AWS fällt zudem durch eine sehr gute ausführliche Dokumentation auf. So ist beispielsweise die Erstellung eines von der Instanz unabhängigen persistenten Speichers (in AWS-Lingo: EBS) sowie der Prozess zum Mounten ebendieses Schritt-für-Schritt erklärt (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html). Damit kann auch bei der Verwendung von Spot Instanzen dauerhaft gespeichert werden. Ferner sind auch die Preise im Vergleich zur Konkurrenz sehr transparent und wettbewerbsfähig.
+Das Cloud Computing Angebot von Amazon nennt sich "Elastic Compute Cloud" (Amazon EC2). Als einziger der getesteten Anbieter fällt dieser Anbieter nicht durch nicht verfügbare Maschinentypen oder unzureichenden Limiten auf. Fernen können auch die meisten Maschinen (im Test bis 40 CPU) als Spot Instanzen ausgeführt werden. Da die Imageerstellung zudem sehr einfach auf Knopfdruck erfolgt, können diese sehr kostengünstig verwendet und wiederhergestellt werden. AWS fällt zudem durch eine sehr gute ausführliche Dokumentation auf. So ist beispielsweise die Erstellung eines von der Instanz unabhängigen persistenten Speichers (in AWS-Lingo: EBS) sowie der Prozess zum Mounten ebendieses Schritt-für-Schritt erklärt (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html). Damit kann auch bei der Verwendung von Spot Instanzen dauerhaft gespeichert werden. Ferner sind auch die Preise im Vergleich zur Konkurrenz sehr transparent und wettbewerbsfähig.
 
 Da auch nach längeren Versuchen nur mit AWS der oben beschriebene Ziel-Infrastruktur einer Basis, Multi-CPU und einer einfachen GPU-Instanz erstellt werden konnte, wurde für die vorliegende Arbeit dieser Anbieter als Cloud Computing Lösung verwendet.
 
-## Verwendete Tools
+## Verwendete Software
 Für die Analysen der vorliegenden Arbeit hat sich der Einsatz von R als auch Python bewährt. Es zeigte sich, dass beide Tools / Sprachen ihre Stärken in verschiedenen Bereichen haben. Grundsätzlich lässt sich dies so zusammenfassen, dass Datenaufbereitende Schritte in R durchgeführt wurden. Für das Training der neuronalen Netze stellten sich die entsprechenden Bibliotheken von Python als geeigneter heraus.
 
 ### R / RStudio Server

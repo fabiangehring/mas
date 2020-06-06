@@ -79,14 +79,11 @@ Auch im Falle der etwas komplexeren Strategie mit der Möglichkeit von Käufen u
 \begin{eqnarray}
 {Payoff} & = & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{close_t}{first}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\\
-
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{second}{close_{t-1}}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\\
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\\
-
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{second} \times I_{first} \ +\\
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{second}{first}\right)}^2  \times I_{first} \times I_{second} \ +\\
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times I_{first} \ +\\
-
 &  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{close_t}{close_{t_1}}\right)}^2  \times (1 - I_{first}) \times (1 - I_{second})
 (\#eq:payoff)
 \end{eqnarray}

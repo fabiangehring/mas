@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(arrow)
   library(ggplot2)
+  library(TTR)
 })
 
 source("global.R")
@@ -68,7 +69,7 @@ table(stocks_raw$Sector) %>%
 
 ``` {r, retrieve-quotes-data, echo=FALSE}
 # load quotes
-file_quotes_raw <- here::here(paste0("data/quotes_raw.feather"))
+file_quotes_raw <- here::here(paste0("data/steps/quotes_raw.feather"))
 if (file.exists(file_quotes_raw)) {
   quotes_raw <- arrow::read_feather(file_quotes_raw)
 } else {
@@ -106,7 +107,7 @@ summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
 Die Behebung dieser Mängel und die damit einhergehende Bereinigung erfolgt in verschiedenen Schritten. Allen gemeinsam ist, dass die Bereinigung keinen Ausschluss der Daten zur Folge hat, sondern betroffene Werte als "Nicht verfügbar, (NA)" klassifiziert werden. Diese Unterscheidung ist insbesondere bei rollierender Betrachtung eines Zeitfensters der Vergangenheit von Bedeutung.
 
 ``` {r, echo=FALSE}
-file_quotes_clean <- here::here(paste0("data/quotes_clean.feather"))
+file_quotes_clean <- here::here(paste0("data/steps/quotes_clean.feather"))
 if (!file.exists(file_quotes_clean)) {
   quotes_clean <- quotes_raw
 }
@@ -213,48 +214,27 @@ if (!file.exists("data/steps/quotes_clean.feather")) {
   # data_wide_10 <- arrow::read_feather("data/data_wide_10.feather")
   # data_wide_10_hash <- digest::digest(data_wide_10)
 } else {
-  # data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
+  data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 }
 
 
-rm(quotes_clean)
 ```
 1. **Verfügbarkeit durchgängiger Historie**
 Zur Prognose des zukünftigen Preisverlaufs könnte der direkt vorangegange Verlauf von Bedeutung sein. Ein durchgehend verfügbarer Preisverlauf ist im Datensatz allerdings nicht gewährleistet. Es werden daher alle Datensätze auschgeschlossen, für welche keine durchgängige Historie der vorangegangenen 10 Börsentage verfügbar ist. Zu beachten gilt es hierbei, dass nicht alle nachfolgenden Analyseansätze den ganzen Umfang dieser Historie tatsächlich auch verwenden. Um die Vergleichbarkeit der Analyseansätze zu gewährleisten, gilt dieser Ausschluss allerdings generell.
 
 
-Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r nrow(quotes_raw) - nrows(data_wide_10)`. Für die Analyse bleiben somit `r nrows(data_wide_10)` verwendbare Einträge.
+Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r nrow(quotes_raw) - nrow(data_wide_10)`. Für die Analyse bleiben somit `r nrow(data_wide_10)` verwendbare Einträge.
 
 
 ### Normalisierung
 
 Ein weiteres Problem, das sich beim Vergleich von Preisen verschiedener Aktien ergibt, ist deren unterschiedlichesw Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, indem nicht absolue Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion (vgl. Gleichung \@ref(eq:payoff)) bereits grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash (vgl. Gleichung \@ref(eq:gamma_cash)) mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis auf ein Niveau von 100 per adjustiertem Vortagesendkurs (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
 
-
 Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits erwähnt - quadratisch auf Preisveränderungen reagiert liegt, lohnt sich an dieser Stelle eine Untersuchung der Daten auf (zu) einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass insbesondere lernende Algorithmen insbesondere diese einzelnen Beobachtungen optimiert. Weniger einflussreiche aber häufiger realsierite Beobachtungen gingen darin unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
 
 Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs über alle für in der Analyse berücksichtigten Datensätze. Hierfür werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei geneu gleichverteiltem Beitrag jedes einzlenen Eintrages zum Payoff würde eine Gerade mit Steiguzng 45° resultieren. Je stärker der einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
 
-```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, fig.pos = '!H'}
-# 
-# if (!file.exists("data/data_wide_0_all.feather")) {
-#   window <- 0
-#   data_wide_0_all <- quotes_clean %>%
-#     dplyr::group_by(Ticker) %>%
-#     dplyr::group_modify(~widen(., window = window + 1, cols = c("Close"), keep = c("Date", "Close", "Open", "Low", "High"))) %>%
-#     dplyr::ungroup() %>%
-#     dplyr::rename(Close_0 = "Close") %>%
-#     normalize_quotes("Close_1", setdiff(names(.), c("Ticker", "Date")))
-#   
-#   data_wide_0_all <- drop_na(data_wide_0_all)
-#   arrow::write_feather(data_wide_0_all, "data/data_wide_0_all.feather")
-#   data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
-#   # data_wide_0_all_hash <- digest(data_wide_0_all)
-# } else {
-#   data_wide_0_all <- read_feather("data/data_wide_0_all.feather")
-# }
-
-
+```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, fig.pos = '!H', echo=FALSE}
 set.seed(123456)
 both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
 payoff <- data_wide_10 %>%
@@ -282,23 +262,71 @@ ggplot(tibble(x = x, y = y), aes(x = x, y = y)) +
 Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituatioen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve quasi auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten den erfolgreich war. Die bereinigten Daten zeigen sowohl die gewünschte Variabilität ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.
 
 
-```{r}
+### Adjustierung unterschiedlicher Volatilitäten
 
-data_wide_10_normed <- data_wide_10 %>% arrange(Ticker, Date)
+Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unetrschiedlicher Aktien in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker auf gute oder schlechte Marktinformationen als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten.
 
-vol_10 <- data_wide_10_normed %>%
-  mutate(ID = seq_len(nrow(.))) %>% 
-  select(-Date) %>%
-  group_by(Ticker) %>%
-  group_map(function(df, key) {
-    df %>%
-      pivot_longer(-ID) %>%
-      separate(name, c("type", "lag"), sep = "_") %>%
-      pivot_wider(names_from = "type") %>%
-      select(Open, High, Low, Close) %>%
-      volatility(calc = "gk.yz", mean0 = TRUE) %>%
-      .[seq(11, length(.), 11)]
-  })
+Die Adjustierungen der Preisbewegungungen auf eine vergleichbare Ausschlagshöhe / Volatilität könnte den nachfolgenden Algorithmen helfen, grundsätzlich ähnliche Verhaltensmuster unterschiedlicher Aktientypen zu erkennen. Diese Adjustierungbietet selbst auch verschiedenste Freiheitsgrade. Einige davon sind:
+
+- Welcher Volatiltätsschätzer soll verwendet werden?
+- Über welche Zeitdauer soll die Volatiltät geschätzt werden?
+- Soll ein gleichgewichteter Schätzer verwendet werden, oder ein gewichteter?
+- etc.
+
+Wir entscheiden uns für einen Volatiltätsindikator von @yang_zhang. Dieser ist in der Lage, nicht nur Close-to-Close Preise, sondern alle im Datensatz vorhandenen Preise - namentlich Open, High, Low und Close - zu berücksichtigen. Es handelt sich dabei um eine modifizierte Version des Garman und Klass Schätzers, der auch mit Opening Sprüngen umzugehen weiss.
+
+Für die Zeitdauer wählen wir 10 Tage. Dies ist einerseits ein gebräuchliches Standardfenster, zudem erfolgte auch die Datenaufbereitung (vgl.  \@ref(bereinigung)) auf der Bedingung, dass für jeden im Datensatz verbliebenen Eintrag dieses Fenster ohne Unterbruch vorhanden sein muss. Auf eine Gewichtung des Schätzers wird aus Gründen der Einfachheit verzichtet.
+
+
+Bezeichne $vol_{i, 10}$ die beschriebene 10-Tages Volatilität jeden Eintrages, so erfolgt die Adjustierung aller Preisdaten mittels folgender Formel:
+
+$$ P_{i, vol10} = (P_i - 100) / vol10_i + 100 $$
+
+Für ein zweites adjustiertes Datenset wählen wir ein längerfristiges Volatilitätsmass. Die offensichtlichste Variante, dazu das Berechungsfenster von 10 auf 250 oder mehr Tage zu erhöhen greift allerdings zu kurz, zumal im Datensatz sowohl bereinigte wie auch bereits von Beginn weg fehlende Werte vorkommen. Eine Möglichkeit bestünde darin, diese mittels Interpolationsverfahren zu füllen. Wir entscheiden uns aber dafür, als langfristiges Volatilitätsmass den Medianwert aller annualisierten 10-Tages Volatilitäten des jeweiligen Ticker $j$ zu wählen. 
+
+$$ P_{i, vol} = (P_i - 100) / median(vol10_i, j) + 100 $$
+
+Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltätsadjustierung durchgeführt und miteinander verglichen. Wo nicht anders vermerkt erfolgt die Analyse ohne Adjustierung.
+
+
+```{r, echo=FALSE}
+
+path_data_wide_10_vol <- "data/steps/data_wide_10_vol.feather"
+if (!file.exists(path_data_wide_10_vol)) {
+  
+  data_wide_10_sorted <- data_wide_10 %>% mutate(ID = seq_len(nrow(.))) %>% arrange(Ticker, Date)
+  vol_10 <- data_wide_10_sorted %>%
+    mutate(TEMP = seq_len(nrow(.))) %>% 
+    select(-ID, -Date) %>%
+    group_by(Ticker) %>%
+    group_map(function(df, key) {
+      df %>%
+        pivot_longer(-TEMP) %>%
+        separate(name, c("type", "lag"), sep = "_") %>%
+        pivot_wider(names_from = "type") %>%
+        select(Open, High, Low, Close) %>%
+        volatility(calc = "gk.yz", mean0 = TRUE) %>%
+        .[seq(11, length(.), 11)]
+    }) %>%
+    unlist()
+  
+  data_wide_10_vol <- data_wide_10_sorted %>% 
+    mutate(Vol_10 = vol_10) %>% 
+    arrange(ID) %>% 
+    select(-ID) %>%
+    mutate_at(setdiff(names(.), c("Ticker", "Date", "Vol_10")), ~(. - 100) / sqrt(Vol_10) + 100) %>%
+    select(-Vol_10)
+  
+  write_feather(data_wide_10_vol, path_data_wide_10_vol)
+  data_wide_10_vol <- read_feather(path_data_wide_10_vol)
+  data_wide_10_vol_hash <- digest(data_wide_10_vol)
+  rm(data_wide_10_sorted, vol_10)
+  
+} else {
+  data_wide_10_vol <- read_feather(path_data_wide_10_vol)
+}
 
 
 ```
+
+
