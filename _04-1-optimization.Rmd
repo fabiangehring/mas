@@ -1,6 +1,7 @@
 ## Einfache Optimierungen
 
 
+### Ohne Berücksichtigung der Marktvolatilität
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 suppressPackageStartupMessages({
   library(dplyr)
@@ -18,8 +19,10 @@ suppressPackageStartupMessages({
   library(keras)
   library(magrittr)
   library(parallel)
+  library(cumstats)
 })
 
+source("R/02-data.R")
 source("R/03-analysis.R")
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 
@@ -97,5 +100,71 @@ payoff_factor_test_4 <- opt_payoff_sym(
 ```
 
 Als zweites Mass zur Beurteilung der Aussagekraft der gefundenen Ergebnisse lassen sich zudem auch die Werte des Testdatensatzes heranziehen. In diesem beträgt der Payoffüberschuss im Vergleich zur Referenzstartegie bei 0.9% Auslenkung ebenfalls rund `r round((payoff_factor_test_max - 1) * 100, 1)`% und auch bei einer Auslenkung von 4% kommt der Überschuss bei `r round((payoff_factor_test_4 - 1) * 100, 1)` zu liegen. Beide Werte zeigen hohe Ähnlichkeit mit dem Traingsdatensatz und unterstreichen damit auf Signifikanz der Ergebnisse.
+
+
+### Mit Berücksichtigung der Marktvolatilität
+
+
+```{r}
+
+data_variation_vol_paths <- c("data/optimizations/bootstraped_variation_factor_open_low.feather", "data/optimizations/bootstraped_variation_factor_open_high.feather")
+
+if (!all(map_lgl(data_variation_vol_paths, ~file.exists(.)))) {
+  
+  # split data into low and high varioance groups
+  data_wide_10_vol <- arrow::read_feather("data/steps/data_wide_10_vol.feather")
+  vol_10 <- data_wide_10_vol$Vol_10
+  data_variation_vol <- data_wide_10 %>% select(Ticker, Date, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0) %>% mutate(Vol_10 = vol_10)
+  
+  vol_10_median <- data_variation_vol %>%
+    mutate(ID = seq_len(nrow(.))) %>%
+    arrange(Ticker, Date) %>%
+    group_by(Ticker) %>%
+    select(ID, Ticker, Vol_10) %>%
+    group_split() %>%
+    pbmclapply(function(x) list(ID = x$ID, Vol_10_med = cummedian(x$Vol_10)), mc.cores = 3) %>%
+    bind_rows()
+  
+  data_variation_vol <- data_variation_vol %>% 
+    mutate(ID = seq_len(nrow(.))) %>% 
+    left_join(vol_10_median, by = "ID") %>% 
+    select(-ID)
+  
+  data_variation_vol <- data_variation_vol %>% mutate(Vol_Group = factor(if_else(Vol_10 <= Vol_10_med, "Low", "High"), levels = c("Low", "High")))
+  
+  
+  # find opimal move
+  train_idx_low <- intersect(train_idx, which(data_variation_vol$Vol_Group == "Low"))
+  bootstraped_variation_factor_open_low <- bootstrap_variation_factor(
+    col = "Open",
+    move = seq(0, 0.1, 0.001),
+    data = data_variation_vol[train_idx_low, ],
+    both_first = both_first[train_idx_low],
+    R = 0,
+    mc.cores = ceiling(detectCores() * 0.51)
+  )
+  write_feather(bootstraped_variation_factor_open_low, data_variation_vol_paths[1])
+  
+  train_idx_high <- intersect(train_idx, which(data_variation_vol$Vol_Group == "High"))
+  bootstraped_variation_factor_open_high <- bootstrap_variation_factor(
+    col = "Open",
+    move = seq(0, 0.1, 0.001),
+    data = data_variation_vol[train_idx_high, ],
+    both_first = both_first[train_idx_high],
+    R = 0,
+    mc.cores = ceiling(detectCores() * 0.51)
+  )
+  write_feather(bootstraped_variation_factor_open_high, data_variation_vol_paths[2])
+  
+} else {
+  bootstraped_variation_factor_open_low <- read_feather(data_variation_vol_paths[1])
+  bootstraped_variation_factor_open_high <- read_feather(data_variation_vol_paths[2])
+}
+
+plot_variation_factor(bootstraped_variation_factor_open_high)
+plot_variation_factor(bootstraped_variation_factor_open_low)
+
+```
+
 
 

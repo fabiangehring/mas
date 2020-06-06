@@ -280,3 +280,33 @@ normalize_quotes <- function(quotes, base_col = "Open", target_cols = c("Low", "
 }
 
 
+
+adjust_vol <- function(data) {
+  data_sorted <- data %>% mutate(ID = seq_len(nrow(.))) %>% arrange(Ticker, Date)
+  vol_10 <- data_sorted %>%
+    mutate(TEMP = seq_len(nrow(.))) %>% 
+    select(-ID, -Date) %>%
+    group_by(Ticker) %>%
+    group_map(function(df, key) {
+      df %>%
+        pivot_longer(-TEMP) %>%
+        separate(name, c("type", "lag"), sep = "_") %>%
+        pivot_wider(names_from = "type") %>%
+        select(Open, High, Low, Close) %>%
+        volatility(calc = "gk.yz", mean0 = TRUE) %>%
+        .[seq(11, length(.), 11)]
+    }) %>%
+    unlist()
+  
+  data_sorted %>% 
+    mutate(Vol_10 = vol_10) %>% 
+    arrange(ID) %>% 
+    select(-ID) %>%
+    mutate_at(setdiff(names(.), c("Ticker", "Date", "Vol_10")), ~(. - 100) / sqrt(Vol_10) + 100)
+}
+
+unadjust_vol <- function(data) {
+  data %>% mutate_at(setdiff(names(.), c("Ticker", "Date", "Vol_10")), ~(. - 100) * sqrt(Vol_10) + 100) %>%
+    select(-Vol_10)
+}
+

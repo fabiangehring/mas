@@ -279,11 +279,11 @@ Für die Zeitdauer wählen wir 10 Tage. Dies ist einerseits ein gebräuchliches 
 
 Bezeichne $vol_{i, 10}$ die beschriebene 10-Tages Volatilität jeden Eintrages, so erfolgt die Adjustierung aller Preisdaten mittels folgender Formel:
 
-$$ P_{i, vol10} = (P_i - 100) / vol10_i + 100 $$
+$$ P_{i, vol10} = (P_i - 100) / \sqrt(vol10_i) + 100 $$
 
 Für ein zweites adjustiertes Datenset wählen wir ein längerfristiges Volatilitätsmass. Die offensichtlichste Variante, dazu das Berechungsfenster von 10 auf 250 oder mehr Tage zu erhöhen greift allerdings zu kurz, zumal im Datensatz sowohl bereinigte wie auch bereits von Beginn weg fehlende Werte vorkommen. Eine Möglichkeit bestünde darin, diese mittels Interpolationsverfahren zu füllen. Wir entscheiden uns aber dafür, als langfristiges Volatilitätsmass den Medianwert aller annualisierten 10-Tages Volatilitäten des jeweiligen Ticker $j$ zu wählen. 
 
-$$ P_{i, vol} = (P_i - 100) / median(vol10_i, j) + 100 $$
+$$ P_{i, vol} = (P_i - 100) / median(\sqrt(vol10_i, j)) + 100 $$
 
 Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltätsadjustierung durchgeführt und miteinander verglichen. Wo nicht anders vermerkt erfolgt die Analyse ohne Adjustierung.
 
@@ -293,29 +293,7 @@ Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltäts
 path_data_wide_10_vol <- "data/steps/data_wide_10_vol.feather"
 if (!file.exists(path_data_wide_10_vol)) {
   
-  data_wide_10_sorted <- data_wide_10 %>% mutate(ID = seq_len(nrow(.))) %>% arrange(Ticker, Date)
-  vol_10 <- data_wide_10_sorted %>%
-    mutate(TEMP = seq_len(nrow(.))) %>% 
-    select(-ID, -Date) %>%
-    group_by(Ticker) %>%
-    group_map(function(df, key) {
-      df %>%
-        pivot_longer(-TEMP) %>%
-        separate(name, c("type", "lag"), sep = "_") %>%
-        pivot_wider(names_from = "type") %>%
-        select(Open, High, Low, Close) %>%
-        volatility(calc = "gk.yz", mean0 = TRUE) %>%
-        .[seq(11, length(.), 11)]
-    }) %>%
-    unlist()
-  
-  data_wide_10_vol <- data_wide_10_sorted %>% 
-    mutate(Vol_10 = vol_10) %>% 
-    arrange(ID) %>% 
-    select(-ID) %>%
-    mutate_at(setdiff(names(.), c("Ticker", "Date", "Vol_10")), ~(. - 100) / sqrt(Vol_10) + 100) %>%
-    select(-Vol_10)
-  
+  data_wide_10_vol <- adjust_vol(data_wide_10)
   write_feather(data_wide_10_vol, path_data_wide_10_vol)
   data_wide_10_vol <- read_feather(path_data_wide_10_vol)
   data_wide_10_vol_hash <- digest(data_wide_10_vol)
