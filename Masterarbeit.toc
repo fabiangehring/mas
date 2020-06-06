@@ -1,0 +1,26 @@
+\babel@toc {ngerman}{}
+\contentsline {section}{Management Summary}{1}{section*.2}%
+\contentsline {section}{\numberline {1}Einleitung}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Motivation}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Forschungsfrage}{4}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Daten}{6}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Methoden}{6}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Disclaimer}{6}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Daten}{6}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Bezug und Umfang}{6}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Aktienuniversum}{6}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Preisinformationen}{9}{subsubsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.2}Aufbereitung}{10}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Bereinigung}{10}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Normalisierung}{12}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Adjustierung unterschiedlicher Volatilitäten}{14}{subsubsection.2.2.3}%
+\contentsline {section}{\numberline {3}Infrastruktur und Tools}{15}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Cloud Setup}{15}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Microsoft Azure}{16}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Google Cloud}{16}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Amazon Web Services (AWS)}{17}{subsubsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.2}Verwendete Software}{17}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}R / RStudio Server}{17}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Python / (Ana)conda}{19}{subsubsection.3.2.2}%
+\contentsline {section}{\numberline {4}Analyse}{19}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Einfache Optimierungen}{20}{subsection.4.1}%
