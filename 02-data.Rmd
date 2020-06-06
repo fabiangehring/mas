@@ -194,7 +194,6 @@ Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von d
 
 
 ```{r, knn-data-preparation, echo=FALSE}
-
 if (!file.exists("data/steps/quotes_clean.feather")) {
   window <- 10
   data_wide_10 <- quotes_clean %>%
@@ -219,11 +218,11 @@ if (!file.exists("data/steps/quotes_clean.feather")) {
 
 
 ```
-1. **Verfügbarkeit durchgängiger Historie**
+1. **Verfügbarkeit durchgängiger Historie**  
 Zur Prognose des zukünftigen Preisverlaufs könnte der direkt vorangegange Verlauf von Bedeutung sein. Ein durchgehend verfügbarer Preisverlauf ist im Datensatz allerdings nicht gewährleistet. Es werden daher alle Datensätze auschgeschlossen, für welche keine durchgängige Historie der vorangegangenen 10 Börsentage verfügbar ist. Zu beachten gilt es hierbei, dass nicht alle nachfolgenden Analyseansätze den ganzen Umfang dieser Historie tatsächlich auch verwenden. Um die Vergleichbarkeit der Analyseansätze zu gewährleisten, gilt dieser Ausschluss allerdings generell.
 
 
-Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r nrow(quotes_raw)` Einträgen besteht. Davon weisen `r sum(rowSums(is.na(quotes_raw)) != 0)` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r nrow(quotes_raw) - nrow(data_wide_10)`. Für die Analyse bleiben somit `r nrow(data_wide_10)` verwendbare Einträge.
+Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r format(nrow(quotes_raw), big.mark = "'")` Einträgen besteht. Davon weisen `r format(sum(rowSums(is.na(quotes_raw)) != 0), big.mark = "'")` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r format(nrow(quotes_raw) - nrow(data_wide_10), big.mark = "'")`. Für die Analyse bleiben somit `r format(nrow(data_wide_10), big.mark = "'")` verwendbare Einträge.
 
 
 ### Normalisierung
