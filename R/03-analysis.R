@@ -777,7 +777,8 @@ plot_variation_factor <- function(data) {
     ggplot2::scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
     ggplot2::ylab( "Payoffverhältnis zur Referenzstrategie") +
     ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-    ggplot2::ggtitle("Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis")
+    ggplot2::ggtitle("Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis") +
+    ggplot2::theme_bw()
 }
 
 

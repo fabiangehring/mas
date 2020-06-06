@@ -34,23 +34,20 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRU
 ```
 
 
-Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu evaluieren. In einer ersten sehr einfachen Evaluation bietet es sich an, die Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festzulegen. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien. 
+Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu ermitteln. In einer ersten sehr einfachen Evaluation sollen Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festgelegt werden. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien. 
 
 
-``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=1, fig.pos = '!H', variation-factor-open, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=0.6, fig.pos = '!H', variation-factor-open, echo=FALSE, message=FALSE, warning=FALSE}
 
 variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
+data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
+opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
+  sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
+}
 
 if (file.exists(variation_factor_open_file_name)) {
   bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
 } else {
-
-  opt_payoff_sym <- function(move, data, col, both_first, scale_fct = 1) {
-    sum(calc_payoff_const_gamma(data, buy = (1 - move) * data[[col]], sell = (1 + move) * data[[col]], both_first = both_first), na.rm = TRUE) / scale_fct
-  }
-
-  data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
-
   scale_fct_train <- sum(calc_payoff_const_gamma(data_variation[train_idx, ], both_first = both_first[train_idx]))
   bootstraped_variation_factor_open <- bootstrap_variation_factor(
     col = "Open",
@@ -60,7 +57,7 @@ if (file.exists(variation_factor_open_file_name)) {
     R = 100,
     mc.cores = ceiling(detectCores() * 0.51)
   )
-
+  
   arrow::write_feather(bootstraped_variation_factor_open, variation_factor_open_file_name)
 }
 
@@ -68,6 +65,37 @@ plot_variation_factor(bootstraped_variation_factor_open)
 
 ```
 
-Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: 
+Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: Werden die Kaufs- und Verkaufpreise zum Handel untertags 2.5% unter resp. über dem Eröffnungskurs des jeweiligen Tages gesetzt, so resultiert ein Gewinn, welcher rund 8% über demjenigen der Referenz bei alleinigem Ausgleich am Abend liegt. 
 
-file.exists(variation_factor_open_file_name)
+Bei genauerer Betrachtung weist die Kurve einige interessante Eigenschaften auf: Der höchste Payoff wird bei einer symmetrischen Auslenkung des Preises um `r bootstraped_variation_factor_open$move[which.max(bootstraped_variation_factor_open$original)] * 100$`% erreicht. Der Payoffüberschüss beträgt an diesem Punkt rund `r round((bootstraped_variation_factor_open$original[which.max(bootstraped_variation_factor_open$original)] - 1) * 100, 1`%. Gleichzeitig zeigt sich, dass ein mehr oder weniger konstanter Paypoff-Überschuss von rund 8% im ganzen Auslenkungsbereich von 0.7 bis rund 4% erreicht werden kann. Während im Bereich tieferer Auslenkungen viele kleinere Gewinne realisiert werden, sind es beim setzen breiterer Schranken nur noch wenige, dafür grössere. Die Kurve zeigt, dass sich diese beiden Effekte im genannten Bereich in etwa die Waage halten. Dieses Ergebnis ist für einen Optionshändler insofern interessant, als dass die genaue Preisbestimmmung gar nicht von so grosser Relevanz sein könnte. Wichtig dabei zu erwähnen ist auch, dass während der Datenbereinigung tendenziell eher grosse Auslenkungen aus dem Datensatz entfernt wurden (\@ref(bereinigung)). Werden vermehrt auch extreme Marktbewegungen zugelassen, verschiebt sich die optimale Auslenkung der Preisschranken nach oben. In Kombination mit der Erkenntnis, dass auch bei stärkerer Bereinigung gute Payoffs bis 4% Auslenkung vom Eröffnungspreis erreicht werden, könnte dies auch eine Motivation sein, die Preise eher breiter zu setzen.
+
+Eine weitere Besonderheit der Kurve zeigt sich mit dem Abwärtsknick bei einer Auslenkung bei sehr kleinen Auslenkungen. Erklären lässt sich dieser Knick dadurch, dass bei allen Kursverläufen, bei denen der Eröffnungskurs gleichzeit dem Höchst-, resp. Tiefstkurs des jeweiligen Tages entspricht mindestens eine Marke nicht mehr erreicht werden kann. Bereits beim setzen etwas grösserer Schranken wird dieser Effekt allerdings wieder mehr als ausgeglichen.
+
+Auffällig ist auch die Tatsache, dass bei einer Auslenkung von 0 (und damit einem Wiederherstellen der Delta-Neutralität gleich zum Eröffnungskurs) eine deutlich bessere Performance als die Referenzstrategie aufweist. Dies lässt sich damit erklären, als dass die Werte im Datensatz offenbar eine Tendenz des "Overshootings" der Eröfnungspreise zeigen. Das beobachtete Bild lässt vermuten, dass sich die Preise im Laufe des Tages in der Tendenz wieder eher Richung Schlusskurs des Vortages entwickeln. Ein Ausgleich der aufgebauten Delta-Position "über Nacht" gleich zu Beginn des Handelstages scheint daher ebenfalls besser Ergebnisse zu liefern als die Referenzstartegie.
+
+Schliesslich stellt sich auch die Frage, inwiefern die gefundenen Ergebnisse als statistisch signifikant bezeichnet werden können. Zur Beurteilung dieser Frage wurden mittels Bootsprapverfahren ein 95%-Konfidenzband der Kurve ermittelt. Dieses ist als grau schraffierte Fläche am Rand der Kurve ersichtlich. Es zeigt sich, dass dieses Bank relativ schmal ausfällt. Auch dies kann als direkte Konsequenz der asuführlichen Datenbereinigung gesehen werden. Diese führt dazu, dass auch über verschiedene Boostrap-Samples hinweg die Payoffs stabil und wenig beeinflusst durch einzelne Beobachtungen ausfallen.
+
+
+```{r}
+scale_fct_train <- sum(calc_payoff_const_gamma(data_variation[test_idx, ], both_first = both_first[test_idx]))
+payoff_factor_test_max <- opt_payoff_sym(
+  move = 0.009, 
+  data = data_variation[test_idx, ], 
+  col = "Open",
+  both_first = both_first[test_idx],
+  scale_fct = scale_fct_train
+)
+
+payoff_factor_test_4 <- opt_payoff_sym(
+  move = 0.04, 
+  data = data_variation[test_idx, ], 
+  col = "Open",
+  both_first = both_first[test_idx],
+  scale_fct = scale_fct_train
+)
+
+```
+
+Als zweites Mass zur Beurteilung der Aussagekraft der gefundenen Ergebnisse lassen sich zudem auch die Werte des Testdatensatzes heranziehen. In diesem beträgt der Payoffüberschuss im Vergleich zur Referenzstartegie bei 0.9% Auslenkung ebenfalls rund `r round((payoff_factor_test_max - 1) * 100, 1)`% und auch bei einer Auslenkung von 4% kommt der Überschuss bei `r round((payoff_factor_test_4 - 1) * 100, 1)` zu liegen. Beide Werte zeigen hohe Ähnlichkeit mit dem Traingsdatensatz und unetrstreichen damit auf Signifikanz der Ergebnisse.
+
+
