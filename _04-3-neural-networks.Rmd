@@ -25,6 +25,8 @@ sample_idx <- seq_len(500)
 ```
 
 
+Nicht nur 3 Arbeitstage
+
 ### Unabhängige Vorhersagewerte
 
 #### Ohne Berücksichtigung der Ordinalität

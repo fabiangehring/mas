@@ -4,11 +4,11 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Kapitel 5 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden</title>
-  <meta name="description" content="Kapitel 5 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <title>Kapitel 4 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden</title>
+  <meta name="description" content="Kapitel 4 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   <meta name="generator" content="bookdown 0.18 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Kapitel 5 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta property="og:title" content="Kapitel 4 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   <meta property="og:type" content="book" />
   
   
@@ -16,7 +16,7 @@
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Kapitel 5 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta name="twitter:title" content="Kapitel 4 Analyse | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden" />
   
   
   
@@ -49,6 +49,7 @@
 
 
 
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
 
 
 
@@ -64,43 +65,45 @@
       <nav role="navigation">
 
 <ul class="summary">
-<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> - </a></li>
-<li class="chapter" data-level="2" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>2</b> Einleitung</a><ul>
-<li class="chapter" data-level="2.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>2.1</b> Motivation</a></li>
-<li class="chapter" data-level="2.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>2.2</b> Forschungsfrage</a></li>
-<li class="chapter" data-level="2.3" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>2.3</b> Daten</a></li>
-<li class="chapter" data-level="2.4" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>2.4</b> Methoden</a></li>
-<li class="chapter" data-level="2.5" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>2.5</b> Disclaimer</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Management Summary</a></li>
+<li class="chapter" data-level="1" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>1</b> Einleitung</a><ul>
+<li class="chapter" data-level="1.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>1.1</b> Motivation</a></li>
+<li class="chapter" data-level="1.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>1.2</b> Forschungsfrage</a></li>
+<li class="chapter" data-level="1.3" data-path="intro.html"><a href="intro.html#daten"><i class="fa fa-check"></i><b>1.3</b> Daten</a></li>
+<li class="chapter" data-level="1.4" data-path="intro.html"><a href="intro.html#methoden"><i class="fa fa-check"></i><b>1.4</b> Methoden</a></li>
+<li class="chapter" data-level="1.5" data-path="intro.html"><a href="intro.html#disclaimer"><i class="fa fa-check"></i><b>1.5</b> Disclaimer</a></li>
 </ul></li>
-<li class="chapter" data-level="3" data-path="daten-1.html"><a href="daten-1.html"><i class="fa fa-check"></i><b>3</b> Daten</a><ul>
-<li class="chapter" data-level="3.1" data-path="daten-1.html"><a href="daten-1.html#bezug-und-umfang"><i class="fa fa-check"></i><b>3.1</b> Bezug und Umfang</a><ul>
-<li class="chapter" data-level="3.1.1" data-path="daten-1.html"><a href="daten-1.html#aktienuniversum"><i class="fa fa-check"></i><b>3.1.1</b> Aktienuniversum</a></li>
-<li class="chapter" data-level="3.1.2" data-path="daten-1.html"><a href="daten-1.html#preisinformationen"><i class="fa fa-check"></i><b>3.1.2</b> Preisinformationen</a></li>
+<li class="chapter" data-level="2" data-path="daten-1.html"><a href="daten-1.html"><i class="fa fa-check"></i><b>2</b> Daten</a><ul>
+<li class="chapter" data-level="2.1" data-path="daten-1.html"><a href="daten-1.html#bezug-und-umfang"><i class="fa fa-check"></i><b>2.1</b> Bezug und Umfang</a><ul>
+<li class="chapter" data-level="2.1.1" data-path="daten-1.html"><a href="daten-1.html#aktienuniversum"><i class="fa fa-check"></i><b>2.1.1</b> Aktienuniversum</a></li>
+<li class="chapter" data-level="2.1.2" data-path="daten-1.html"><a href="daten-1.html#preisinformationen"><i class="fa fa-check"></i><b>2.1.2</b> Preisinformationen</a></li>
 </ul></li>
-<li class="chapter" data-level="3.2" data-path="daten-1.html"><a href="daten-1.html#aufbereitung"><i class="fa fa-check"></i><b>3.2</b> Aufbereitung</a><ul>
-<li class="chapter" data-level="3.2.1" data-path="daten-1.html"><a href="daten-1.html#bereinigung"><i class="fa fa-check"></i><b>3.2.1</b> Bereinigung</a></li>
-<li class="chapter" data-level="3.2.2" data-path="daten-1.html"><a href="daten-1.html#normalisierung"><i class="fa fa-check"></i><b>3.2.2</b> Normalisierung</a></li>
-<li class="chapter" data-level="3.2.3" data-path="daten-1.html"><a href="daten-1.html#adjustierung-unterschiedlicher-volatilitäten"><i class="fa fa-check"></i><b>3.2.3</b> Adjustierung unterschiedlicher Volatilitäten</a></li>
-</ul></li>
-</ul></li>
-<li class="chapter" data-level="4" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html"><i class="fa fa-check"></i><b>4</b> Infrastruktur und Tools</a><ul>
-<li class="chapter" data-level="4.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#cloud-setup"><i class="fa fa-check"></i><b>4.1</b> Cloud Setup</a><ul>
-<li class="chapter" data-level="4.1.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#microsoft-azure"><i class="fa fa-check"></i><b>4.1.1</b> Microsoft Azure</a></li>
-<li class="chapter" data-level="4.1.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#google-cloud"><i class="fa fa-check"></i><b>4.1.2</b> Google Cloud</a></li>
-<li class="chapter" data-level="4.1.3" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#amazon-web-services-aws"><i class="fa fa-check"></i><b>4.1.3</b> Amazon Web Services (AWS)</a></li>
-</ul></li>
-<li class="chapter" data-level="4.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#verwendete-software"><i class="fa fa-check"></i><b>4.2</b> Verwendete Software</a><ul>
-<li class="chapter" data-level="4.2.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#r-rstudio-server"><i class="fa fa-check"></i><b>4.2.1</b> R / RStudio Server</a></li>
-<li class="chapter" data-level="4.2.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#python-anaconda"><i class="fa fa-check"></i><b>4.2.2</b> Python / (Ana)conda</a></li>
+<li class="chapter" data-level="2.2" data-path="daten-1.html"><a href="daten-1.html#aufbereitung"><i class="fa fa-check"></i><b>2.2</b> Aufbereitung</a><ul>
+<li class="chapter" data-level="2.2.1" data-path="daten-1.html"><a href="daten-1.html#bereinigung"><i class="fa fa-check"></i><b>2.2.1</b> Bereinigung</a></li>
+<li class="chapter" data-level="2.2.2" data-path="daten-1.html"><a href="daten-1.html#normalisierung"><i class="fa fa-check"></i><b>2.2.2</b> Normalisierung</a></li>
+<li class="chapter" data-level="2.2.3" data-path="daten-1.html"><a href="daten-1.html#adjustierung-unterschiedlicher-volatilitäten"><i class="fa fa-check"></i><b>2.2.3</b> Adjustierung unterschiedlicher Volatilitäten</a></li>
 </ul></li>
 </ul></li>
-<li class="chapter" data-level="5" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>5</b> Analyse</a><ul>
-<li class="chapter" data-level="5.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>5.1</b> Einfache Optimierungen</a><ul>
-<li class="chapter" data-level="5.1.1" data-path="analyse.html"><a href="analyse.html#ohne-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>5.1.1</b> Ohne Berücksichtigung der Marktvolatilität</a></li>
-<li class="chapter" data-level="5.1.2" data-path="analyse.html"><a href="analyse.html#mit-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>5.1.2</b> Mit Berücksichtigung der Marktvolatilität</a></li>
+<li class="chapter" data-level="3" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html"><i class="fa fa-check"></i><b>3</b> Infrastruktur und Tools</a><ul>
+<li class="chapter" data-level="3.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#cloud-setup"><i class="fa fa-check"></i><b>3.1</b> Cloud Setup</a><ul>
+<li class="chapter" data-level="3.1.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#microsoft-azure"><i class="fa fa-check"></i><b>3.1.1</b> Microsoft Azure</a></li>
+<li class="chapter" data-level="3.1.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#google-cloud"><i class="fa fa-check"></i><b>3.1.2</b> Google Cloud</a></li>
+<li class="chapter" data-level="3.1.3" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#amazon-web-services-aws"><i class="fa fa-check"></i><b>3.1.3</b> Amazon Web Services (AWS)</a></li>
 </ul></li>
-<li class="chapter" data-level="5.2" data-path="analyse.html"><a href="analyse.html#klassifikationsverfahren"><i class="fa fa-check"></i><b>5.2</b> Klassifikationsverfahren</a><ul>
-<li class="chapter" data-level="5.2.1" data-path="analyse.html"><a href="analyse.html#preisprognose"><i class="fa fa-check"></i><b>5.2.1</b> Preisprognose</a></li>
+<li class="chapter" data-level="3.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#verwendete-software"><i class="fa fa-check"></i><b>3.2</b> Verwendete Software</a><ul>
+<li class="chapter" data-level="3.2.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#r-rstudio-server"><i class="fa fa-check"></i><b>3.2.1</b> R / RStudio Server</a></li>
+<li class="chapter" data-level="3.2.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#python-anaconda"><i class="fa fa-check"></i><b>3.2.2</b> Python / (Ana)conda</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
+<li class="chapter" data-level="4.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>4.1</b> Einfache Optimierungen</a><ul>
+<li class="chapter" data-level="4.1.1" data-path="analyse.html"><a href="analyse.html#ohne-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.1</b> Ohne Berücksichtigung der Marktvolatilität</a></li>
+<li class="chapter" data-level="4.1.2" data-path="analyse.html"><a href="analyse.html#mit-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.2</b> Mit Berücksichtigung der Marktvolatilität</a></li>
+</ul></li>
+<li class="chapter" data-level="4.2" data-path="analyse.html"><a href="analyse.html#nearest-neighbor-ansätzue"><i class="fa fa-check"></i><b>4.2</b> Nearest Neighbor Ansätzue</a><ul>
+<li class="chapter" data-level="4.2.1" data-path="analyse.html"><a href="analyse.html#distanzmasse"><i class="fa fa-check"></i><b>4.2.1</b> Distanzmasse</a></li>
+<li class="chapter" data-level="4.2.2" data-path="analyse.html"><a href="analyse.html#setup-und-berechnungsdauer"><i class="fa fa-check"></i><b>4.2.2</b> Setup und Berechnungsdauer</a></li>
+<li class="chapter" data-level="4.2.3" data-path="analyse.html"><a href="analyse.html#preisbestimmung"><i class="fa fa-check"></i><b>4.2.3</b> Preisbestimmung</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -121,53 +124,55 @@
 
             <section class="normal" id="section-">
 <div id="analyse" class="section level1">
-<h1><span class="header-section-number">Kapitel 5</span> Analyse</h1>
+<h1><span class="header-section-number">Kapitel 4</span> Analyse</h1>
 <p>Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:</p>
 <ul>
 <li>Einfache Optimierungen</li>
-<li>Klassifikationsverfahren / Nearest Neighbors</li>
+<li>Nearest Neighbors (KNN)</li>
 <li>Neuronale Netzwerke</li>
 </ul>
-<p>Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Ausage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Grenze Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel <a href="intro.html#forschungsfrage">2.2</a> ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.[^Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Exsistenz ist aber bei der Interprätation der Ergebnisse dennoch inneressant, da die Payoffs der gefundenen Strategien diebezüglich als untere Grenzen des Payoffs betrachtet werden können.</p>
+<p>Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Ausage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Grenze Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel <a href="intro.html#forschungsfrage">1.2</a> ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.[^Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Exsistenz ist aber bei der Interprätation der Ergebnisse dennoch inneressant, da die Payoffs der gefundenen Strategien diebezüglich als untere Grenzen des Payoffs betrachtet werden können.</p>
 <p>Eine weitere Gemeinsamkeit aller Analysen ist, dass der bereinigte Datensatz in ein Trainings- (80%) und ein Testdatensatz (20%) aufgeteilt wird. Diese Aufteilung erfolgt zufällig und wird für alle Analysen zwecks Vergleichbarkeit der Ergebnisse beibehalten.</p>
 <div id="einfache-optimierungen" class="section level2">
-<h2><span class="header-section-number">5.1</span> Einfache Optimierungen</h2>
+<h2><span class="header-section-number">4.1</span> Einfache Optimierungen</h2>
 <div id="ohne-berücksichtigung-der-marktvolatilität" class="section level3">
-<h3><span class="header-section-number">5.1.1</span> Ohne Berücksichtigung der Marktvolatilität</h3>
+<h3><span class="header-section-number">4.1.1</span> Ohne Berücksichtigung der Marktvolatilität</h3>
 <p>Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu ermitteln. In einer ersten sehr einfachen Evaluation sollen Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festgelegt werden. Als Startgrösse bietet sich hierbei der “Open” Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien.</p>
 <div class="figure"><span id="fig:symmetric-open-change"></span>
 <img src="Masterarbeit_files/figure-html/symmetric-open-change-1.png" alt="Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)" width="672" />
 <p class="caption">
-Abbildung 5.1: Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)
+Abbildung 4.1: Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)
 </p>
 </div>
-<p>Abbildung <a href="analyse.html#fig:symmetric-open-change">5.1</a> veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: Werden die Kaufs- und Verkaufpreise zum Handel untertags 2.5% unter resp. über dem Eröffnungskurs des jeweiligen Tages gesetzt, so resultiert ein Gewinn, welcher rund 8% über demjenigen der Referenz bei alleinigem Ausgleich am Abend liegt.</p>
-<p>Bei genauerer Betrachtung weist die Kurve einige interessante Eigenschaften auf: Der höchste Payoff wird bei einer symmetrischen Auslenkung des Preises um 0.9% erreicht. Der Payoffüberschüss beträgt an diesem Punkt rund 8.3%. Gleichzeitig zeigt sich, dass ein mehr oder weniger konstanter Paypoff-Überschuss von rund 8% im ganzen Auslenkungsbereich von 0.7 bis rund 4% erreicht werden kann. Während im Bereich tieferer Auslenkungen viele kleinere Gewinne realisiert werden, sind es beim setzen breiterer Schranken nur noch wenige, dafür grössere. Die Kurve zeigt, dass sich diese beiden Effekte im genannten Bereich in etwa die Waage halten. Dieses Ergebnis ist für einen Optionshändler insofern interessant, als dass die genaue Preisbestimmmung gar nicht von so grosser Relevanz sein könnte. Wichtig dabei zu erwähnen ist auch, dass während der Datenbereinigung tendenziell eher grosse Auslenkungen aus dem Datensatz entfernt wurden (<a href="daten-1.html#bereinigung">3.2.1</a>). Werden vermehrt auch extreme Marktbewegungen zugelassen, verschiebt sich die optimale Auslenkung der Preisschranken nach oben. In Kombination mit der Erkenntnis, dass auch bei stärkerer Bereinigung gute Payoffs bis 4% Auslenkung vom Eröffnungspreis erreicht werden, könnte dies auch eine Motivation sein, die Preise eher breiter zu setzen.</p>
+<p>Abbildung <a href="analyse.html#fig:symmetric-open-change">4.1</a> veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: Werden die Kaufs- und Verkaufpreise zum Handel untertags 2.5% unter resp. über dem Eröffnungskurs des jeweiligen Tages gesetzt, so resultiert ein Gewinn, welcher rund 8% über demjenigen der Referenz bei alleinigem Ausgleich am Abend liegt.</p>
+<p>Bei genauerer Betrachtung weist die Kurve einige interessante Eigenschaften auf: Der höchste Payoff wird bei einer symmetrischen Auslenkung des Preises um 0.9% erreicht. Der Payoffüberschüss beträgt an diesem Punkt rund 8.3%. Gleichzeitig zeigt sich, dass ein mehr oder weniger konstanter Paypoff-Überschuss von rund 8% im ganzen Auslenkungsbereich von 0.7 bis rund 4% erreicht werden kann. Während im Bereich tieferer Auslenkungen viele kleinere Gewinne realisiert werden, sind es beim setzen breiterer Schranken nur noch wenige, dafür grössere. Die Kurve zeigt, dass sich diese beiden Effekte im genannten Bereich in etwa die Waage halten. Dieses Ergebnis ist für einen Optionshändler insofern interessant, als dass die genaue Preisbestimmmung gar nicht von so grosser Relevanz sein könnte. Wichtig dabei zu erwähnen ist auch, dass während der Datenbereinigung tendenziell eher grosse Auslenkungen aus dem Datensatz entfernt wurden (<a href="daten-1.html#bereinigung">2.2.1</a>). Werden vermehrt auch extreme Marktbewegungen zugelassen, verschiebt sich die optimale Auslenkung der Preisschranken nach oben. In Kombination mit der Erkenntnis, dass auch bei stärkerer Bereinigung gute Payoffs bis 4% Auslenkung vom Eröffnungspreis erreicht werden, könnte dies auch eine Motivation sein, die Preise eher breiter zu setzen.</p>
 <p>Eine weitere Besonderheit der Kurve zeigt sich mit dem Abwärtsknick bei einer Auslenkung bei sehr kleinen Auslenkungen. Erklären lässt sich dieser Knick dadurch, dass bei allen Kursverläufen, bei denen der Eröffnungskurs gleichzeit dem Höchst-, resp. Tiefstkurs des jeweiligen Tages entspricht mindestens eine Marke nicht mehr erreicht werden kann. Bereits beim setzen etwas grösserer Schranken wird dieser Effekt allerdings wieder mehr als ausgeglichen.</p>
 <p>Auffällig ist auch die Tatsache, dass bei einer Auslenkung von 0 (und damit einem Wiederherstellen der Delta-Neutralität gleich zum Eröffnungskurs) eine deutlich bessere Performance als die Referenzstrategie aufweist. Dies lässt sich damit erklären, als dass die Werte im Datensatz offenbar eine Tendenz des “Overshootings” der Eröfnungspreise zeigen. Das beobachtete Bild lässt vermuten, dass sich die Preise im Laufe des Tages in der Tendenz wieder eher Richung Schlusskurs des Vortages entwickeln. Ein Ausgleich der aufgebauten Delta-Position “über Nacht” gleich zu Beginn des Handelstages scheint daher ebenfalls besser Ergebnisse zu liefern als die Referenzstartegie.</p>
 <p>Schliesslich stellt sich auch die Frage, inwiefern die gefundenen Ergebnisse als statistisch signifikant bezeichnet werden können. Zur Beurteilung dieser Frage wurden mittels Bootsprapverfahren ein 95%-Konfidenzband der Kurve ermittelt. Dieses ist als grau schraffierte Fläche am Rand der Kurve ersichtlich. Es zeigt sich, dass dieses Bank relativ schmal ausfällt. Auch dies kann als direkte Konsequenz der asuführlichen Datenbereinigung gesehen werden. Diese führt dazu, dass auch über verschiedene Boostrap-Samples hinweg die Payoffs stabil und wenig beeinflusst durch einzelne Beobachtungen ausfallen.</p>
 <p>Als zweites Mass zur Beurteilung der Aussagekraft der gefundenen Ergebnisse lassen sich zudem auch die Werte des Testdatensatzes heranziehen. In diesem beträgt der Payoffüberschuss im Vergleich zur Referenzstartegie bei 0.9% Auslenkung ebenfalls rund 8.3% und auch bei einer Auslenkung von 4% kommt der Überschuss bei 7.7 zu liegen. Beide Werte zeigen hohe Ähnlichkeit mit dem Traingsdatensatz und unterstreichen damit auf Signifikanz der Ergebnisse.</p>
 </div>
 <div id="mit-berücksichtigung-der-marktvolatilität" class="section level3">
-<h3><span class="header-section-number">5.1.2</span> Mit Berücksichtigung der Marktvolatilität</h3>
-<p>Die bisherige Analyse untersucht die Auslenkung der Kaufs- und Verkaufspreise um den geleichen prozentualen Wert für alle Einträge im Datensatz. Die Form der Kurve in Abbildung <a href="analyse.html#fig:symmetric-open-change">5.1</a> insbesondere deren Bimodalität deutet darauf hin, dass es sich dabei um eine Überlagerung mehrerer Kurven handeln könnte. Gelänge es, diese zu separieren und einzelnen Gruppen von Kursverkäufen im Datensatz zuzuweisen, könnten individuellere Preisschranken gewählt werden. Mit Hilfe dieser könnte der Payoff im Idealfall weiter gesteigert werden.</p>
+<h3><span class="header-section-number">4.1.2</span> Mit Berücksichtigung der Marktvolatilität</h3>
+<p>Die bisherige Analyse untersucht die Auslenkung der Kaufs- und Verkaufspreise um den geleichen prozentualen Wert für alle Einträge im Datensatz. Die Form der Kurve in Abbildung <a href="analyse.html#fig:symmetric-open-change">4.1</a> insbesondere deren Bimodalität deutet darauf hin, dass es sich dabei um eine Überlagerung mehrerer Kurven handeln könnte. Gelänge es, diese zu separieren und einzelnen Gruppen von Kursverkäufen im Datensatz zuzuweisen, könnten individuellere Preisschranken gewählt werden. Mit Hilfe dieser könnte der Payoff im Idealfall weiter gesteigert werden.</p>
 <p>Als Klassifizierungs sei dazu die Volatilität der vergangenen 10 Handelstage herangezogen. Die Vermutung liegt nahe, dass eine volatile Marktsituation in der kurfristigen Vergangenheit auch am nächsten Tag fortgesetzt werden könnte (bsp. Zeiten mit vielen marktrelevanten Informationen wie Finanzkrise, Corona-Krise, Dividend-Season etc.). Umgekehrt könnten eher ruhig verlaufende Börsentage in den vergangenen Tagen auf eine ruhige Situation auch am aktuellen Tag hinweisen (bsp. Ruhigere Zeiten während Sommerferien, etc).</p>
 <p>Um anfänglich zwei Gruppen zu unterscheiden, werden alle Einträge des Datensatzes in 2 Gruppen aufgeteilt. Einträge, welche eine aktuelle 10-Tages-Volatilität über demjenigen des Median aufweisen, werden in eine Gruppe hoher hoher Volatilität, die andern Einträge einer Gruppe tiefer Volatilität zugeordnet. Zu beachten gilt es hierbei, dass der Medianwert dabei einerseits nur innerhalb des jeweiligen Tickers betrachtet wird und für dessen Berechnung auch nur vergangene Werte mit einbezogen werden.</p>
-<p>Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung <a href="analyse.html#fig:symmetric-open-change-vol">5.2</a>).</p>
+<p>Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung <a href="analyse.html#fig:symmetric-open-change-vol">4.2</a>).</p>
 <div class="figure"><span id="fig:symmetric-open-change-vol"></span>
 <img src="Masterarbeit_files/figure-html/symmetric-open-change-vol-1.png" alt="Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)" width="672" />
 <p class="caption">
-Abbildung 5.2: Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)
+Abbildung 4.2: Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)
 </p>
 </div>
 <p>Die Grafiken zeigen das erwartete Bild. Für die Gruppe tiefere vergangener Volatiltät wird wird der maximale Payoff bei einer Auslenkung von 0.6% erreicht. Bei der Gruppe höherer Volatilität bei 3.7%. Angewendet auf das Testset resultiert mit dieser Strategie ein Payoffüberschuss von rund 9.6% nocheinmal deutlich höher aus als im ungruppieren Fall.</p>
 <p>Insbesondere bei der Gruppe der höheren Volatilitäten weist die Kurve aber weiterhin eine bimodale Form auf. Es scheint als ob mit der gemachten Gruppierung zwar ein Teil der Varianz des aktuellen Tages erklärt werden konnte, weitere Teile davon aber unerklärt bleiben. Eine Möglichkeit bestünde nun darin, die Anzahl Gruppierungen weiter zu erhöhen, indem beispeilsweise nicht nur der Median, sondern die Quartile, Dezile, Percentile etc. als Klassifikatoren gewählt werden. Darauf sei an dieser Stelle verzichtet und zu andern Ansätzen des maschinellen Lernens übergegangen.</p>
 </div>
 </div>
-<div id="klassifikationsverfahren" class="section level2">
-<h2><span class="header-section-number">5.2</span> Klassifikationsverfahren</h2>
+<div id="nearest-neighbor-ansätzue" class="section level2">
+<h2><span class="header-section-number">4.2</span> Nearest Neighbor Ansätzue</h2>
 <p>Die ökomische Theorie scheint keinen offensichtlichen Grund zu liefern, weshalb die Volatilität des aktuellen Tages in genau 2 (oder x) Gruppen eingeteilt werden sollte. Auf der andern Seite haben bisherige Analsen gezeigt, dass die aktuelle Volatilität ein erklärender Faktor für die aktuelle Volatilität sein kann. Im vorliegenden Kapitel soll dieser Gedanke weiter verfolgt und ausgebaut werden.</p>
-<p>Die Idee besteht darin, nicht lediglich x vordefinierte Gruppen für symmetrische Abweichungen zu finden, viel mehr soll versucht werden, ähnliche Kursverläufe wie den aktuellen in der Vergangenheit zu finden und individuell darauf zu reagieren. Die zugrundliegende Hypothese dieses Vorgehens ist dabei, dass bei ausreichender Historie in der Vergangenheit ähnliche Muster erkannt werden können und daraus Rückschlüsse auf die Zukunft (genauer: die Kursentwicklung des aktuellen Tages) gezogen werden können.</p>
+<div id="distanzmasse" class="section level3">
+<h3><span class="header-section-number">4.2.1</span> Distanzmasse</h3>
+<p>Die Idee des Ansatzes dieses Kapitels besteht darin, nicht lediglich x vordefinierte Gruppen für symmetrische Abweichungen zu finden, viel mehr soll versucht werden, ähnliche Kursverläufe wie den aktuellen in der Vergangenheit zu finden und individuell darauf zu reagieren. Die zugrundliegende Hypothese dieses Vorgehens ist dabei, dass bei ausreichender Historie in der Vergangenheit ähnliche Muster erkannt werden können und daraus Rückschlüsse auf die Zukunft (genauer: die Kursentwicklung des aktuellen Tages) gezogen werden können.</p>
 <p>Da es sehr unwahrscheinlich ist, die genau gleichen Kursverläufe in der Histore wiederzufinden, muss ein Ähnlichkeitsmass, resp. ein Distanzmass definiert werden, um die Nähe der Kursverläufe zu bestimmen. Um diese zu berechnen formulieren wir für jeden Eintrag <span class="math inline">\(i\)</span> den bisherigen Kursverlauf als Vektor <span class="math inline">\(hist\)</span> in der Form.</p>
 <p><span class="math display">\[ hist_{i, t} = (Open_{i, t}, High_{i, t}, Low_{j, t+1}, Close_{i, t+1}, Open_{i, t+1}, ..., Close_{i, 1}, Open_{i, 0}) \]</span></p>
 <p>Der zweite Index gibt dabei an, wieviele Tage der Vergangenheit hierbei mit einbezogen werden. Ein Index von 0 bezieht sich auf den zu prognostizierenden, aktuellen Tag. Um die Ähnlichkeit zweier Einträge <span class="math inline">\(i\)</span> und <span class="math inline">\(j\)</span> zu berechnen, bieten sich 2 Distanzmasse an:</p>
@@ -182,15 +187,57 @@ Abbildung 5.2: Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis
 \]</span></p></li>
 </ol>
 <p>Beide Masse sollen nachfolgend verwendet und verglichen werden.</p>
-<div id="preisprognose" class="section level3">
-<h3><span class="header-section-number">5.2.1</span> Preisprognose</h3>
+</div>
+<div id="setup-und-berechnungsdauer" class="section level3">
+<h3><span class="header-section-number">4.2.2</span> Setup und Berechnungsdauer</h3>
+<p>Mithilfe obiger Distanzmasse lassen sich für jeden Kursverlauf, die k ähnlichsten ander Kursverläufe im Datensatz ermitteln. Dazu seien zuerst aber eingige Übelegungen zur Berechnungskomplexität des Problems gemacht: Der vorliegende bereinigte Datensatz weist 5’572’087 tägliche Kursverläufe auf. Soll jeder Kursverlauf mit jedem andern verglichen werden, so ergeben sich bei einem Brute-Force Ansatz 5’572’087^2 Distanzberechungen. Unter Berücksichtigung der Tatsache, dass das Problem symmetrisch ist und jeder Kursverlauf nicht mit sich selbst verglichen werden muss halbiert sich die Komplexität zwar um mehr als die Hälfte, bleibt aber so gross, dass es zum Zeitpunkt des Schreibens dieser Arbeit nicht innerhalb weniger Sekunden oder Minuten auf einem handelsüblichen Heim-Computer berechnet werden kann.</p>
+<p>Die für die Nearest Neighbors Suche eingesetzten Bibliotheken greifen daher typischerweise auf sophistiziertere Vorgehensweisen zurück. Eine davon sieht die Verwendung von Multidimensionalen Suchbäumen (Search Trees, auch Kd-Trees). Diese gehen auf eine Idee von <span class="citation">Bentley (<a href="#ref-bentley">1975</a>)</span> zurück. Diese basiert darauf, dass jede Dimension in 2 Teile aufgeteilt wird (z.B. beim Median). Dadruch wird der Raum in viele kleinere Sub-Räume aufgeteilt. Der Algorithmus macht sich dabei zu Nutze, dass er nicht den ganzen Raum absuchen muss, sondern beginnend im eigenen Sub-Raum hin zu den benachtbarten Räumen, bis dass die geforderte Anzahl nächster Nachbarn gefunden ist. Allerdings ist dabei sowohl der Aufbau des Baumes wie auch die Suche im Baum mit Berechnungszeit verbunden. Zeit lässt sich debei einsparen, wenn das Problem auf eine approximative Suche unter der Inkaufname eines Fehlers reduziert wird einsparen.</p>
+<p>Die Anzahl der Dimensionen beeinflusst dabei die Berechnungszeit erheblich. Im vorliegenden Fall liegt diese bei der Berücksichtigung einer Historie von 10 Tagen à 4 Werten bei 41, wenn zusätzlich auch der (bekannte) Eröffnungspreis des aktuellen Tages mit einbezogen wird. Tests ergaben, dass die dafür benötigte Rechenzeit nicht praktikabel war. Die zu verwendende Zeitperiode wurde daher auf 3 Tage beschränkt. Dies resultiert in einer deutlichen Reduktion der Suchdimensionen auf 13.</p>
+<p>Der vorliegende Fall unterscheidet sich von andern Nearest Neighbor Problemen dadurch, als dass für jeden Eintrag lediglich Kursverläufe der Vergangenheit bertrachtet werden sollten. Im Hinblick auf die Suchstrukur bedeutet dies, dass der KD-Tree nicht nur einmalig aufgebaut und danach für alle Verläufe auf Nachbarn durchsucht werden kann. Viel mehr muss der KD-Tree für jedes Datum mit allen Kursverläufen vor diesem Datum neu aufgebaut werden.[^Natürlich sind auch Mischlösungen denkbar, bei denen nur alle x Daten der Tree neu aufgebaut wird und dafür mehr Nachbarn ermittelt werden, die im Nachgang um nicht vorher realsierte Verläufe gefiltert würden. Dies hat aber das Problem, dass a) mehr Nachbarn ermittelt werden müssen und b) nicht 100% sichergestellt ist, dass die Anzahl “Reservenaachbarn” ausreichen.] Dieser spezielle Setup kommt einer Brute-Force Methode ihrerseits wieder entgegen, da aufgrund des Datums-Filter nicht stehts alle Einträge durchsucht werden müssten.</p>
+<p>Beiden Ansätzen gemein ist hingegen, dass sie sich sehr gut parallelisieren lassen und Bibliotheken zur Verfügung stehen, welche diese Methoden effizient implementieren. Wir entscheiden uns um vorliegenden Fall für eine KD-Tree Implementation ohne Approximation. Auf einem Rechner mit 40 Cores (20 physisch, 20 Hyperthreading Cores) dauert die Berechnung von 50 Nachbarn beibe ca. 2 Stunden im Falle des euklidischen Distanzmasses und ca. 3 Stunden im Falle der Manhattan Distanz. Dieser Hohe Anspruch eines KNN-Vorgehens an die Rechenleistung sollte bei der späteren Abwägung verschiedener Algorithmen mit berücksichtigt werden. Erwähnenswert scheint hingegen auch, dass eine allfälligen Anwendung der Methode später nur wenige Titel (resp. nur diejenigen des aktuellen Tages) berechnet werden müssten. Dies ist auch unter der Verwendung einer KNN-Methode in wenigen Sekunden möglich.</p>
+</div>
+<div id="preisbestimmung" class="section level3">
+<h3><span class="header-section-number">4.2.3</span> Preisbestimmung</h3>
 <pre><code>## Warning in ans * length(l) + if1: Länge des längeren Objektes
 ##       ist kein Vielfaches der Länge des kürzeren Objektes</code></pre>
-<p>Nur 3 vorangehende Arbeitstage</p>
 <!-- ```{r child="_04-3-neural-networks.Rmd", echo=FALSE} -->
 <!-- ``` -->
 
+<div id="refs" class="references">
+<div>
+<p>Bentley, J.L. 1975. “Multidimensional Binary Search Trees Used for Associative Searching.” <em>Communications of the ACM</em> 18 (9): 509–17.</p>
 </div>
+<div>
+<p>Blackrock. 2020. “<em>IShares Msci World Ucits Etf: IWRD</em>.”</p>
+</div>
+<div>
+<p>Nestle. 2020. “<em>Dividendenzahlungen</em>.”</p>
+</div>
+<div>
+<p>SP-Finance. 2020. “<em>Delta Hedging, Gamma and Dollar Gamma</em>.”</p>
+</div>
+<div>
+<p>Yahoo. 2020. “<em>Yahoo Finance</em>.”</p>
+</div>
+<div>
+<p>Yang, D., and Q. Zhang. 2000. “Drift-Independent Volatility Estimation Based on High, Low, Open, and Close Prices.” <em>The Journal of Business</em> 73 (3): 477–92.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+<h3>References</h3>
+<div id="refs" class="references">
+<div id="ref-bentley">
+<p>Bentley, J.L. 1975. “Multidimensional Binary Search Trees Used for Associative Searching.” <em>Communications of the ACM</em> 18 (9): 509–17.</p>
 </div>
 </div>
             </section>

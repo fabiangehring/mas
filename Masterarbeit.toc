@@ -1,5 +1,5 @@
 \babel@toc {ngerman}{}
-\contentsline {section}{Management Summary}{1}{section*.2}%
+\contentsline {section}{Management Summary}{2}{section*.2}%
 \contentsline {section}{\numberline {1}Einleitung}{2}{section.1}%
 \contentsline {subsection}{\numberline {1.1}Motivation}{2}{subsection.1.1}%
 \contentsline {subsection}{\numberline {1.2}Forschungsfrage}{4}{subsection.1.2}%
@@ -26,3 +26,7 @@
 \contentsline {subsection}{\numberline {4.1}Einfache Optimierungen}{20}{subsection.4.1}%
 \contentsline {subsubsection}{\numberline {4.1.1}Ohne Berücksichtigung der Marktvolatilität}{20}{subsubsection.4.1.1}%
 \contentsline {subsubsection}{\numberline {4.1.2}Mit Berücksichtigung der Marktvolatilität}{22}{subsubsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.2}Nearest Neighbor Ansätzue}{23}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Distanzmasse}{23}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Setup und Berechnungsdauer}{24}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Preisbestimmung}{25}{subsubsection.4.2.3}%
