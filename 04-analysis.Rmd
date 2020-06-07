@@ -42,8 +42,8 @@ Eine weitere Gemeinsamkeit aller Analysen ist, dass der bereinigte Datensatz in 
 ```{r child="_04-1-optimization.Rmd", echo=FALSE}
 ```
 
-<!-- ```{r child="_04-2-knn.Rmd", echo=FALSE} -->
-<!-- ``` -->
+```{r child="_04-2-knn.Rmd", echo=FALSE}
+```
 
 <!-- ```{r child="_04-3-neural-networks.Rmd", echo=FALSE} -->
 <!-- ``` -->
