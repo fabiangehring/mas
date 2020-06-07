@@ -40,7 +40,7 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRU
 Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu ermitteln. In einer ersten sehr einfachen Evaluation sollen Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festgelegt werden. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien. 
 
 
-``` {r, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis', fig.asp=0.6, fig.pos = '!H', variation-factor-open, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r symmetric_open_change, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
 
 variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
 data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
@@ -79,14 +79,15 @@ Auffällig ist auch die Tatsache, dass bei einer Auslenkung von 0 (und damit ein
 Schliesslich stellt sich auch die Frage, inwiefern die gefundenen Ergebnisse als statistisch signifikant bezeichnet werden können. Zur Beurteilung dieser Frage wurden mittels Bootsprapverfahren ein 95%-Konfidenzband der Kurve ermittelt. Dieses ist als grau schraffierte Fläche am Rand der Kurve ersichtlich. Es zeigt sich, dass dieses Bank relativ schmal ausfällt. Auch dies kann als direkte Konsequenz der asuführlichen Datenbereinigung gesehen werden. Diese führt dazu, dass auch über verschiedene Boostrap-Samples hinweg die Payoffs stabil und wenig beeinflusst durch einzelne Beobachtungen ausfallen.
 
 
-```{r}
-scale_fct_train <- sum(calc_payoff_const_gamma(data_variation[test_idx, ], both_first = both_first[test_idx]))
+``` {r symmetric_open_change_vol, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+
+scale_fct_test <- sum(calc_payoff_const_gamma(data_variation[test_idx, ], both_first = both_first[test_idx]))
 payoff_factor_test_max <- opt_payoff_sym(
   move = 0.009, 
   data = data_variation[test_idx, ], 
   col = "Open",
   both_first = both_first[test_idx],
-  scale_fct = scale_fct_train
+  scale_fct = scale_fct_test
 )
 
 payoff_factor_test_4 <- opt_payoff_sym(
@@ -94,7 +95,7 @@ payoff_factor_test_4 <- opt_payoff_sym(
   data = data_variation[test_idx, ], 
   col = "Open",
   both_first = both_first[test_idx],
-  scale_fct = scale_fct_train
+  scale_fct = scale_fct_test
 )
 
 ```
@@ -104,15 +105,28 @@ Als zweites Mass zur Beurteilung der Aussagekraft der gefundenen Ergebnisse lass
 
 ### Mit Berücksichtigung der Marktvolatilität
 
+Die bisherige Analyse untersucht die Auslenkung der Kaufs- und Verkaufspreise um den geleichen prozentualen Wert für alle Einträge im Datensatz. Die Form der Kurve in Abbildung \@ref(fig:symmetric_open_change) insbesondere deren Bimodalität deutet darauf hin, dass es sich dabei um eine Überlagerung mehrerer Kurven handeln könnte. Gelänge es, diese zu separieren und einzelnen Gruppen von Kursverkäufen im Datensatz zuzuweisen, könnten individuellere Preisschranken gewählt werden. Mit Hilfe dieser könnte der Payoff im Idealfall weiter gesteigert werden. 
+
+Als Klassifizierungs sei dazu die Volatilität der vergangenen 10 Handelstage herangezogen. Die Vermutung liegt nahe, dass eine volatile Marktsituation in der kurfristigen Vergangenheit auch am nächsten Tag fortgesetzt werden könnte (bsp. Zeiten mit vielen marktrelevanten Informationen wie Finanzkrise, Corona-Krise, Dividend-Season etc.). Umgekehrt könnten eher ruhig verlaufende Börsentage in den vergangenen Tagen auf eine ruhige Situation auch am aktuellen Tag hinweisen (bsp. Ruhigere Zeiten während Sommerferien, etc). 
+
+Um anfänglich zwei Gruppen zu unterscheiden, werden alle Einträge des Datensatzes in 2 Gruppen aufgeteilt. Einträge, welche eine aktuelle 10-Tages-Volatilität über demjenigen des Median aufweisen, werden in eine Gruppe hoher hoher Volatilität, die andern Einträge einer Gruppe tiefer Volatilität zugeordnet. Zu beachten gilt es hierbei, dass der Medianwert dabei einerseits nur innerhalb des jeweiligen Tickers betrachtet wird und für dessen Berechnung auch nur vergangene Werte mit einbezogen werden. 
+
+Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung \@ref(fig:symmetric_open_change_col)).
+
 
 ```{r}
 
-data_variation_vol_paths <- c("data/optimizations/bootstraped_variation_factor_open_low.feather", "data/optimizations/bootstraped_variation_factor_open_high.feather")
+data_variation_vol_paths <- c(
+  "data/steps/data_variation_vol.feather",
+  "data/optimizations/bootstraped_variation_factor_open_low.feather", 
+  "data/optimizations/bootstraped_variation_factor_open_high.feather"
+)
+
+data_wide_10_vol <- arrow::read_feather("data/steps/data_wide_10_vol.feather")
 
 if (!all(map_lgl(data_variation_vol_paths, ~file.exists(.)))) {
   
   # split data into low and high varioance groups
-  data_wide_10_vol <- arrow::read_feather("data/steps/data_wide_10_vol.feather")
   vol_10 <- data_wide_10_vol$Vol_10
   data_variation_vol <- data_wide_10 %>% select(Ticker, Date, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0) %>% mutate(Vol_10 = vol_10)
   
@@ -131,6 +145,7 @@ if (!all(map_lgl(data_variation_vol_paths, ~file.exists(.)))) {
     select(-ID)
   
   data_variation_vol <- data_variation_vol %>% mutate(Vol_Group = factor(if_else(Vol_10 <= Vol_10_med, "Low", "High"), levels = c("Low", "High")))
+  write_feather(data_variation_vol, data_variation_vol_paths[1])
   
   
   # find opimal move
@@ -143,7 +158,7 @@ if (!all(map_lgl(data_variation_vol_paths, ~file.exists(.)))) {
     R = 0,
     mc.cores = ceiling(detectCores() * 0.51)
   )
-  write_feather(bootstraped_variation_factor_open_low, data_variation_vol_paths[1])
+  write_feather(bootstraped_variation_factor_open_low, data_variation_vol_paths[2])
   
   train_idx_high <- intersect(train_idx, which(data_variation_vol$Vol_Group == "High"))
   bootstraped_variation_factor_open_high <- bootstrap_variation_factor(
@@ -154,17 +169,47 @@ if (!all(map_lgl(data_variation_vol_paths, ~file.exists(.)))) {
     R = 0,
     mc.cores = ceiling(detectCores() * 0.51)
   )
-  write_feather(bootstraped_variation_factor_open_high, data_variation_vol_paths[2])
+  write_feather(bootstraped_variation_factor_open_high, data_variation_vol_paths[3])
+  
   
 } else {
-  bootstraped_variation_factor_open_low <- read_feather(data_variation_vol_paths[1])
-  bootstraped_variation_factor_open_high <- read_feather(data_variation_vol_paths[2])
+  data_variation_vol <- read_feather(data_variation_vol_paths[1])
+  bootstraped_variation_factor_open_low <- read_feather(data_variation_vol_paths[2])
+  bootstraped_variation_factor_open_high <- read_feather(data_variation_vol_paths[3])
 }
 
-plot_variation_factor(bootstraped_variation_factor_open_high)
-plot_variation_factor(bootstraped_variation_factor_open_low)
+bind_rows(
+  mutate(bootstraped_variation_factor_open_low, group = factor("Tiefe Vol_10", c("Tiefe Vol_10", "Hohe Vol_10"))),
+  mutate(bootstraped_variation_factor_open_high, group = factor("Hohe Vol_10", c("Tiefe Vol_10", "Hohe Vol_10")))
+) %>% plot_variation_factor()
 
 ```
+
+
+
+```{r}
+
+opt_move_low <- bootstraped_variation_factor_open_low$move[which.max(bootstraped_variation_factor_open_low$original)]
+opt_move_high <- bootstraped_variation_factor_open_high$move[which.max(bootstraped_variation_factor_open_high$original)]
+
+test_idx_low <- intersect(test_idx, which(data_variation_vol$Vol_Group == "Low"))
+test_idx_high <- intersect(test_idx, which(data_variation_vol$Vol_Group == "High"))
+
+scale_fct_test <- sum(calc_payoff_const_gamma(data_variation[test_idx, ], both_first = both_first[test_idx]))
+payoff_test_low <- opt_payoff_sym(move = opt_move_low, data = data_variation_vol[test_idx_low, ], both_first = both_first[test_idx_low], col = "Open")
+payoff_test_high <- opt_payoff_sym(move = opt_move_high, data = data_variation_vol[test_idx_high, ], both_first = both_first[test_idx_high], col = "Open")
+
+payoff_factor_test_vol <- (payoff_test_low + payoff_test_high) / scale_fct_test
+
+```
+
+Die Grafiken zeigen das erwartete Bild. Für die Gruppe tiefere vergangener Volatiltät wird wird der maximale Payoff bei einer Auslenkung von `r round(opt_move_low * 100, 1)`% erreicht. Bei der Gruppe höherer Volatilität bei `r round(opt_move_high * 100, 1)`%. Angewendet auf das Testset resultiert mit dieser Strategie ein Payoffüberschuss von rund `r round((payoff_factor_test_vol - 1) * 100, 1)`% nocheinmal deutlich höher aus als im ungruppieren Fall. 
+
+Insbesondere bei der Gruppe der höheren Volatilitäten weist die Kurve aber weiterhin eine bimodale Form auf. Es scheint als ob mit der gemachten Gruppierung zwar ein Teil der Varianz des aktuellen Tages erklärt werden konnte, weitere Teile davon aber unerklärt bleiben. Eine Möglichkeit bestünde nun darin, die Anzahl Gruppierungen weiter zu erhöhen, indem beispeilsweise nicht nur der Median, sondern die Quartile, Dezile, Percentile etc. als Klassifikatoren gewählt werden. Darauf sei an dieser Stelle verzichtet und zu andern Ansätzen des maschinellen Lernens übergegangen.
+
+
+
+
 
 
 

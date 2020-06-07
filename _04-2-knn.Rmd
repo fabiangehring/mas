@@ -1,5 +1,7 @@
 ## Klassifikationsverfahren
 
+Tatsächlich scheint es auch in der ökomischen Theorie keinen Grund zu geben, warum diese Aufteilung in exakt 2 Gruppen erfolgen sollte.
+
 Some Class text
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 suppressPackageStartupMessages({

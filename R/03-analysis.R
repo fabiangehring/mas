@@ -528,7 +528,7 @@ find_nn <- function(data, distance, k, mc.cores = getOption("mc.cores", 2L)) {
     curr_query <- select(filter(data, Date == curr_date), -Date)
     
     if (nrow(curr_data) == 0) {
-       out <- list(
+      out <- list(
         nn.idx = matrix(rep(NA_integer_, k * nrow(curr_query)), ncol = k),
         nn.dists =  matrix(rep(NA_real_, k * nrow(curr_query)), ncol = k)
       )
@@ -769,16 +769,22 @@ bootstrap_variation_factor <- function(data, both_first, move, R, col = "Open", 
 #'
 #' @examples
 #' plot_variation_factor(tibble(move = c(0.01, 0.02), original = c(1, 2), lower = c(0, 1.5), upper = c(3, 4.5)))
-plot_variation_factor <- function(data) {
-  ggplot2::ggplot(data, aes(x = move)) +
+plot_variation_factor <- function(data, title = "Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis") {
+  p <- ggplot2::ggplot(data, aes(x = move)) +
     geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey70") +
     ggplot2::geom_line(aes(y = original)) +
     ggplot2::xlab("Abweichung vom Eröffnungspreis") + 
     ggplot2::scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
     ggplot2::ylab( "Payoffverhältnis zur Referenzstrategie") +
     ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-    ggplot2::ggtitle("Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis") +
+    ggplot2::ggtitle(title) +
     ggplot2::theme_bw()
+  
+  if ("group" %in% names(data)) {
+    p <- p + facet_wrap(~group)
+  }
+  
+  p
 }
 
 
