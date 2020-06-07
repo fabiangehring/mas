@@ -24,3 +24,5 @@
 \contentsline {subsubsection}{\numberline {3.2.2}Python / (Ana)conda}{19}{subsubsection.3.2.2}%
 \contentsline {section}{\numberline {4}Analyse}{19}{section.4}%
 \contentsline {subsection}{\numberline {4.1}Einfache Optimierungen}{20}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}Ohne Berücksichtigung der Marktvolatilität}{20}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}Mit Berücksichtigung der Marktvolatilität}{22}{subsubsection.4.1.2}%

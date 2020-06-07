@@ -40,7 +40,7 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRU
 Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden besteht darin, diese im Testdatensatz mittels einfacher Optimierung zu ermitteln. In einer ersten sehr einfachen Evaluation sollen Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Preis festgelegt werden. Als Startgrösse bietet sich hierbei der "Open" Kurs des jeweiligen Tages an. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Glattstellung der Deltaposition bei Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien. 
 
 
-``` {r symmetric_open_change, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+``` {r symmetric-open-change, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
 
 variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
 data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
@@ -68,7 +68,7 @@ plot_variation_factor(bootstraped_variation_factor_open)
 
 ```
 
-Abbildung \@ref(fig:symmetric_open_change) veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: Werden die Kaufs- und Verkaufpreise zum Handel untertags 2.5% unter resp. über dem Eröffnungskurs des jeweiligen Tages gesetzt, so resultiert ein Gewinn, welcher rund 8% über demjenigen der Referenz bei alleinigem Ausgleich am Abend liegt. 
+Abbildung \@ref(fig:symmetric-open-change) veranschaulicht dieses Verhältnis bei variierender symmetrischer Abweichung vom Startpreis. Lesebeispiel: Werden die Kaufs- und Verkaufpreise zum Handel untertags 2.5% unter resp. über dem Eröffnungskurs des jeweiligen Tages gesetzt, so resultiert ein Gewinn, welcher rund 8% über demjenigen der Referenz bei alleinigem Ausgleich am Abend liegt. 
 
 Bei genauerer Betrachtung weist die Kurve einige interessante Eigenschaften auf: Der höchste Payoff wird bei einer symmetrischen Auslenkung des Preises um `r bootstraped_variation_factor_open$move[which.max(bootstraped_variation_factor_open$original)] * 100`% erreicht. Der Payoffüberschüss beträgt an diesem Punkt rund `r round((bootstraped_variation_factor_open$original[which.max(bootstraped_variation_factor_open$original)] - 1) * 100, 1)`%. Gleichzeitig zeigt sich, dass ein mehr oder weniger konstanter Paypoff-Überschuss von rund 8% im ganzen Auslenkungsbereich von 0.7 bis rund 4% erreicht werden kann. Während im Bereich tieferer Auslenkungen viele kleinere Gewinne realisiert werden, sind es beim setzen breiterer Schranken nur noch wenige, dafür grössere. Die Kurve zeigt, dass sich diese beiden Effekte im genannten Bereich in etwa die Waage halten. Dieses Ergebnis ist für einen Optionshändler insofern interessant, als dass die genaue Preisbestimmmung gar nicht von so grosser Relevanz sein könnte. Wichtig dabei zu erwähnen ist auch, dass während der Datenbereinigung tendenziell eher grosse Auslenkungen aus dem Datensatz entfernt wurden (\@ref(bereinigung)). Werden vermehrt auch extreme Marktbewegungen zugelassen, verschiebt sich die optimale Auslenkung der Preisschranken nach oben. In Kombination mit der Erkenntnis, dass auch bei stärkerer Bereinigung gute Payoffs bis 4% Auslenkung vom Eröffnungspreis erreicht werden, könnte dies auch eine Motivation sein, die Preise eher breiter zu setzen.
 
@@ -79,7 +79,7 @@ Auffällig ist auch die Tatsache, dass bei einer Auslenkung von 0 (und damit ein
 Schliesslich stellt sich auch die Frage, inwiefern die gefundenen Ergebnisse als statistisch signifikant bezeichnet werden können. Zur Beurteilung dieser Frage wurden mittels Bootsprapverfahren ein 95%-Konfidenzband der Kurve ermittelt. Dieses ist als grau schraffierte Fläche am Rand der Kurve ersichtlich. Es zeigt sich, dass dieses Bank relativ schmal ausfällt. Auch dies kann als direkte Konsequenz der asuführlichen Datenbereinigung gesehen werden. Diese führt dazu, dass auch über verschiedene Boostrap-Samples hinweg die Payoffs stabil und wenig beeinflusst durch einzelne Beobachtungen ausfallen.
 
 
-``` {r symmetric_open_change_vol, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, echo=FALSE}
 
 scale_fct_test <- sum(calc_payoff_const_gamma(data_variation[test_idx, ], both_first = both_first[test_idx]))
 payoff_factor_test_max <- opt_payoff_sym(
@@ -105,16 +105,16 @@ Als zweites Mass zur Beurteilung der Aussagekraft der gefundenen Ergebnisse lass
 
 ### Mit Berücksichtigung der Marktvolatilität
 
-Die bisherige Analyse untersucht die Auslenkung der Kaufs- und Verkaufspreise um den geleichen prozentualen Wert für alle Einträge im Datensatz. Die Form der Kurve in Abbildung \@ref(fig:symmetric_open_change) insbesondere deren Bimodalität deutet darauf hin, dass es sich dabei um eine Überlagerung mehrerer Kurven handeln könnte. Gelänge es, diese zu separieren und einzelnen Gruppen von Kursverkäufen im Datensatz zuzuweisen, könnten individuellere Preisschranken gewählt werden. Mit Hilfe dieser könnte der Payoff im Idealfall weiter gesteigert werden. 
+Die bisherige Analyse untersucht die Auslenkung der Kaufs- und Verkaufspreise um den geleichen prozentualen Wert für alle Einträge im Datensatz. Die Form der Kurve in Abbildung \@ref(fig:symmetric-open-change) insbesondere deren Bimodalität deutet darauf hin, dass es sich dabei um eine Überlagerung mehrerer Kurven handeln könnte. Gelänge es, diese zu separieren und einzelnen Gruppen von Kursverkäufen im Datensatz zuzuweisen, könnten individuellere Preisschranken gewählt werden. Mit Hilfe dieser könnte der Payoff im Idealfall weiter gesteigert werden. 
 
 Als Klassifizierungs sei dazu die Volatilität der vergangenen 10 Handelstage herangezogen. Die Vermutung liegt nahe, dass eine volatile Marktsituation in der kurfristigen Vergangenheit auch am nächsten Tag fortgesetzt werden könnte (bsp. Zeiten mit vielen marktrelevanten Informationen wie Finanzkrise, Corona-Krise, Dividend-Season etc.). Umgekehrt könnten eher ruhig verlaufende Börsentage in den vergangenen Tagen auf eine ruhige Situation auch am aktuellen Tag hinweisen (bsp. Ruhigere Zeiten während Sommerferien, etc). 
 
 Um anfänglich zwei Gruppen zu unterscheiden, werden alle Einträge des Datensatzes in 2 Gruppen aufgeteilt. Einträge, welche eine aktuelle 10-Tages-Volatilität über demjenigen des Median aufweisen, werden in eine Gruppe hoher hoher Volatilität, die andern Einträge einer Gruppe tiefer Volatilität zugeordnet. Zu beachten gilt es hierbei, dass der Medianwert dabei einerseits nur innerhalb des jeweiligen Tickers betrachtet wird und für dessen Berechnung auch nur vergangene Werte mit einbezogen werden. 
 
-Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung \@ref(fig:symmetric_open_change_col)).
+Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung \@ref(fig:symmetric-open-change-vol)).
 
 
-```{r}
+``` {r symmetric-open-change-vol, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
 
 data_variation_vol_paths <- c(
   "data/steps/data_variation_vol.feather",

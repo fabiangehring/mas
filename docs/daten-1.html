@@ -96,7 +96,10 @@
 </ul></li>
 </ul></li>
 <li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
-<li class="chapter" data-level="4.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>4.1</b> Einfache Optimierungen</a></li>
+<li class="chapter" data-level="4.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>4.1</b> Einfache Optimierungen</a><ul>
+<li class="chapter" data-level="4.1.1" data-path="analyse.html"><a href="analyse.html#ohne-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.1</b> Ohne Berücksichtigung der Marktvolatilität</a></li>
+<li class="chapter" data-level="4.1.2" data-path="analyse.html"><a href="analyse.html#mit-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.2</b> Mit Berücksichtigung der Marktvolatilität</a></li>
+</ul></li>
 </ul></li>
 </ul>
 
@@ -416,9 +419,9 @@ Abbildung 2.2: Lorenzkurve des Payoffs
 <p>Wir entscheiden uns für einen Volatiltätsindikator von <span class="citation">Yang and Zhang (<a href="#ref-yang_zhang">2000</a>)</span>. Dieser ist in der Lage, nicht nur Close-to-Close Preise, sondern alle im Datensatz vorhandenen Preise - namentlich Open, High, Low und Close - zu berücksichtigen. Es handelt sich dabei um eine modifizierte Version des Garman und Klass Schätzers, der auch mit Opening Sprüngen umzugehen weiss.</p>
 <p>Für die Zeitdauer wählen wir 10 Tage. Dies ist einerseits ein gebräuchliches Standardfenster, zudem erfolgte auch die Datenaufbereitung (vgl. <a href="daten-1.html#bereinigung">2.2.1</a>) auf der Bedingung, dass für jeden im Datensatz verbliebenen Eintrag dieses Fenster ohne Unterbruch vorhanden sein muss. Auf eine Gewichtung des Schätzers wird aus Gründen der Einfachheit verzichtet.</p>
 <p>Bezeichne <span class="math inline">\(vol_{i, 10}\)</span> die beschriebene 10-Tages Volatilität jeden Eintrages, so erfolgt die Adjustierung aller Preisdaten mittels folgender Formel:</p>
-<p><span class="math display">\[ P_{i, vol10} = (P_i - 100) / vol10_i + 100 \]</span></p>
+<p><span class="math display">\[ P_{i, vol10} = (P_i - 100) / \sqrt(vol10_i) + 100 \]</span></p>
 <p>Für ein zweites adjustiertes Datenset wählen wir ein längerfristiges Volatilitätsmass. Die offensichtlichste Variante, dazu das Berechungsfenster von 10 auf 250 oder mehr Tage zu erhöhen greift allerdings zu kurz, zumal im Datensatz sowohl bereinigte wie auch bereits von Beginn weg fehlende Werte vorkommen. Eine Möglichkeit bestünde darin, diese mittels Interpolationsverfahren zu füllen. Wir entscheiden uns aber dafür, als langfristiges Volatilitätsmass den Medianwert aller annualisierten 10-Tages Volatilitäten des jeweiligen Ticker <span class="math inline">\(j\)</span> zu wählen.</p>
-<p><span class="math display">\[ P_{i, vol} = (P_i - 100) / median(vol10_i, j) + 100 \]</span></p>
+<p><span class="math display">\[ P_{i, vol} = (P_i - 100) / median(\sqrt(vol10_i, j)) + 100 \]</span></p>
 <p>Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltätsadjustierung durchgeführt und miteinander verglichen. Wo nicht anders vermerkt erfolgt die Analyse ohne Adjustierung.</p>
 
 </div>
@@ -494,7 +497,7 @@ gitbook.start({
 "link": null,
 "text": null
 },
-"download": null,
+"download": ["Masterarbeit.pdf"],
 "toc": {
 "collapse": "subsection"
 }
