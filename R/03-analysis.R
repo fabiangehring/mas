@@ -572,13 +572,13 @@ find_nn <- function(data, distance, k, mc.cores = getOption("mc.cores", 2L)) {
 #' data_wide_nn <- tibble(Open_2 = c(93, 103), Open_1 = c(99, 98), Open_0 = c(103, 98), Close_2 = c(102, 105), Close_1 = c(102, 103), Close_0 = c(98, 99))
 #' plot_nn(data_wide_curr, data_wide_nn, title = "Some Test")
 #' plot_nn(select(data_wide_curr, !ends_with("_0")), select(data_wide_nn, !ends_with("_0")))
-plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean") {  
+plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, fct = function(x) mean(x, na.rm = TRUE)) {  
   
   stopifnot(sort(names(data_wide_curr)) == sort(names(data_wide_nn)))
   col_types <- unique(stringr::str_extract(names(data_wide_curr), ".*(?=_[0-9]+$)"))
   
   # predict values
-  data_wide_pred <- pred_nn(select(data_wide_nn, ends_with("_0")), method = method)
+  data_wide_pred <- pred_nn(select(data_wide_nn, ends_with("_0")), fct = fct)
   
   plot_data <- mutate(data_wide_nn, src = "nn") %>%
     bind_rows(mutate(data_wide_curr, src = "curr")) %>%
@@ -630,7 +630,7 @@ plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean")
 #' @param data_wide_pred A data.frame with the columns to predict (including at least all row indices included in nn_idx)
 #' @param nn_idx A matrix of indizes of the nearest neighbors, if left empty as default the method is applied to all entries in the column, this is handy if
 #' already all neighbors of an entry are given in data_wide
-#' @param method Methodology to predict value, see nn_apply 
+#' @param fct A function with one argument defining how the prediction should be calulated
 #'
 #' @return A data.frame with same dimensionality and cols as data_wide_pred with the prediced values
 #' @export
@@ -643,14 +643,56 @@ plot_nn <- function(data_wide_curr, data_wide_nn, title = NULL, method = "mean")
 #' 
 #' nn_idx <- matrix(c(2, 3, 4, 1, 3, 4, 1, 2, 4, 1, 2, 3), ncol = 3, byrow = TRUE)
 #' pred_nn(data_wide, nn_idx, method = "mean")
-pred_nn <- function(data_wide, nn_idx = matrix(seq_len(nrow(data_wide)), ncol = nrow(data_wide)), method = "mean") {
+pred_nn <- function(data_wide, nn_idx = matrix(seq_len(nrow(data_wide)), ncol = nrow(data_wide)), fct = function(x) mean(x, na.rm = TRUE)) {
   map_dfc(names(data_wide), function(col) {
     data_wide_nn <- matrix(data_wide[[col]][nn_idx], ncol = ncol(nn_idx))
-    if (method == "mean") {
-      return(apply(data_wide_nn, 1, mean))
-    }
+    return(apply(data_wide_nn, 1, fct))
   }) %>% set_names(names(data_wide))
 }
+
+
+
+
+#' Calculate payoff factors based on nearest neighbors compared to reference strategy
+#'
+#' @param data A data.frame with at least columns "Close_1", "Open_0", "Low_0", "High_0" and "Close_0"
+#' @param nn_idx A data.frame containing the nearest neighbor indecies. Must be of same order as data
+#' @param both_first Vector of "buy" and "sell", indicating if buy or sell action is done first.
+#' @param fct A function with one argument defining how the prediction given the neigbores should be made
+#' @param use_spread A boolean defining if the predicted Low and High spreads added to the actual OPen Price should be used instead of the predicted Low and High Prices
+#'
+#' @return
+#' @export
+#'
+#' @examples
+calc_nn_payoff_factor <- function(data, nn_idx, both_first, fct = function(x) mean(x, na.rm = TRUE), use_spread = FALSE) {
+  
+  scale_fct_test <- sum(calc_payoff_const_gamma(select(data, Close_1, Low = "Low_0", High = "High_0", Close_0), both_first = both_first))
+  pred <- pred_nn(
+    data_wide = data %>% select(Open_0, Low_0, High_0), 
+    nn_idx = as.matrix(nn_idx), 
+    fct = fct
+  )
+  pred$Low_0[is.na(pred$Low_0)] <- -Inf
+  pred$High_0[is.na(pred$High_0)] <- Inf
+  
+  if (use_spread) {
+    buy <- data$Open_0 + (pred$Low_0 - pred$Open_0)
+    sell <- data$Open_0 + (pred$High_0 - pred$Open_0)
+  } else {
+    buy <- pred$Low_0
+    sell <- pred$High_0
+  }
+  
+  payoff <- sum(calc_payoff_const_gamma(
+    quotes_line = select(data, Close_1, Low = "Low_0", High = "High_0", Close_0),
+    buy = buy,
+    sell = sell,
+    both_first = both_first)
+  )
+  payoff / scale_fct_test
+}
+
 
 
 plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first = 1234) {
@@ -664,6 +706,7 @@ plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first 
   
   data_per_date <- arrange(data, Date) %>% split(data$Date)
   
+  browser()
   payoffs <- map_df(seq_along(data_per_date), function(i) {
     curr_data <- data_per_date[[i]]
     payoff_base_curr <- sum(calc_payoff_const_gamma(curr_data, both_first = both_first))

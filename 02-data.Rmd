@@ -6,6 +6,8 @@
 
 ```{r, retrieve-etf-data, echo=FALSE, warning=FALSE, message=FALSE}
 suppressPackageStartupMessages({
+  library(tidyselect)
+  library(tidyverse)
   library(digest)
   library(here)
   library(dplyr)
@@ -194,7 +196,7 @@ Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von d
 
 
 ```{r, knn-data-preparation, echo=FALSE}
-if (!file.exists("data/steps/quotes_clean.feather")) {
+if (!file.exists("data/steps/data_wide_10.feather")) {
   window <- 10
   data_wide_10 <- quotes_clean %>%
     dplyr::group_by(Ticker) %>%

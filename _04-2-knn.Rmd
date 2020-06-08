@@ -12,6 +12,17 @@ suppressPackageStartupMessages({
 })
 
 source("R/03-analysis.R")
+Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
+
+
+data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
+
+set.seed(123456)
+train_idx <- sample(x = nrow(data_wide_10), size = floor(0.8 * nrow(data_wide_10)))
+test_idx <- setdiff(seq_len(nrow(data_wide_10)), train_idx)
+
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
+
 
 ```
 
@@ -55,7 +66,8 @@ Der vorliegende Fall unterscheidet sich von andern Nearest Neighbor Problemen da
 Beiden Ansätzen gemein ist hingegen, dass sie sich sehr gut parallelisieren lassen und Bibliotheken zur Verfügung stehen, welche diese Methoden effizient implementieren. Wir entscheiden uns um vorliegenden Fall für eine KD-Tree Implementation ohne Approximation. Auf einem Rechner mit 40 Cores (20 physisch, 20 Hyperthreading Cores) dauert die Berechnung von 50 Nachbarn beibe ca. 2  Stunden im Falle des euklidischen Distanzmasses und ca. 3 Stunden im Falle der Manhattan Distanz. Dieser Hohe Anspruch eines KNN-Vorgehens an die Rechenleistung sollte bei der späteren Abwägung verschiedener Algorithmen mit berücksichtigt werden. Erwähnenswert scheint hingegen auch, dass eine allfälligen Anwendung der Methode später nur wenige Titel (resp. nur diejenigen des aktuellen Tages) berechnet werden müssten. Dies ist auch unter der Verwendung einer KNN-Methode in wenigen Sekunden möglich. 
 
 
-### Preisbestimmung
+### Bestimmung Kaufs- und Verkaufspreise
+
 
 
 ```{r, knn-calculation, echo=FALSE}
@@ -102,3 +114,87 @@ if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
 
 ```
 
+
+```{r}
+
+curr_idx <- 300000
+k <- 20
+
+
+cols_3_incl_0 <- as.vector(outer(c("Open_", "Low_", "High_", "Close_"), 0:3, FUN = paste0))
+
+data_knn_3_incl_0 <- select(data_wide_10, c("Date", cols_3_incl_0)) %>%
+  arrange(Date)
+
+
+data_wide_curr <- data_knn_3_incl_0[curr_idx,]
+data_wide_nn_eucl <- data_knn_3_incl_0[unlist(nn_3_eucl_idx[curr_idx, ], use.names = FALSE)[seq_len(k)], ]
+data_wide_nn_manh <- data_knn_3_incl_0[unlist(nn_3_manh_idx[curr_idx, ], use.names = FALSE)[seq_len(k)], ]
+
+
+# data_wide_nn - map_df(seq_len(k), ~data_wide_curr)
+
+plot_nn(data_wide_curr = data_wide_curr, data_wide_nn = data_wide_nn_eucl)
+plot_nn(data_wide_curr = data_wide_curr, data_wide_nn = data_wide_nn_manh)
+
+```
+
+
+```{r} 
+
+k <- 10
+
+payoff_factor_test_eucl <- calc_nn_payoff_factor(
+  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+  nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
+  both_first = both_first[test_idx],
+  fct = function(x) mean(x, na.rm = TRUE),
+  use_spread = FALSE
+)
+
+
+payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
+  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+  nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
+  both_first = both_first[test_idx],
+  fct = function(x) mean(x, na.rm = TRUE),
+  use_spread = TRUE
+)
+
+payoff_factor_test_manh <- calc_nn_payoff_factor(
+  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+  both_first = both_first[test_idx],
+  fct = function(x) mean(x, na.rm = TRUE),
+  use_spread = FALSE
+)
+
+
+payoff_factor_test_manh_spread <- calc_nn_payoff_factor(
+  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+  both_first = both_first[test_idx],
+  fct = function(x) mean(x, na.rm = TRUE),
+  use_spread = TRUE
+)
+
+
+payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
+  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+  both_first = both_first[test_idx],
+  fct = function(x) median(x, na.rm = TRUE),
+  use_spread = TRUE
+)
+
+```
+
+
+```{r}
+
+k <- 20
+data_test <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ]
+pred_test <- pred_nn(select(data_test, Low_0, High_0), as.matrix(nn_3_manh_idx[test_idx, seq_len(k)]))
+
+plot_ratio_history(data_test %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_test %>% rename(Buy = Low_0, Sell = High_0), both_first = both_first[test_idx])
+```
