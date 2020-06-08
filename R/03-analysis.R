@@ -695,22 +695,30 @@ calc_nn_payoff_factor <- function(data, nn_idx, both_first, fct = function(x) me
 
 
 
-plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first = 1234) {
+plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first = 1234, use_spread = FALSE) {
   
   stopifnot(nrow(quotes_line) == nrow(data_pred))
-  data <- bind_cols(quotes_line, data_pred)
+  payoff_base <- sum(calc_payoff_const_gamma(quotes_line, both_first = both_first))
+  unique_sorted_dates <- sort(unique(quotes_line$Date))
   
-  payoff_base <- sum(calc_payoff_const_gamma(data, both_first = both_first))
+  data_pred <- data_pred %>% rename(Pred_Open_0 = "Open_0", Pred_Low_0 = "Low_0", Pred_High_0 = "High_0")
   
-  unique_sorted_dates <- sort(unique(data$Date))
-  
+  data <- bind_cols(quotes_line, data_pred, both_first = both_first)
   data_per_date <- arrange(data, Date) %>% split(data$Date)
   
-  browser()
   payoffs <- map_df(seq_along(data_per_date), function(i) {
     curr_data <- data_per_date[[i]]
-    payoff_base_curr <- sum(calc_payoff_const_gamma(curr_data, both_first = both_first))
-    payoff_curr <- sum(calc_payoff_const_gamma(curr_data, buy = curr_data$Buy, sell = curr_data$Sell, both_first = both_first))
+    payoff_base_curr <- sum(calc_payoff_const_gamma(curr_data, both_first = curr_data$both_first))
+    
+    if (use_spread) {
+      buy <- curr_data$Open_0 + (curr_data$Pred_Low_0 - curr_data$Pred_Open_0)
+      sell <- curr_data$Open_0 + (curr_data$Pred_High_0 - curr_data$Pred_Open_0)
+    } else {
+      buy <- curr_data$Pred_Low_0
+      sell <-curr_data$Pred_High_0
+    }
+    
+    payoff_curr <- sum(calc_payoff_const_gamma(curr_data, buy = buy, sell = sell, both_first =  curr_data$both_first))
     list(date = unique_sorted_dates[i], payoff_curr = payoff_curr, payoff_base = payoff_base_curr, n = nrow(curr_data))
   })
   

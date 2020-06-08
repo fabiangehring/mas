@@ -193,8 +193,8 @@ payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
 ```{r}
 
 k <- 20
-data_test <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ]
-pred_test <- pred_nn(select(data_test, Low_0, High_0), as.matrix(nn_3_manh_idx[test_idx, seq_len(k)]))
+data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
+pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_manh_idx[train_idx, seq_len(k)]))
 
-plot_ratio_history(data_test %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_test %>% rename(Buy = Low_0, Sell = High_0), both_first = both_first[test_idx])
+plot_ratio_history(data_train %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_train, both_first = both_first[train_idx], use_spread = TRUE)
 ```
