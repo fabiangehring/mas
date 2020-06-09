@@ -141,8 +141,7 @@ plot_nn(data_wide_curr = data_wide_curr, data_wide_nn = data_wide_nn_manh)
 
 ```
 
-
-Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp. Verkaufsschranken gewählt, lässt sich der Payoff berechnen und mit demjenigen der Referenzstartegie vergleichen. Wie bereits ausgeführt werden bei der Suche nach Nachbarn nur Einträge der Vergangenheit berücksichtigt. Die Menge an verfügbaren Vergleichsverläufen nimmt damit ständig zu. Stellt man Payoff-Vergleich über die Zeit dar, sollte damit ein gewisser Lerneffekt der Methode sichtbar werden. Wie in Abbildung \@ref(fig:hist-knn) ersichtlich zeigt diese Kurve insbesondere drei Eigenschaften:
+Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp. Verkaufsschranken gewählt, lässt sich der Payoff berechnen und mit demjenigen der Referenzstartegie vergleichen. Wie bereits ausgeführt werden bei der Suche nach Nachbarn nur Einträge der Vergangenheit berücksichtigt. Die Menge an verfügbaren Vergleichsverläufen nimmt damit ständig zu. Stellt man Payoff-Vergleich für das Training Set über die Zeit dar, sollte damit ein gewisser Lerneffekt der Methode sichtbar werden. Wie in Abbildung \@ref(fig:hist-knn) ersichtlich zeigt diese Kurve insbesondere drei Eigenschaften:
 
 1. Hohe Volatilität des Vergleichsfaktor zu Beginn
 1. Steigende Faktorhöhe mit fortlaufender Zeitdauer
@@ -169,7 +168,7 @@ Eine erste Möglichkeit auf Basis der zukünftigen Kursentwicklungen der nächst
 Die zweite hier betrachtete Möglichkeit besteht darin, die Kaufs- und Verkaufspreise nicht direkt vorauszusagen, sondern als Abweichung vom Eröffnungskurs zu modellieren. Hierzu wird für jeden Nachbarn die Differenz von Eröffnungs- und Tiefstpreis resp. Eröffnungs- und Höchstpreis berechnet. Die entsprechende Metrik (Mittelwert oder Median) wird dann auf diese Werte angewandt und auf den Tatsächlichen Eröffnungspreis zu zu analysierenden Titels appliziert. Dies hat den Vorteil, dass der bekannte Eröffnungspreis keiner Unsicherheit mehr unterliegt.
 
 
-Tabelle \@ref(tab:knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
+Tabelle \@ref(tab:knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen für des Testingset einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
 
 Allen Ergebnissen gemein ist hingegen, dass sie der einfachen Strategie des Vorkapitels nicht überlegen sind. Im Gegenteil fallen die Payoffs im Vergleich trotz deutlich höherem Berechnungsaufwand in der Tendenz schlechter aus, wenn auch der Payoff der Referenzstrategie weiter deutlich geschlagen wird. Die Hoffnung, dass mit der Individualisierung der einzelnen Einträge mehr kursrelevante Information extrahiert werden kann, bestätigt sich nicht. Ein Grund könnte in der durch die Berechnungskomplexität beschränkte Begrenzung auf ein Zeitfenster von 3 vorangegangenen Tagen sein.
 
