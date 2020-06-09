@@ -9,6 +9,8 @@ suppressPackageStartupMessages({
   library(pbmcapply)
   library(parallel)
   library(arrow)
+  library(knitr)
+  library(kableExtra)
 })
 
 source("R/03-analysis.R")
@@ -143,49 +145,49 @@ plot_nn(data_wide_curr = data_wide_curr, data_wide_nn = data_wide_nn_manh)
 ```{r} 
 
 k <- 10
-
-payoff_factor_test_eucl <- calc_nn_payoff_factor(
-  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-  nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
-  both_first = both_first[test_idx],
-  fct = function(x) mean(x, na.rm = TRUE),
-  use_spread = FALSE
-)
-
-
-payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
-  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-  nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
-  both_first = both_first[test_idx],
-  fct = function(x) mean(x, na.rm = TRUE),
-  use_spread = TRUE
-)
-
-payoff_factor_test_manh <- calc_nn_payoff_factor(
-  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-  both_first = both_first[test_idx],
-  fct = function(x) mean(x, na.rm = TRUE),
-  use_spread = FALSE
-)
-
-
-payoff_factor_test_manh_spread <- calc_nn_payoff_factor(
-  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-  both_first = both_first[test_idx],
-  fct = function(x) mean(x, na.rm = TRUE),
-  use_spread = TRUE
-)
-
-
-payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
-  data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-  nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-  both_first = both_first[test_idx],
-  fct = function(x) median(x, na.rm = TRUE),
-  use_spread = TRUE
-)
+# 
+# payoff_factor_test_eucl <- calc_nn_payoff_factor(
+#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+#   nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
+#   both_first = both_first[test_idx],
+#   fct = function(x) mean(x, na.rm = TRUE),
+#   use_spread = FALSE
+# )
+# 
+# 
+# payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
+#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+#   nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
+#   both_first = both_first[test_idx],
+#   fct = function(x) mean(x, na.rm = TRUE),
+#   use_spread = TRUE
+# )
+# 
+# payoff_factor_test_manh <- calc_nn_payoff_factor(
+#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+#   both_first = both_first[test_idx],
+#   fct = function(x) mean(x, na.rm = TRUE),
+#   use_spread = FALSE
+# )
+# 
+# 
+# payoff_factor_test_manh_spread <- calc_nn_payoff_factor(
+#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+#   both_first = both_first[test_idx],
+#   fct = function(x) mean(x, na.rm = TRUE),
+#   use_spread = TRUE
+# )
+# 
+# 
+# payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
+#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
+#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
+#   both_first = both_first[test_idx],
+#   fct = function(x) median(x, na.rm = TRUE),
+#   use_spread = TRUE
+# )
 
 ```
 
@@ -193,8 +195,15 @@ payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
 ```{r}
 
 k <- 20
-data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
-pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_manh_idx[train_idx, seq_len(k)]))
+# data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
+# pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_manh_idx[train_idx, seq_len(k)]))
+# 
+# plot_ratio_history(data_train %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_train, both_first = both_first[train_idx], use_spread = TRUE)
+```
 
-plot_ratio_history(data_train %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_train, both_first = both_first[train_idx], use_spread = TRUE)
+```{r}
+long_dt <-rbind(mtcars, mtcars)
+kable(long_dt, "latex", longtable = T, booktabs = T, caption = "Longtable")%>%
+  add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
+  kable_styling(latex_options =c("repeat_header"))
 ```
