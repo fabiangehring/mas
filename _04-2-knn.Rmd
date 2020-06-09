@@ -118,7 +118,7 @@ if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
 
 Sind die Nachbarn eines Eintrages ermittelt lässt sich eine Prognose für den weiteren Kursverlauf des aktuellen Eintrages ableiten. Dazu wird aus den bekannten Kursverläufen der Nachbarn für den kommenden Börstentag mittels geeigneter Metrik ein Prognosewert abgeleitet. Abbildung \@ref(fig:example_nearest_neighbor_outlook) illustriert dieses Vorgehen anhand eines Beispiels. Die Grafiken zeigen die Kursverläufe des aktuellen Eintrages (rot) sowie diejenigen der nächsten 5 Nachbarn für den aktuellen zu prognostizierenden Tag (t) sowie die 3 jeweils vorangegangenen Handelstage (t-1, ... , t-3). Zur Bestimmung der Nähe werden dabei nur die Tage in der Vergangenheit sowie der Open-Preis des aktuellen Tages verwendet. Die gestrichelte rote Linie zeigt den auf Basis der Nachbarn prognostizierten Wert.
 
-``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn fig.asp=1, fig.pos = '!H', anef-data, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis naeshter Nachhbarn', fig.asp=1, fig.pos = '!H', anef-data, echo=FALSE, message=FALSE, warning=FALSE}
 k <- 5
 curr_idx <- 432100
 
@@ -149,7 +149,7 @@ Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp
 
 Beide Eigenschaften decken sich mit der Intuition. Da zu Beginn der Datenreihe nur sehr wenige Vergleichsverläufe zur Verfügung stehen, reagiert die Kurve sehr sensitiv auf einzelne Beobachtungen und schlägt entsprechend aus. Dies glättet sich im Laufe der Zeit mit dem Vorhandensein von mehr Vergleichsmöglichkeiten. Die zweite Eiegenschaft des steigenden Faktors zeigt, dass der erhoffte Lerneffekt einzutreten scheint. Tatsächlich scheinen damit ähnliche Kursverläufe der Vergangenheit zukünftige Entwicklungen teilweise erklären zu können. Dies deckt sich mit der Erkenntnis des vergangenen Kapitels. Anders als zuvor kann dieser Lernmechanismus aber sehr individuell und nicht beschränkt auf 2 Gruppen erfolgen. Die dritte Eigenschaft zeigt, dass dieser Lerneffekt aber nach gewisser Zeit gesättigt ist.
 
-``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn fig.asp=1, fig.pos = '!H', anehist-knndasdasdf, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn', fig.asp=1, fig.pos = '!H', anehist-knndasdasdf, echo=FALSE, message=FALSE, warning=FALSE}
 data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
 pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_eucl_idx[train_idx, seq_len(k)]))
 
@@ -197,8 +197,8 @@ calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first,
   }, use_spread = FALSE, nn_idx = nn_idx, mc.cores = mc.cores) %>% set_names(factor_names)
 }
 
-nn_factors_eucl <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, FALSE, both_first, test_idx)
-nn_factors_eucl_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, TRUE, both_first, test_idx)
+# nn_factors_eucl <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, FALSE, both_first, test_idx)
+# nn_factors_eucl_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, TRUE, both_first, test_idx)
 
 
 # payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
@@ -238,10 +238,10 @@ nn_factors_eucl_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3
 ```
 
 ```{r}
-long_dt <-rbind(mtcars, mtcars)
-kable(long_dt)%>%
-  add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
-  kable_styling(latex_options =c("repeat_header"))
+# long_dt <-rbind(mtcars, mtcars)
+# kable(long_dt)%>%
+#   add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
+#   kable_styling(latex_options =c("repeat_header"))
 ```
 
 

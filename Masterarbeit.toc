@@ -29,4 +29,4 @@
 \contentsline {subsection}{\numberline {4.2}Nearest Neighbor Ansätzue}{23}{subsection.4.2}%
 \contentsline {subsubsection}{\numberline {4.2.1}Distanzmasse}{23}{subsubsection.4.2.1}%
 \contentsline {subsubsection}{\numberline {4.2.2}Setup und Berechnungsdauer}{24}{subsubsection.4.2.2}%
-\contentsline {subsubsection}{\numberline {4.2.3}Preisbestimmung}{25}{subsubsection.4.2.3}%
+\contentsline {subsubsection}{\numberline {4.2.3}Bestimmung Kaufs- und Verkaufspreise}{25}{subsubsection.4.2.3}%
