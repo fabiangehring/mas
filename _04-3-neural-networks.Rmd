@@ -25,7 +25,8 @@ sample_idx <- seq_len(500)
 ```
 
 
-Nicht nur 3 Arbeitstage
+Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist.
+
 
 ### Unabhängige Vorhersagewerte
 
