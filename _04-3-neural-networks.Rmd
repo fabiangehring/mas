@@ -25,7 +25,21 @@ sample_idx <- seq_len(500)
 ```
 
 
-Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist.
+Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Für die vorliegenden Analysen verwenden wir eine einfache Architektur mehrerer aufeinanderfolgender Dense Layer. Das Ziel der Analyse bleibt hingegen das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. Wie bereits früher ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff weiter in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls lukrativ sein könnte eher breite Preisschranken zu setzen, welche zwar weniger oft erreicht werden, in diesem Fall aber einen umso höheren Payoff abwerfen. Als erste der betrachteten Methoden sollen nachfolgend daher nicht nur der kommende Höchst- und Tiefstwerte pronostiziert werden, sondern auch deren Verteilung. Unter Berücksichtigung der jeweiligen Eintratenswahrscheinlichkeit lassen sich damit die Preisschranken so setzen, dass der Payoff optimiert wird.
+
+
+### Diskretisierung
+Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gross ausfallen. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall wurden dazu zwei Strategien verfolgt:
+
+**1. Unabhängige Modellierung von Low, High und Close Preisen**  
+
+
+
+**2. Abhöngige Modellierung der Preise**  
+
+
+
+
 
 
 ### Unabhängige Vorhersagewerte
