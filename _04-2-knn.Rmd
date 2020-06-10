@@ -152,10 +152,10 @@ Beide Eigenschaften decken sich mit der Intuition. Da zu Beginn der Datenreihe n
 ``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn', fig.asp=1, fig.pos = '!H', anehist-knndasdasdf, echo=FALSE, message=FALSE, warning=FALSE}
 data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
 
-hist_pred_train_path <- "data/steps/hist_pred_train.feather"
+hist_pred_train_path <- "data/knn/hist_pred_train.feather"
 if (!file.exists(hist_pred_train_path)) {
   hist_pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_eucl_idx[train_idx, seq_len(k)]))
-  write_feather(hist_pred_train, "data/steps/hist_pred_train.feather")
+  write_feather(hist_pred_train, hist_pred_train_path)
 } else {
   hist_pred_train <- read_feather(hist_pred_train_path)
 }
@@ -203,36 +203,46 @@ calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first,
       fct = fct,
       use_spread = use_spread
     )
-  }, use_spread = FALSE, nn_idx = nn_idx, mc.cores = mc.cores) %>% set_names(factor_names)
+  }, use_spread = use_spread, nn_idx = nn_idx, mc.cores = mc.cores) %>% set_names(factor_names)
 }
 
-nn_factors_eucl <- calc_nn_factors(
-  data = data_knn_3_incl_0, 
-  factor_config = factor_config, 
-  nn_idx = nn_3_eucl_idx, 
-  use_spread = FALSE, 
-  both_first = both_first, 
-  test_idx = test_idx, 
-  mc.cores = ceiling(0.51 * detectCores())
-)
+eucl_table_paths <- c("data/knn/eucl_table.feather", "data/knn/manh_table.feather")
+if (all(map_lgl(eucl_table_paths, !file.exists(.)))) {
+  
+  mc.cores <- ceiling(0.51 * detectCores())
+  
+  nn_factors_eucl <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, FALSE, both_first, test_idx, mc.cores)
+  nn_factors_eucl_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, TRUE, both_first, test_idx, mc.cores)
+  nn_factors_manh <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_manh_idx, FALSE, both_first, test_idx, mc.cores)
+  nn_factors_manh_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_manh_idx, TRUE, both_first, test_idx, mc.cores)
+  
+  eucl_table <- tibble(
+    `Anzahl Nachbarn` = k_levels,
+    `Mittelwert_Direkt` = unlist(nn_factors_eucl[seq_along(k_levels)], use.names = FALSE),
+    `Mittelwert_Addon` = unlist(nn_factors_eucl_spread[seq_along(k_levels)], use.names = FALSE),
+    `Median_Direkt` = unlist(nn_factors_eucl[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
+    `Median_Addon` =  unlist(nn_factors_eucl_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
+  )
+  write_feather(eucl_table, eucl_table_paths[1])
+  
+  manh_table <- tibble(
+    `Anzahl Nachbarn` = k_levels,
+    `Mittelwert_Direkt` = unlist(nn_factors_manh[seq_along(k_levels)], use.names = FALSE),
+    `Mittelwert_Addon` = unlist(nn_factors_manh_spread[seq_along(k_levels)], use.names = FALSE),
+    `Median_Direkt` = unlist(nn_factors_manh[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
+    `Median_Addon` =  unlist(nn_factors_manh_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
+  )
+  write_feather(manh_table, eucl_table_paths[2])
+  
+  
+} else {
+  eucl_table <- read_feather(eucl_table_paths[1])
+  eucl_table <- read_feather(eucl_table_paths[2])
+}
 
-nn_factors_eucl_spread <- calc_nn_factors(
-  data = data_knn_3_incl_0, 
-  factor_config = factor_config, 
-  nn_idx = nn_3_eucl_idx, 
-  use_spread = TRUE, 
-  both_first = both_first, 
-  test_idx = test_idx, 
-  mc.cores = ceiling(0.51 * detectCores())
-)
 
-eucl_table <- tibble(
-  `Anzahl Nachbarn` = k_levels,
-  `Mittelwert_Direkt` = unlist(nn_factors_eucl[seq_along(k_levels)], use.names = FALSE),
-  `Mittelwert_Addon` = unlist(nn_factors_eucl_spread[seq_along(k_levels)], use.names = FALSE),
-  `Median_Direkt` = unlist(nn_factors_eucl[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
-  `Median_Addon` =  unlist(nn_factors_eucl_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
-)
+
+
 ```
 
 

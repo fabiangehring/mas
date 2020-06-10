@@ -667,6 +667,8 @@ pred_nn <- function(data_wide, nn_idx = matrix(seq_len(nrow(data_wide)), ncol = 
 #' @examples
 calc_nn_payoff_factor <- function(data, nn_idx, both_first, fct = function(x) mean(x, na.rm = TRUE), use_spread = FALSE) {
   
+  browser()
+  
   scale_fct_test <- sum(calc_payoff_const_gamma(select(data, Close_1, Low = "Low_0", High = "High_0", Close_0), both_first = both_first))
   pred <- pred_nn(
     data_wide = data %>% select(Open_0, Low_0, High_0), 
