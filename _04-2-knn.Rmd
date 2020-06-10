@@ -206,8 +206,8 @@ calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first,
   }, use_spread = use_spread, nn_idx = nn_idx, mc.cores = mc.cores) %>% set_names(factor_names)
 }
 
-eucl_table_paths <- c("data/knn/eucl_table.feather", "data/knn/manh_table.feather")
-if (all(map_lgl(eucl_table_paths, !file.exists(.)))) {
+factor_table_paths <- c("data/knn/eucl_table.feather", "data/knn/manh_table.feather")
+if (all(map_lgl(factor_table_paths, ~!file.exists(.)))) {
   
   mc.cores <- ceiling(0.51 * detectCores())
   
@@ -223,7 +223,7 @@ if (all(map_lgl(eucl_table_paths, !file.exists(.)))) {
     `Median_Direkt` = unlist(nn_factors_eucl[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
     `Median_Addon` =  unlist(nn_factors_eucl_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
   )
-  write_feather(eucl_table, eucl_table_paths[1])
+  write_feather(eucl_table, factor_table_paths[1])
   
   manh_table <- tibble(
     `Anzahl Nachbarn` = k_levels,
@@ -232,15 +232,13 @@ if (all(map_lgl(eucl_table_paths, !file.exists(.)))) {
     `Median_Direkt` = unlist(nn_factors_manh[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
     `Median_Addon` =  unlist(nn_factors_manh_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
   )
-  write_feather(manh_table, eucl_table_paths[2])
+  write_feather(manh_table, factor_table_paths[2])
   
   
 } else {
-  eucl_table <- read_feather(eucl_table_paths[1])
-  eucl_table <- read_feather(eucl_table_paths[2])
+  eucl_table <- read_feather(factor_table_paths[1])
+  manh_table <- read_feather(factor_table_paths[2])
 }
-
-
 
 
 ```
@@ -253,40 +251,6 @@ kable(eucl_table, col.names = c("", "Mittelwert", "Median", "Mittelwert", "Media
   column_spec(1, bold = TRUE)
 # kable_styling(latex_options = c("repeat_header"))
 
-
-# payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
-#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-#   nn_idx = nn_3_eucl_idx[test_idx, seq_len(k)],
-#   both_first = both_first[test_idx],
-#   fct = function(x) mean(x, na.rm = TRUE),
-#   use_spread = TRUE
-# )
-# 
-# payoff_factor_test_manh <- calc_nn_payoff_factor(
-#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-#   both_first = both_first[test_idx],
-#   fct = function(x) mean(x, na.rm = TRUE),
-#   use_spread = FALSE
-# )
-# 
-# 
-# payoff_factor_test_manh_spread <- calc_nn_payoff_factor(
-#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-#   both_first = both_first[test_idx],
-#   fct = function(x) mean(x, na.rm = TRUE),
-#   use_spread = TRUE
-# )
-# 
-# 
-# payoff_factor_test_manh_spread_median <- calc_nn_payoff_factor(
-#   data = select(data_knn_3_incl_0, Close_1, Open_0, Low_0, High_0, Close_0)[test_idx, ],
-#   nn_idx = nn_3_manh_idx[test_idx, seq_len(k)],
-#   both_first = both_first[test_idx],
-#   fct = function(x) median(x, na.rm = TRUE),
-#   use_spread = TRUE
-# )
 
 ```
 
