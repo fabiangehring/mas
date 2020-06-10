@@ -942,11 +942,10 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
 #'
 #' @examples
 #' get_neural_model_ind(data_wide_3_all)
-get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical", spread = FALSE) {
+get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical", spread = FALSE, n_groups_per_col = 30) {
   
   type <- "ind"
-  n_groups_per_col <- 30
-  
+
   ### model for close
   spread_text <- "non_spread"
   if (spread) {
@@ -999,7 +998,14 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
       close = nn$discretization$close %$% groups
     )
     
-    write_feather(labels[train_idx, ], paste0(path, "labels_train.feather"))
+    labels_low <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=labels$low))
+    write_feather(labels_low[train_idx, ], paste0(path, "labels_low_train.feather"))
+    
+    labels_high <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=labels$high))
+    write_feather(labels_high[train_idx, ], paste0(path, "labels_high_train.feather"))
+    
+    labels_close <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=labels$close))
+    write_feather(labels_close[train_idx, ], paste0(path, "labels_close_train.feather"))
     
     data_short <- shorten_data(data_wide)
     write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
@@ -1010,14 +1016,24 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
 }
 
 
-get_neural_model_dep <- function(data_wide, architecture, crossentropy, n_groups_per_col) {
+get_neural_model_dep <- function(data_wide, architecture, crossentropy, spread, n_groups_per_col) {
   
   type <- "dep"
   path <- paste0("data/models/", type, "/", crossentropy, "/", architecture, "/")
   
   ### model for close
   model_names <- c("pred_prob")
-  model_paths <- paste0(path, model_names, ".feather")
+  
+  ### model for close
+  spread_text <- "non_spread"
+  if (spread) {
+    spread_text <- "spread"
+    data_wide$Low_0 <- data_wide$Low_0 - data_wide$Open_0
+    data_wide$High_0 <- data_wide$High_0 - data_wide$Open_0
+    data_wide$Close_0 <- data_wide$Close_0 - data_wide$Open_0
+  }
+  
+  path <- paste0("data/models/", type, "/", crossentropy, "/", architecture, "/", spread_text, "/")
   
   nn = NULL
   nn$discretization <- multivariate_discretization(data_wide, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), n_groups_per_col)
@@ -1606,6 +1622,8 @@ find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_fir
 #'
 #' @examples
 find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
+  
+  browser()
   
   stopifnot(length(unique(c(
     length(test_idx), 

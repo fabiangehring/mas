@@ -44,16 +44,33 @@ Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Pr
 #### Ohne Berücksichtigung der Ordinalität
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
-ind_categorical <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = TRUE)
+ind_categorical_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "binary", spread = TRUE, n_groups_per_col = 9)
+
+table(ind_categorical_spread$discretization$low$groups)
+table(ind_categorical_spread$discretization$high$groups)
+table(ind_categorical_spread$discretization$close$groups)
+
 ```
 
 
 ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
-plot_neural_sample_histogram(53, ind_categorical)
+plot_neural_sample_histogram(53, ind_categorical_spread)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
 ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_3_all, both_first, test_idx, sample_idx)
+
+
+
+test_data <- shorten_data(data_wide_10[test_idx, ])
+
+ind_categorical_payoff_spread <- calc_payoff_const_gamma(
+  quotes_line = data_wide_10[test_idx, ], 
+  both_first = both_first[test_idx], 
+  buy = ind_categorical_buy_sell$buy,
+  sell = ind_categorical_buy_sell$sell
+)
+
 ```
 
 #### Mit Berücksichtigung der Ordinalität
