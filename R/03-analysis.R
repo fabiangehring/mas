@@ -1627,7 +1627,7 @@ find_optimal_buy_sell_idx_dep <- function(pred_prob, buy_first_payoffs, sell_fir
 #' @export
 #'
 #' @examples
-find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_idx, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
+find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_idx, spread = FALSE, sample_idx = seq_along(test_idx), mc.cores = getOption("mc.cores", 2L)) {
   
   stopifnot(length(unique(c(
     length(test_idx), 
@@ -1639,14 +1639,12 @@ find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_
   mid_prices <- eval_mid_prices(neural_model$discretization)
   price_scenarios <- eval_price_scenarios_ind(mid_prices)
   buy_sell_scenarios <- eval_buy_sell_scenarios_ind(mid_prices)
-  
+
   buy_first_payoffs <- map2_dfc(
     .x = buy_sell_scenarios$buy, 
     .y = buy_sell_scenarios$sell, 
     .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
   )
-  
-  calc_payoff_const_gamma(price_scenarios, buy = buy_sell_scenarios$buy[1], sell = buy_sell_scenarios$sell[1],  both_first = "buy")
   
   sell_first_payoffs <- map2_dfc(
     .x = buy_sell_scenarios$buy, 

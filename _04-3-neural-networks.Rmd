@@ -50,17 +50,30 @@ table(ind_categorical$discretization$low$groups)
 table(ind_categorical$discretization$high$groups)
 table(ind_categorical$discretization$close$groups)
 
+
+ind_categorical_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = TRUE, n_groups_per_col = 9)
+
+table(ind_categorical_spread$discretization$low$groups)
+table(ind_categorical_spread$discretization$high$groups)
+table(ind_categorical_spread$discretization$close$groups)
+
+
+ind_binary_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "binary", spread = TRUE, n_groups_per_col = 9)
+
+
+
 ```
 
 
 ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',}
 plot_neural_sample_histogram(53, ind_categorical)
+plot_neural_sample_histogram(53, ind_categorical_spread)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
 
-sample_idx <- seq_len(5000)
-ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_10, both_first, test_idx, sample_idx)
+sample_idx <- seq_len(500)
+ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_10, both_first, test_idx, spread = TRUE, sample_idx = sample_idx)
 
 test_data <- select(data_wide_10[test_idx, ][sample_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0)
 
