@@ -13,12 +13,12 @@ source("R/03-analysis.R")
 Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
 Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
 
-data_wide_3_all <- arrow::read_feather("data/steps/data_wide_3_all.feather")
+data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 
 set.seed(123456)
-train_idx <- sample(x = nrow(data_wide_3_all), size = floor(0.8 * nrow(data_wide_3_all)))
-test_idx <- setdiff(seq_len(nrow(data_wide_3_all)), train_idx)
-both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_3_all), replace = TRUE)]
+train_idx <- sample(x = nrow(data_wide_10), size = floor(0.8 * nrow(data_wide_10)))
+test_idx <- setdiff(seq_len(nrow(data_wide_10)), train_idx)
+both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
 
 sample_idx <- seq_len(500)
 
@@ -29,7 +29,7 @@ Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke ver
 
 
 ### Diskretisierung
-Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gross ausfallen. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall wurden dazu zwei Strategien verfolgt:
+Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gross ausfallen. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden dazu zwei Strategien verfolgt:
 
 **1. Unabhängige Modellierung von Low, High und Close Preisen**  
 
@@ -39,15 +39,12 @@ Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Pr
 
 
 
-
-
-
 ### Unabhängige Vorhersagewerte
 
 #### Ohne Berücksichtigung der Ordinalität
 
 ```{r nn-indipendent-categorical-training, echo=FALSE}
-ind_categorical <- get_neural_model_ind(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical")
+ind_categorical <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = TRUE)
 ```
 
 

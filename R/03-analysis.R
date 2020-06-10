@@ -942,13 +942,22 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
 #'
 #' @examples
 #' get_neural_model_ind(data_wide_3_all)
-get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical") {
+get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical", spread = FALSE) {
   
   type <- "ind"
-  path <- paste0("data/models/", type, "/", crossentropy, "/", architecture, "/")
   n_groups_per_col <- 30
   
   ### model for close
+  spread_text <- "non_spread"
+  if (spread) {
+    spread_text <- "spread"
+    data_wide$Low_0 <- data_wide$Low_0 - data_wide$Open_0
+    data_wide$High_0 <- data_wide$High_0 - data_wide$Open_0
+    data_wide$Close_0 <- data_wide$Close_0 - data_wide$Open_0
+  }
+  
+  path <- paste0("data/models/", type, "/", crossentropy, "/", architecture, "/", spread_text, "/")
+  
   model_names <- c("low_pred_prob", "high_pred_prob", "close_pred_prob")
   model_paths <- paste0(path, model_names, ".feather")
   
@@ -980,9 +989,6 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
       nn$pred$high <- translate_cum_prob(nn$pred$high)
       nn$pred$close <- translate_cum_prob(nn$pred$close)
     }
-    
-    
-    
     return(nn)
   } else {
     stop(paste0("At least one neural network model does not exist. Please execute python code first."))
@@ -997,11 +1003,12 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
     
     data_short <- shorten_data(data_wide)
     write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
-    write_feather(select(data_wide, train_cols)[test_idx, ], paste0(path, "data_test.feather"))
+    write_feather(data_short[test_idx, ], paste0(path, "data_test.feather"))
     
     # Execute jupyter notebook: py/*.ipynb
   }
 }
+
 
 get_neural_model_dep <- function(data_wide, architecture, crossentropy, n_groups_per_col) {
   
