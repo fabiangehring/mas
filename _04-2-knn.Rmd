@@ -151,9 +151,16 @@ Beide Eigenschaften decken sich mit der Intuition. Da zu Beginn der Datenreihe n
 
 ``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn', fig.asp=1, fig.pos = '!H', anehist-knndasdasdf, echo=FALSE, message=FALSE, warning=FALSE}
 data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
-pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_eucl_idx[train_idx, seq_len(k)]))
 
-plot_ratio_history(data_train %>% rename(Low = "Low_0", High = "High_0"), data_pred = pred_train, both_first = both_first[train_idx], use_spread = TRUE)
+hist_pred_train_path <- "data/steps/hist_pred_train.feather"
+if (!file.exists(hist_pred_train_path)) {
+  hist_pred_train <- pred_nn(select(data_train, Open_0, Low_0, High_0), as.matrix(nn_3_eucl_idx[train_idx, seq_len(k)]))
+  write_feather(hist_pred_train, "data/steps/hist_pred_train.feather")
+} else {
+  hist_pred_train <- read_feather(hist_pred_train_path)
+}
+
+plot_ratio_history(data_train %>% rename(Low = "Low_0", High = "High_0"), data_pred = hist_pred_train, both_first = both_first[train_idx], use_spread = TRUE)
 
 ```
 
@@ -174,7 +181,9 @@ Allen Ergebnissen gemein ist hingegen, dass sie der einfachen Strategie des Vork
 
 ```{r} 
 
-factor_config <- expand_grid(aggr = c("mean", "median"), k = c(5, 20, 50)) %>% as.list()
+k_levels <- c(5, 20, 50)
+aggr_levels <- c("mean", "median")
+factor_config <- expand_grid(aggr = aggr_levels, k = k_levels) %>% as.list()
 calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first, test_idx, mc.cores = 3) {
   
   factor_names <- paste("payoff_factor", factor_config$aggr, factor_config$k, sep = "_")
@@ -197,8 +206,42 @@ calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first,
   }, use_spread = FALSE, nn_idx = nn_idx, mc.cores = mc.cores) %>% set_names(factor_names)
 }
 
-# nn_factors_eucl <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, FALSE, both_first, test_idx)
-# nn_factors_eucl_spread <- calc_nn_factors(data_knn_3_incl_0, factor_config, nn_3_eucl_idx, TRUE, both_first, test_idx)
+nn_factors_eucl <- calc_nn_factors(
+  data = data_knn_3_incl_0, 
+  factor_config = factor_config, 
+  nn_idx = nn_3_eucl_idx, 
+  use_spread = FALSE, 
+  both_first = both_first, 
+  test_idx = test_idx, 
+  mc.cores = ceiling(0.51 * detectCores())
+)
+
+nn_factors_eucl_spread <- calc_nn_factors(
+  data = data_knn_3_incl_0, 
+  factor_config = factor_config, 
+  nn_idx = nn_3_eucl_idx, 
+  use_spread = TRUE, 
+  both_first = both_first, 
+  test_idx = test_idx, 
+  mc.cores = ceiling(0.51 * detectCores())
+)
+
+eucl_table <- tibble(
+  `Anzahl Nachbarn` = k_levels,
+  `Mittelwert_Direkt` = unlist(nn_factors_eucl[seq_along(k_levels)], use.names = FALSE),
+  `Mittelwert_Addon` = unlist(nn_factors_eucl_spread[seq_along(k_levels)], use.names = FALSE),
+  `Median_Direkt` = unlist(nn_factors_eucl[length(k_levels) + seq_along(k_levels)], use.names = FALSE),
+  `Median_Addon` =  unlist(nn_factors_eucl_spread[length(k_levels) + seq_along(k_levels)], use.names = FALSE)
+)
+```
+
+
+```{r}
+
+kable(eucl_table, col.names = c("", "Mittelwert", "Median", "Mittelwert", "Median"), digits = 3) %>%
+  add_header_above(c(" ", "Euklidisch" = 2, "Manhattan" = 2)) %>%
+  column_spec(1, bold = TRUE)
+# kable_styling(latex_options = c("repeat_header"))
 
 
 # payoff_factor_test_eucl_spread <- calc_nn_payoff_factor(
@@ -238,10 +281,10 @@ calc_nn_factors <- function(data, factor_config, nn_idx, use_spread, both_first,
 ```
 
 ```{r}
-# long_dt <-rbind(mtcars, mtcars)
-# kable(long_dt)%>%
-#   add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
-#   kable_styling(latex_options =c("repeat_header"))
+long_dt <-rbind(mtcars, mtcars)
+kable(long_dt)%>%
+  add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
+  kable_styling(latex_options =c("repeat_header"))
 ```
 
 
