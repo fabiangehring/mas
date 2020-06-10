@@ -58,16 +58,20 @@ plot_neural_sample_histogram(53, ind_categorical)
 ```
 
 ```{r nn-indipendent-categorical-evaluation}
+
+sample_idx <- seq_len(5000)
 ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_10, both_first, test_idx, sample_idx)
 
-test_data <- shorten_data(data_wide_10[test_idx, ])
+test_data <- select(data_wide_10[test_idx, ][sample_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0)
 
 ind_categorical_payoff_spread <- calc_payoff_const_gamma(
-  quotes_line = data_wide_10[test_idx, ], 
-  both_first = both_first[test_idx], 
+  quotes_line = test_data, 
+  both_first = both_first[test_idx][sample_idx], 
   buy = ind_categorical_buy_sell$buy,
   sell = ind_categorical_buy_sell$sell
 )
+
+sum(ind_categorical_payoff_spread) / sum(calc_payoff_const_gamma(quotes_line = test_data, both_first = both_first[test_idx][sample_idx]))
 
 ```
 

@@ -1395,7 +1395,7 @@ eval_mid_prices <- function(discretization) {
 #' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
 #' eval_price_scenarios_ind(mid_prices)
 eval_price_scenarios_ind <- function(mid_prices) {
-  
+
   # find all prices scenarios
   price_scenarios <- expand_grid(
     Low = mid_prices$Low,
@@ -1413,7 +1413,7 @@ eval_price_scenarios_ind <- function(mid_prices) {
       !is.finite(price_scenarios$Close_0)
   )
   plausible_price_scenarios_idx <- setdiff(seq_len(nrow(price_scenarios)), implausible_price_scenarios_idx)
-  price_scenarios[implausible_price_scenarios_idx, tail(seq_len(ncol(price_scenarios)), -1)] <- 100
+  price_scenarios[implausible_price_scenarios_idx, ] <- 100
   price_scenarios
 }
 
@@ -1645,6 +1645,8 @@ find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_
     .y = buy_sell_scenarios$sell, 
     .f = ~calc_payoff_const_gamma(price_scenarios, buy = .x, sell = .y, both_first = "buy")
   )
+  
+  calc_payoff_const_gamma(price_scenarios, buy = buy_sell_scenarios$buy[1], sell = buy_sell_scenarios$sell[1],  both_first = "buy")
   
   sell_first_payoffs <- map2_dfc(
     .x = buy_sell_scenarios$buy, 
