@@ -28,7 +28,8 @@ sample_idx <- seq_len(500)
 
 ```{r}
 
-data_wide_3_Low <- select(data_wide_10, c("Date", levels(interaction(c("Open_", "Low_", "High_", "Close_"), 1:3, sep="")), "Open_0", "Low_0"))[train_idx, ]
+data_wide_3_Low <- select(data_wide_10, c("Date", levels(interaction(c("Open_", "Low_", "High_", "Close_"), 1:3, sep="")), "Open_0", "Low_0"))[train_idx, ] %>%
+  mutate(Low_0 = factor(Low_0))
 
 rf_fit <- train(Low_0 ~ ., 
                 data = data_wide_3_Low, 

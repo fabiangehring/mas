@@ -34,6 +34,165 @@ Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Pr
 **1. Unabhängige Modellierung von Low, High und Close Preisen**  
 
 
+```{r}
+n_groups_per_col <- 30
+
+ind_categorical <-  NULL
+ind_categorical$discretization <- list(
+  low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
+  high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col),
+  close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
+)
+
+
+data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
+
+scale <- map_dbl(data[train_idx, ], sd)
+center <- map_dbl(data[train_idx, ], mean)
+
+x <- scale(data, center, scale)
+y_low <- ind_categorical$discretization$low$groups
+y_high <- ind_categorical$discretization$high$groups
+y_close <- ind_categorical$discretization$close$groups
+
+
+fit_model_cat <- function(x, y, epochs = 5) {
+  model <- keras_model_sequential() 
+  model %>% 
+    layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
+    layer_dense(units = 512, activation = 'relu') %>%
+    layer_dense(units = n_groups_per_col, activation = 'softmax')
+  
+  model %>% compile(
+    loss = 'sparse_categorical_crossentropy',
+    optimizer = optimizer_adam(),
+    metrics = c('accuracy')
+  )
+  
+  history <- model %>% fit(
+    x = x, 
+    y = y, 
+    epochs = epochs, batch_size = 512, 
+    validation_split = 0.2
+  )
+  list(model = model, history = history)
+}
+
+model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 1)
+model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 1)
+model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 1)
+
+pred_cat_low <- predict_proba(model_cat_low$model, x[test_idx, ], batch_size = 512)
+pred_cat_high <- predict_proba(model_cat_high$model, x[test_idx, ], batch_size = 512)
+pred_cat_close <- predict_proba(model_cat_close$model, x[test_idx, ], batch_size = 512)
+
+ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
+
+plot_neural_sample_histogram(52, ind_categorical)
+
+```
+
+
+
+```{r}
+
+n_groups_per_col <- 30
+
+ind_binary <-  NULL
+ind_binary$discretization <- list(
+  low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
+  high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col),
+  close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
+)
+
+
+fit_model_binary <- function(x, y, n_classes, epochs = 5) {
+  
+  y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y)))
+  
+  model <- keras_model_sequential() 
+  model %>% 
+    layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
+    layer_dense(units = 512, activation = 'relu') %>%
+    layer_dense(units = n_groups_per_col, activation = 'sigmoid')
+  
+  model %>% compile(
+    loss = 'binary_crossentropy',
+    optimizer = optimizer_adam(),
+    metrics = c('accuracy')
+  )
+  
+  history <- model %>% fit(
+    x = x, 
+    y = y, 
+    epochs = epochs, batch_size = 512, 
+    validation_split = 0.2
+  )
+  list(model = model, history = history)
+}
+
+model_bin_low <- fit_model_binary(x[train_idx, ], y_low[train_idx], 30, 1)
+model_bin_high <- fit_model_binary(x[train_idx, ], y_high[train_idx], 30, 1)
+model_bin_close <- fit_model_binary(x[train_idx, ], y_close[train_idx], 30, 1)
+
+translate_cum_prob <- function(cum_prob) {
+  n_col <- ncol(cum_prob)
+  n_row <- nrow(cum_prob)
+  for (i in tail(seq_len(n_col), -1)) {
+    cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1])
+  }
+  cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row))
+}
+
+pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+
+ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+
+plot_neural_sample_histogram(100, ind_binary)
+
+```
+
+
+```{r}
+
+data_wide_10_vol <- read_feather("data/steps/data_wide_10_vol.feather")
+n_groups_per_col <- 30
+
+ind_cat_vol <-  NULL
+ind_cat_vol$discretization <- list(
+  low = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Low_0", n_groups_per_col),
+  high = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "High_0", n_groups_per_col),
+  close = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Close_0", n_groups_per_col)
+)
+
+
+data_vol <- select(data_wide_10_vol, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
+
+scale_vol <- map_dbl(data_vol[train_idx, ], sd)
+center_vol <- map_dbl(data_vol[train_idx, ], mean)
+
+x_vol <- scale(data_vol, center_vol, scale_vol)
+y_vol_low <- ind_cat_vol$discretization$low$groups
+y_vol_high <- ind_cat_vol$discretization$high$groups
+y_vol_close <- ind_cat_vol$discretization$close$groups
+
+model_cat_vol_low <- fit_model_cat(x_vol[train_idx, ], y_vol_low[train_idx], 1)
+model_cat_vol_high <- fit_model_cat(x_vol[train_idx, ], y_vol_high[train_idx], 1)
+model_cat_vol_close <- fit_model_cat(x_vol[train_idx, ], y_vol_close[train_idx], 1)
+
+pred_cat_vol_low <- predict_proba(model_cat_vol_low$model, x_vol[test_idx, ], batch_size = 512)
+pred_cat_vol_high <- predict_proba(model_cat_vol_high$model, x_vol[test_idx, ], batch_size = 512)
+pred_cat_vol_close <- predict_proba(model_cat_vol_close$model, x_vol[test_idx, ], batch_size = 512)
+
+ind_cat_vol$pred <- list(low = pred_cat_vol_low, high = pred_cat_vol_high, close = pred_cat_vol_close)
+
+plot_neural_sample_histogram(52, ind_cat_vol)
+
+
+```
+
 
 **2. Abhöngige Modellierung der Preise**  
 
