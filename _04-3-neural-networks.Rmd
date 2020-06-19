@@ -25,13 +25,21 @@ sample_idx <- seq_len(500)
 ```
 
 
-Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Für die vorliegenden Analysen verwenden wir eine einfache Architektur mehrerer aufeinanderfolgender Dense Layer. Das Ziel der Analyse bleibt hingegen das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. Wie bereits früher ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff weiter in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls lukrativ sein könnte eher breite Preisschranken zu setzen, welche zwar weniger oft erreicht werden, in diesem Fall aber einen umso höheren Payoff abwerfen. Als erste der betrachteten Methoden sollen nachfolgend daher nicht nur der kommende Höchst- und Tiefstwerte pronostiziert werden, sondern auch deren Verteilung. Unter Berücksichtigung der jeweiligen Eintratenswahrscheinlichkeit lassen sich damit die Preisschranken so setzen, dass der Payoff optimiert wird.
+Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Für die vorliegenden Analysen verwenden wir eine einfache Architektur mehrerer aufeinanderfolgender Dense Layer. Das Ziel der Analyse bleibt hingegen das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. Wie bereits früher ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff weiter in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls lukrativ sein könnte eher breite Preisschranken zu setzen, welche zwar weniger oft erreicht werden, in diesem Fall aber einen umso höheren Payoff abwerfen. Als erste der betrachteten Methoden sollen nachfolgend daher nicht nur der kommende Höchst- und Tiefstwerte pronostiziert werden, sondern auch deren Verteilung. Das Vorgehen zum Finden optimaler Kaufs- und Verkaufspreise wird dadurch zweistufig. In einem ersten Schritt wird die Verteilung der prognostizierten Tiefst-, Höchst- und Schlusspreise geschätzt.
 
 
 ### Diskretisierung
-Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gross ausfallen. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden dazu zwei Strategien verfolgt:
+Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden dazu zwei Strategien verfolgt:
 
 **1. Unabhängige Modellierung von Low, High und Close Preisen**  
+Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich inbesondere auch dadurch, dass Bucketkombinationen enstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher vorausgesagt wird als der Tiefstpreis. Gelöst wird dieses Problem in der vorliegenden Analyse so, dass für solche Fälle keine Kaufs- und Verkaufspreise gestellt werden. All dies Fälle werden damit gleich wie im Referenzfall behandelt - namentlich wird damit aufgelaufenes Delta erst zum Tagesendkurs ausgeglichen. Der Vorteil dieses Vorgehens liegt darin, dass die Ermittlung gleich grosser Buckets sehr einfach gelingt. Zudem lässt sich das Problem unter der Annahme der Unabhängigkeit in 3 kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefts-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultiert dies in 3 Klassifikationsproblemen mit 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes diese Szeanrien als Multipliaktion der einzelnen Preiswahrscheinlichkeiten ermitteln lässt.
+
+**2. Abhängige Modellierung von Low, High und Close Preisen**
+Eine zweite Möglichkeit besteht darin, die Diskretisierung ohne Annahme der Unabhängigkeit der einzelnen Tagespreise zu gestalten. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Bucket werden danach die Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreise aufgeteilt. Anders als im Unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Auch das Klassifikationsproblem lässt sich damit nicht mehr auf kleinere Modelle aufteilen. Im obogen Beispiel müssen damit alle 27'000 Szeanrien auf einmal bearbeitet werden. Dies erhöht die Komplexität der Bearbeitung. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
+
+### Modellierung
+#### Unabhängige Modelle
+
 
 
 ```{r}
@@ -78,9 +86,15 @@ fit_model_cat <- function(x, y, epochs = 5) {
   list(model = model, history = history)
 }
 
-model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 1)
-model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 1)
-model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 1)
+
+model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 5)
+saveRDS(model_cat_low, "data/models/ind/categorical/2_dense_512/model_low.rds")
+
+model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 5)
+saveRDS(model_cat_high, "data/models/ind/categorical/2_dense_512/model_high.rds")
+
+model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 5)
+saveRDS(model_cat_close, "data/models/ind/categorical/2_dense_512/model_close.rds")
 
 pred_cat_low <- predict_proba(model_cat_low$model, x[test_idx, ], batch_size = 512)
 pred_cat_high <- predict_proba(model_cat_high$model, x[test_idx, ], batch_size = 512)
