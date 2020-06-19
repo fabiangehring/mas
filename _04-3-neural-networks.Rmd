@@ -37,10 +37,24 @@ Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst-
 **2. Abhängige Modellierung von Low, High und Close Preisen**
 Eine zweite Möglichkeit besteht darin, die Diskretisierung ohne Annahme der Unabhängigkeit der einzelnen Tagespreise zu gestalten. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Bucket werden danach die Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreise aufgeteilt. Anders als im Unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Auch das Klassifikationsproblem lässt sich damit nicht mehr auf kleinere Modelle aufteilen. Im obogen Beispiel müssen damit alle 27'000 Szeanrien auf einmal bearbeitet werden. Dies erhöht die Komplexität der Bearbeitung. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
 
-### Modellierung
+
+### Architektur
+Eine zweite Fragestellung die sich bei der Verwebdung von neuronalen Netzen ergibt, ist diejenige nach der geeigneten Architektur. Neuronale Netze haben sich inbesondere im Bereich der Computer Vision - beispielsweise zur Klassifikation des Bildinhaltes - als sehr leistungsfähig herausgestellt. Diese Probleme zeichenen sich dadurch aus, dass mit der Verwendung von Pixel-Daten sehr grosse Datenmengen zur Verfügung stehen und verarbeitet werden müssen. Im Vorliegenden Fall sind die Datenmengen in Relation zu Bilddaten bedeutend kleiner. Die positiven Erfahrungen, welche bei der Bilderkennung mit Convolutional Layers gemacht wurden lassen sich beim vorliegenden Sachverahlt auch nicht direkt übertragem. Aus diesem Grund und aus Überlegungen der Einfachheit entscheiden wir uns daher für eine einfache Architektur mit 2 hidden Dense Layers mit Grösse 512. Diverse Tests zur Erhöhung der Anzahl Knoten oder Gestskltung des Output-Layer dem Beifügen weiterer Layer haben zu keinen wesentlichen Verbesserungen geführt. Neben der Anzahl Layers stelltsich zudem die Frage nach der geeigneten Abbildung des Output Layers. Hierbei wurden zwei Vorgehensweisen untersucht.
+
+**1. Klassische Klassifikation**
+Eine erste Möglichkeit besteht darin, die Ordinalität der Klassen zu vernachlässigen. Eine solche Vernachlässigung macht insbesondere dann Sinn, wenn die einzlenen Klassen in keiner Abhängigkeit zueinander stehen. Wiederum bietet sich dabei der Vergleich mit der Bildklassifikation an - beispielsweise der Klassifikation des Bildes einer Katze. Es lässt sich je nach Verwendungszweck argumentieren, dass es bei einer Fehlklassifikation keine Rolle spielt, ob das Bild als Auto oder als Apfel erkannt wurde. Keines der beiden ist weniger oder mehr falsch, beide sind einfach falsch. Für diese Art der Klassifikation bietet sich eine Verlustfunktion der Art "Categorical Crossentropy" mit Aktivierung "softmax" des Outputlayers an. 
+
+**2. Ordinale Klassifikation**
+Im vorliegenden Fall - insbesondere bei unabhängiger Klassifikation von Tiefst-, Höchst- und Schlusspreisen - lassen sich die Buckets in eine logische Reihenfolge bringen. Wird ein Wert von 100 anstatt Klasse 10 fälschlicherweise Klasse 1 zugeordnet, so scheint dieser Fehler grösser als wenn die Fehlklassifikation in Klasse 9 erfolgt wäre. Eine Möglichkeit, diese Art von Klassifikationen in neuronalen Netzen zu modellieren zeigen @frank_hall. Grob besteht die Idee darin, nicht die Wahrscheinlichkeit der aktuellen Klasse zu modellieren, sondern die kumulierte Wahrscheinlichkeit der aktuellen und der darunterliegenden. Die Wahrscheinlichkeit der Zugehörigkeit zu einer spezifischen Klasse lässt sich dann einfach als Differnz der kumulierten Wahrscheinlichkeiten benachbater Klassen ableiten. Zu berücksichtigen gilt es hierbei, dass die kumulative Wahrscheinlichkeit nicht sinken darf, dies durch das geschätzte Modell aber nicht unbedingt garantiert ist. In der praktischen Umsetzung unterscheidet sich die Architektur zur Schätzung dieser Art von Modellen nicht gross von derjenigen der klassischen Klassifikation. Die Unterscheidungen beziehen sich auf eine andere Verlustfunktion (Binary Crossentropy), andere Aktivierung (Sigmoid) des Output Layers sowie eine etwas anderen Kodierung der Labels.
+
+
+### Zielgrösse
+
+### Ergebnisse
+
+Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise gerechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 10 Epochen gewählt wurde. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.[^Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Taring erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
+
 #### Unabhängige Modelle
-
-
 
 ```{r}
 n_groups_per_col <- 30
@@ -52,9 +66,7 @@ ind_categorical$discretization <- list(
   close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
 )
 
-
 data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
-
 scale <- map_dbl(data[train_idx, ], sd)
 center <- map_dbl(data[train_idx, ], mean)
 
@@ -64,7 +76,7 @@ y_high <- ind_categorical$discretization$high$groups
 y_close <- ind_categorical$discretization$close$groups
 
 
-fit_model_cat <- function(x, y, epochs = 5) {
+fit_model_cat <- function(x, y, epochs = 10, callbacks = NULL) {
   model <- keras_model_sequential() 
   model %>% 
     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
@@ -81,30 +93,97 @@ fit_model_cat <- function(x, y, epochs = 5) {
     x = x, 
     y = y, 
     epochs = epochs, batch_size = 512, 
-    validation_split = 0.2
+    validation_split = 0.2,
+    callbacks = callbacks
   )
   list(model = model, history = history)
 }
 
+model_ind_low_path  <- "data/models/ind/categorical/2_dense_512/model_low.rds"
+pred_ind_low_path  <- "data/models/ind/categorical/2_dense_512/pred_low.rds"
+if (file.exists(model_ind_low_path) && file.exists(pred_ind_low_path)) {
+  model_cat_low <- readRDS(model_ind_low_path)
+  pred_cat_lowh <- readRDS(pred_ind_low_path)
+} else {
+  cp_callback_low <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/categorical/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 10, callbacks = list(cp_callback_low))
+  saveRDS(model_cat_low, model_ind_low_path)
+  pred_cat_low <- predict_proba(model_cat_low$model, x[test_idx, ], batch_size = 512)
+  saveRDS(pred_cat_low, pred_ind_low_path)
+}
 
-model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 5)
-saveRDS(model_cat_low, "data/models/ind/categorical/2_dense_512/model_low.rds")
+model_ind_high_path  <- "data/models/ind/categorical/2_dense_512/model_high.rds"
+pred_ind_high_path  <- "data/models/ind/categorical/2_dense_512/pred_high.rds"
+if (file.exists(model_ind_high_path) && file.exists(pred_ind_high_path)) {
+  model_cat_high <- readRDS(model_ind_high_path)
+  pred_cat_high <- readRDS(pred_ind_high_path)
+} else {
+  cp_callback_high <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/categorical/2_dense_512", "high.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 10, callbacks = list(cp_callback_high))
+  saveRDS(model_cat_high, model_ind_high_path)
+  pred_cat_high <- predict_proba(model_cat_high$model, x[test_idx, ], batch_size = 512)
+  saveRDS(pred_cat_high, pred_ind_high_path)
+}
 
-model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 5)
-saveRDS(model_cat_high, "data/models/ind/categorical/2_dense_512/model_high.rds")
+model_ind_close_path  <- "data/models/ind/categorical/2_dense_512/model_close.rds"
+pred_ind_close_path  <- "data/models/ind/categorical/2_dense_512/pred_close.rds"
+if (file.exists(model_ind_close_path)) {
+  model_cat_close <- readRDS(model_ind_close_path)
+  pred_cat_lclose<- readRDS(pred_ind_close_path)
+} else {
+  cp_callback_close <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/categorical/2_dense_512", "close.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 10, callbacks = list(cp_callback))
+  saveRDS(model_cat_close, model_ind_close_path)
+  pred_cat_close <- predict_proba(model_cat_close$model, x[test_idx, ], batch_size = 512)
+  saveRDS(pred_cat_close, pred_ind_close_path)
+}
+```
 
-model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 5)
-saveRDS(model_cat_close, "data/models/ind/categorical/2_dense_512/model_close.rds")
+Während des Trainings der Netze für Tiefst-, Höchst und Schlusskurs zeigt sich der in Abbildung \@ref(fig:ind_train_progress) visualisierte Lernfortschritt. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
 
-pred_cat_low <- predict_proba(model_cat_low$model, x[test_idx, ], batch_size = 512)
-pred_cat_high <- predict_proba(model_cat_high$model, x[test_idx, ], batch_size = 512)
-pred_cat_close <- predict_proba(model_cat_close$model, x[test_idx, ], batch_size = 512)
+- Die Genauigkeit richtig zugeordner Klassen liegt deutlich über demjenigen, welcher bei zufälliger Zuteilung erreicht werden könnte. Im vorliegenden Fall von 30 Buckets bei ungefähr gleichverteilter Anzahl Datenbunkte wäre dies lediglich 3.3%.
+- Die Genauigkeit der Prognose für Tiefst- und Höchstkurs ist deutlich höher als diejenige des Schlusskurses.
+- Über den Traingsverlauf nimmt die Genauigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist damit im vorliegenden Fall nicht auszumachen.
+
+
+```{r, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.asp=1, fig.pos = '!H', "ind_train_progress", echo=FALSE, message=FALSE, warning = FALSE} 
+train_history <- as_tibble(model_cat_low$history) %>% mutate(price = "low") %>%
+  bind_rows(as_tibble(model_cat_high$history) %>% mutate(price = "high")) %>%
+  bind_rows(as_tibble(model_cat_close$history) %>% mutate(price = "close")) %>%
+  mutate(
+    price = factor(price, levels = c("low", "high", "close")),
+    data = do.call(recode, list(.x = data, validation = "Validierung", training = "Training"))
+  )
+
+train_history %>% 
+  filter(metric == "accuracy") %>%
+  ggplot(mapping = aes(x = epoch, y = value, color = data)) +
+  geom_line() + 
+  facet_wrap(vars(price), ncol = 3,  scales = "free_y") +
+  scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
+  ylab("Genauigkeit") + 
+  xlab("Epoche") +
+  labs(color = "Daten") + 
+  theme_bw()
+```
+
+
+Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:single_pred) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
+
+```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "single_pred", echo=FALSE, message=FALSE, warning = FALSE}
+eval_idx <- c(52, 12)
 
 ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
-
-plot_neural_sample_histogram(52, ind_categorical)
-
+plot_neural_sample_histogram(eval_idx, ind_categorical)
 ```
+
+Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn auch nicht so deutlich wie dies vom Modell prognostiziert wird. Die entsprechenden Realisierungen für Low und High sind `r round(data_wide_10$Low_0[test_idx][eval_idx[1]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[1]], 2)` für das erste und `r round(data_wide_10$Low_0[test_idx][eval_idx[2]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[2]], 2)` für das Zweite Beispiel.
 
 
 

@@ -945,7 +945,7 @@ multivariate_discretization <- function(data, train_idx, test_idx, cols, n_group
 get_neural_model_ind <- function(data_wide, architecture, crossentropy = "categorical", spread = FALSE, n_groups_per_col = 30) {
   
   type <- "ind"
-
+  
   ### model for close
   spread_text <- "non_spread"
   if (spread) {
@@ -1011,7 +1011,7 @@ get_neural_model_ind <- function(data_wide, architecture, crossentropy = "catego
       labels_close <- purrr::map_dfc(seq_len(n_groups_per_col) - 1, ~as.integer(.<=labels$close))
       write_feather(labels_close[train_idx, ], paste0(path, "labels_close_train.feather"))
     }
-
+    
     
     data_short <- shorten_data(data_wide)
     write_feather(data_short[train_idx, ], paste0(path, "data_train.feather"))
@@ -1270,12 +1270,8 @@ eval_hist_data <- function(borders, prob, group = NULL) {
 #' plot_price_histogram(data, title = "Verteilung Sell-Preise")
 plot_price_histogram <- function(data, title = NULL) {
   
-  if ("group" %in% names(data)) {
-    data <- data %>% group_by(group) %>% arrange(lower, .by_group = TRUE)
-  } else {
-    data <- data %>% arrange(lower)
-  }
-  
+  data <- data %>% group_by(id, group) %>% arrange(lower, .by_group = TRUE)
+
   lower <- data$lower
   neg_inf_idx <- which(lower == -Inf)
   lower[neg_inf_idx] <- lower[neg_inf_idx + 1] - (lower[neg_inf_idx + 2] - lower[neg_inf_idx + 1])
@@ -1291,13 +1287,9 @@ plot_price_histogram <- function(data, title = NULL) {
   labels <- breaks
   
   p <- ggplot(data, aes(ymin = 0))
-  if ("group" %in% names(data)) {
-    p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob, fill = group), alpha = 0.5)
-  } else {
-    p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob), alpha = 0.5, show.legend = FALSE)
-  }
+  p <- p + geom_rect(aes(xmin = lower, xmax = upper, ymax = prob, fill = group), alpha = 0.5)
   
-  p + 
+  p <- p + 
     xlab("number of obs") + 
     ylab("value") +
     scale_x_continuous(breaks = breaks, labels = labels) + 
@@ -1307,6 +1299,17 @@ plot_price_histogram <- function(data, title = NULL) {
     ggplot2::ylab("Wahrscheinlichkeit") + 
     ggplot2::scale_fill_discrete(name = "Typ") +
     theme_bw()
+  
+  if (length(unique(data$id)) > 1) {
+    p <- p + 
+      facet_wrap(facets = "id") + 
+      theme(
+        strip.background = element_blank(),
+        strip.text.x = element_blank()
+      )
+  }
+  
+  p
 }
 
 
@@ -1334,26 +1337,33 @@ plot_price_histogram <- function(data, title = NULL) {
 #' plot_neural_sample_histogram(1, neural_model)
 plot_neural_sample_histogram <- function(eval_id, neural_model, title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise") {
   
-  hist_data_low <- eval_hist_data(
-    borders = neural_model$discretization$low$borders, 
-    prob = unlist(neural_model$pred$low[eval_id, ], use.names = FALSE), 
-    group = "Tief"
-  )
+  hist_data_low <- map_df(eval_id, function(curr_id) {
+    eval_hist_data(
+      borders = neural_model$discretization$low$borders, 
+      prob = unlist(neural_model$pred$low[curr_id, ], use.names = FALSE), 
+      group = "Tief"
+    ) %>% mutate(id = curr_id)
+  })
   
-  hist_data_high <- eval_hist_data(
-    borders = neural_model$discretization$high$borders, 
-    prob = unlist(neural_model$pred$high[eval_id, ], use.names = FALSE), 
-    group = "Hoch"
-  )
+  hist_data_high <- map_df(eval_id, function(curr_id) {
+    eval_hist_data(
+      borders = neural_model$discretization$high$borders, 
+      prob = unlist(neural_model$pred$high[curr_id, ], use.names = FALSE), 
+      group = "Hoch"
+    ) %>% mutate(id = curr_id)
+  })
   
-  hist_data_close <- eval_hist_data(
-    borders = neural_model$discretization$close$borders, 
-    prob = unlist(neural_model$pred$close[eval_id, ], use.names = FALSE), 
-    group = "Schluss"
-  )
+  hist_data_close <- map_df(eval_id, function(curr_id) {
+    eval_hist_data(
+      borders = neural_model$discretization$close$borders, 
+      prob = unlist(neural_model$pred$close[curr_id, ], use.names = FALSE), 
+      group = "Schluss"
+    ) %>% mutate(id = curr_id)
+  })
   
   plot_price_histogram(
-    data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% mutate(group = factor(group, levels = unique(group))), 
+    data = bind_rows(hist_data_low, hist_data_close, hist_data_high) %>% 
+      mutate(id = factor(id, levels = eval_id), group = factor(group, levels = unique(group))), 
     title = title
   )
 }
@@ -1395,7 +1405,7 @@ eval_mid_prices <- function(discretization) {
 #' mid_prices <- tibble(Bucket = 1:2, Low = c(102, 103), High = c(100, 106), Close = c(-Inf, 104))
 #' eval_price_scenarios_ind(mid_prices)
 eval_price_scenarios_ind <- function(mid_prices) {
-
+  
   # find all prices scenarios
   price_scenarios <- expand_grid(
     Low = mid_prices$Low,
@@ -1639,7 +1649,7 @@ find_optimal_buy_sell_ind <- function(neural_model, data_wide, both_first, test_
   mid_prices <- eval_mid_prices(neural_model$discretization)
   price_scenarios <- eval_price_scenarios_ind(mid_prices)
   buy_sell_scenarios <- eval_buy_sell_scenarios_ind(mid_prices)
-
+  
   buy_first_payoffs <- map2_dfc(
     .x = buy_sell_scenarios$buy, 
     .y = buy_sell_scenarios$sell, 

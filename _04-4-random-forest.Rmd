@@ -16,7 +16,7 @@ Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
 Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
 
 data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
-
+  
 set.seed(123456)
 train_idx <- sample(x = nrow(data_wide_10), size = floor(0.8 * nrow(data_wide_10)))
 test_idx <- setdiff(seq_len(nrow(data_wide_10)), train_idx)
