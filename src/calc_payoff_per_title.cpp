@@ -219,13 +219,16 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List calc_best_buy_sell(NumericVector probs, double min_prob, NumericVector low, NumericVector high, NumericVector close, String both_first) {
   
-  int n = probs.length();
+  std::vector<int> rel_idx;
+  
+  for (int i = 0; i <probs.length(); i++) {
+    if (probs[i] >= min_prob) rel_idx.push_back(i);
+  }
   
   int best_payoff_idx = -1;
   double best_payoff = -1;
-  for (int i=0; i<n; i++) {
-    if (probs[i] < min_prob) continue;
-    
+  for(int a=0; a < rel_idx.size(); a++){
+    double i = rel_idx[a];
     double first;
     double second;
     if (both_first == "buy") {
@@ -237,16 +240,17 @@ List calc_best_buy_sell(NumericVector probs, double min_prob, NumericVector low,
     }
     
     double curr_payoff = 0.0;
-    double total_prob = 0.0;
-    for (int j = 0; j<n; j++){
+    // double total_prob = 0.0;
+    for(int b=0; b < rel_idx.size(); b++){
+      double j = rel_idx[b];
       if (probs[j] < min_prob) continue;
       curr_payoff += probs[j] * calc_payoff_per_title_internal(100.0, close[j], first, second, low[j], high[j], 0.2, "disc");
-      total_prob += probs[j];
+      //total_prob += probs[j];
     }
     
-    double scaled_payoff = curr_payoff / total_prob;
-    if (scaled_payoff > best_payoff) {
-      best_payoff = scaled_payoff;
+    // double scaled_payoff = curr_payoff / total_prob;
+    if (curr_payoff > best_payoff) {
+      best_payoff = curr_payoff;
       best_payoff_idx = i;
     }
   }

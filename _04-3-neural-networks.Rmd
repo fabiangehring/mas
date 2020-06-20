@@ -76,12 +76,12 @@ y_high <- ind_categorical$discretization$high$groups
 y_close <- ind_categorical$discretization$close$groups
 
 
-fit_model_cat <- function(x, y, epochs = 10, callbacks = NULL) {
+fit_model_cat <- function(x, y, epochs = 10, callbacks = NULL, n_groups = 30) {
   model <- keras_model_sequential() 
   model %>% 
     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
     layer_dense(units = 512, activation = 'relu') %>%
-    layer_dense(units = n_groups_per_col, activation = 'softmax')
+    layer_dense(units = n_groups, activation = 'softmax')
   
   model %>% compile(
     loss = 'sparse_categorical_crossentropy',
@@ -217,7 +217,7 @@ data_test <- select(data_wide_10[test_idx[seq_len(n_eval)], ], Close_1, High = "
 
 ```
 
-Zur Überprüfung der Modelleignung soll erneut der Payoff des Testsets ermittelt und mit demjenigen der Referenzstrategie verglichen werden. Zuerst lohnt es sich, sich wiederum einige Gedanken zur Berechnungskomplexität zu machen. In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien für den zu analysierenden Tag. Diese können für jeden Eintag des Testsets (`r format(length(test_idx), big.mark = "'")` Einträge) ermittelt werden. Eine erste Möglichkeit besteht darin, die Kaufs- resp. Verkaufsschranken als Tiefst- respektive den Höchstpreis desjenigen Buckets vorauszusagen, welchem das Modell die höchste Wahrscheinlichkeit vorhersagt.[^Da ein Bucket durch untere und obere Grenze bestimmt ist, verwenden wir den Mittelwert von oberer und unterer Grenze als Vorhersagewert. Ist eine der Grenzen nicht finit, wird die andere Grenze als Vorhersagewert verwendet.] 
+Zur Überprüfung der Modelleignung soll erneut der Payoff des Testsets ermittelt und mit demjenigen der Referenzstrategie verglichen werden. Eine erste Möglichkeit besteht darin, die Kaufs- resp. Verkaufsschranken als Tiefst- respektive den Höchstpreis desjenigen Buckets vorauszusagen, welchem das Modell die höchste Wahrscheinlichkeit vorhersagt.[^Da ein Bucket durch untere und obere Grenze bestimmt ist, verwenden wir den Mittelwert von oberer und unterer Grenze als Vorhersagewert. Ist eine der Grenzen nicht finit, wird die andere Grenze als Vorhersagewert verwendet.] 
 
 ```{r}
 
@@ -239,7 +239,10 @@ factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell
 ```
 
 
-Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%.
+Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%. Bereits in dieser einfachen Form ist das gelernte Modell damit gleich gut gut, wie das Model mit Kaufs- und Verkaufsschranken als symmetrischer Abweichungen vom aktuellen Eröffnungskurs bei Unterscheidung von Hoch- und Tiefvolatilitätsphasen. Bei der Konzeption des Modelles war es gerade das Ziel, nicht nur eine Klassifikation in das wahrscheinlichste Bucket zu machen, sondern auch Voraussagen über die Verteilung der prognostizierten Preise machen zu können. Lediglich das Bucket mit höchster Wahrscheinlichkeit als Prognosewert zu verwenden ging damit zuwenig weit. Viel können nun verschiedene Kaufs- und Verkaufskombinationen für alle Preisszenarien berechnet und mit der jeweiligen Wahrscheinlichkeit gewichtet werden. Die optimale Strategie lässt sich dann diejenige mit dem höchsten erwarteten Payoff auswählen. Hierbei lohnt wiederum ein Blick auf die Berchnungskomplexität des Problems. In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien. Diese können für jeden Eintag des Testsets (rund 1'000'000 Einträge) ermittelt werden. Für jedes dieser Preisszenarien sollen wiederum verschiedene Paare von Kaufs- und Verkaufspreisen getestet werden. Orientiert man sich dabei an einer ähnlichen Granularität wir für die Preise resultieren 900 Szenarien für die Schranken (je 30 Werte für die Kaufs- und Verkaufsschranke). Damit müssen zur kompletten Evaluation $27'000 \times 1'000'000  \times 900$ Payoffs berechnet werden. Dies ist mit Hilfe der in Kapitel \@ref(infrastruktur_und_tools) vorgestellen Cloud-Infrastruktur und Tools nicht innerhalb kurzer Zeit möglich. Zur Reduktion der Komplexität lässt sich dabei ausnützen, dass nicht alle Szenarien von gleicher Bedeutung sind. Während die Verwendung des häufigsten Szenarios und die Verwendung aller Szenarios die beiden Extrempositionen einnehmen, ist auch die Verwendgung einiger wichtiger Preis- und Schrankenszenarien denkbar. Konkret werden diehjenigen Szenarien ausgewählt, welche die höchsten Eintretenswahrscheinlichkeiten aufweisen. Dabei hat es sich bewährt, diese Grenze als 99.9% Quantil der jeweiligen Wahrscheinlichkeiten zu wählen. Damit werden nur sehr wenige, dafür wichtige Szenarien berücksichtigt. Die Berechungszeits lässt sich damit sehr deutlich senken. Diese Vorgehensweise hat zudem den Vorteil, dass mit einer Reduzierung des Quantil sehr einfach mehr Werte einbezogen werden könnnen. Ferner wird auch die Schrankenszenarien sehr stark reduziert, indem als Kaufs- und Verkaufspreise nur die Tiefs- und Höchstwerte der betrachteten Preisszenarien berechnet werden. 
+
+
+TODO: Eigenheit: Unmögliche Szeanrien werden entfernt
 
 
 ```{r}
@@ -262,6 +265,44 @@ factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = i
 
 
 ```
+
+
+### Abhängige Modelle
+
+
+```{r}
+n_groups_per_col <- 30
+
+dep_categorical <-  NULL
+dep_categorical$discretization <- multivariate_discretization(data_wide_10, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), n_groups_per_col)
+
+data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
+scale <- map_dbl(data[train_idx, ], sd)
+center <- map_dbl(data[train_idx, ], mean)
+
+x <- scale(data, center, scale)
+y <- dep_categorical$discretization$groups
+
+model_dep_path  <- "data/models/dep/categorical/2_dense_512/model.h5"
+history_dep_path  <- "data/models/dep/categorical/2_dense_512/history.rds"
+pred_dep_path  <- "data/models/dep/categorical/2_dense_512/pred.rds"
+if (file.exists(model_dep_path) && file.exists(history_dep_path) && file.exists(pred_dep_path)) {
+  model_dep <- load_model_hdf5(model_dep_path)
+  history_dep <- readRDS(history_dep_path)
+  pred_dep <- readRDS(pred_dep_path)
+} else {
+  cp_callback_dep <- callback_model_checkpoint(
+    filepath = file.path("data/models/dep/categorical/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_dep <- fit_model_cat(x[train_idx, ], y[train_idx], callbacks = list(cp_callback_dep), epochs = 30, n_groups = 27000)
+  save_model_hdf5(model_dep$model, model_dep_path)
+  saveRDS(model_dep$history, history_dep_path)
+  pred_dep <- predict_proba(model_dep$model, x[test_idx, ], batch_size = 512)
+  saveRDS(pred_dep, pred_dep_path)
+}
+
+```
+
 
 <!-- ```{r} -->
 
