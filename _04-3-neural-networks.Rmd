@@ -59,6 +59,21 @@ Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modell
 ```{r}
 n_groups_per_col <- 30
 
+data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
+scale <- map_dbl(data[train_idx, ], sd)
+center <- map_dbl(data[train_idx, ], mean)
+
+x <- scale(data, center, scale)
+
+calc_mid_prices <- function(lower, upper) {
+  out <- (lower + upper) / 2
+  out[!is.finite(out)] <- if_else(is.finite(lower[!is.finite(out)]), lower[!is.finite(out)], upper[!is.finite(out)])
+  return(out)
+}
+```
+
+
+```{r}
 ind_categorical <-  NULL
 ind_categorical$discretization <- list(
   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
@@ -66,22 +81,16 @@ ind_categorical$discretization <- list(
   close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
 )
 
-data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
-scale <- map_dbl(data[train_idx, ], sd)
-center <- map_dbl(data[train_idx, ], mean)
-
-x <- scale(data, center, scale)
 y_low <- ind_categorical$discretization$low$groups
 y_high <- ind_categorical$discretization$high$groups
 y_close <- ind_categorical$discretization$close$groups
 
-
-fit_model_cat <- function(x, y, epochs = 10, callbacks = NULL, n_groups = 30) {
+fit_model_cat <- function(x, y, epochs = 10, n_classes = 30, callbacks = NULL) {
   model <- keras_model_sequential() 
   model %>% 
     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
     layer_dense(units = 512, activation = 'relu') %>%
-    layer_dense(units = n_groups, activation = 'softmax')
+    layer_dense(units = n_classes, activation = 'softmax')
   
   model %>% compile(
     loss = 'sparse_categorical_crossentropy',
@@ -198,11 +207,6 @@ Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn 
 
 ```{r}
 
-calc_mid_prices <- function(lower, upper) {
-  out <- (lower + upper) / 2
-  out[!is.finite(out)] <- if_else(is.finite(lower[!is.finite(out)]), lower[!is.finite(out)], upper[!is.finite(out)])
-  return(out)
-}
 
 mid_low <- calc_mid_prices(ind_categorical$discretization$low$borders$lower, ind_categorical$discretization$low$borders$upper)
 mid_high <- calc_mid_prices(ind_categorical$discretization$high$borders$lower, ind_categorical$discretization$high$borders$upper)
@@ -229,7 +233,7 @@ if (file.exists(ind_buy_sell_max_prob_path)) {
   ind_buy_sell_max_prob <- pbmclapply(seq_len(n_eval), function(i) {
     probs <- as.vector(pred_cat_low[i, ] %o% pred_cat_high[i, ] %o% pred_cat_close[i, ])[glob_scen$ID]
     threshold <- quantile(probs, q)
-    calc_best_buy_sell(probs, max(probs), glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[i])
+    calc_best_buy_sell(probs, max(probs), glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[test_idx[i]])
   }, mc.cores = 3) %>% bind_rows()
   write_feather(ind_buy_sell_max_prob, ind_buy_sell_max_prob_path)
 }
@@ -256,7 +260,7 @@ if (file.exists(ind_buy_sell_0_999_prob_path)) {
   ind_buy_sell_0_999_prob <- pbmclapply(seq_len(n_eval), function(i) {
     probs <- as.vector(pred_cat_low[i, ] %o% pred_cat_high[i, ] %o% pred_cat_close[i, ])[glob_scen$ID]
     threshold <- quantile(probs, q)
-    calc_best_buy_sell(probs, threshold, glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[i])
+    calc_best_buy_sell(probs, threshold, glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[test_idx[i]])
   }, mc.cores = 4) %>% bind_rows()
   write_feather(ind_buy_sell_0_999_prob, ind_buy_sell_0_999_prob_path)
 }
@@ -265,6 +269,163 @@ factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = i
 
 
 ```
+
+
+
+
+Wird auch die Ordinalität...
+
+``` {r}
+
+ind_binary <-  NULL
+ind_binary$discretization <- list(
+  low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
+  high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col),
+  close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
+)
+
+y_low <- ind_binary$discretization$low$groups
+y_high <- ind_binary$discretization$high$groups
+y_close <- ind_binary$discretization$close$groups
+
+fit_model_bin <- function(x, y, n_classes, epochs = 30, callbacks = NULL) {
+  
+  y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y))) %>% unname()
+  
+  model <- keras_model_sequential()
+  model %>%
+    layer_dense(units = 512, activation = 'relu', input_shape = ncol(x)) %>%
+    layer_dense(units = 512, activation = 'relu') %>%
+    layer_dense(units = n_classes, activation = 'sigmoid')
+  
+  model %>% compile(
+    loss = 'binary_crossentropy',
+    optimizer = optimizer_rmsprop(),
+    metrics = c('accuracy')
+  )
+  
+  history <- model %>% fit(
+    x = x,
+    y = y,
+    epochs = epochs,
+    batch_size = 512,
+    validation_split = 0.2,
+    callbacks = callbacks
+  )
+  list(model = model, history = history)
+}
+
+
+model_ind_bin_low_path <- "data/models/ind/binary/2_dense_512/model_low.h5"
+history_ind_bin_low_path <- "data/models/ind/binary/2_dense_512/history_low.rds"
+if (file.exists(model_ind_bin_low_path) && file.exists(history_ind_bin_low_path)) {
+  model_ind_bin_low <- load_model_hdf5(model_ind_bin_low_path)
+  history_ind_bin_low <- readRDS(history_ind_bin_low_path)
+} else {
+  cp_callback_bin_low <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/binary/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_bin_low <- fit_model_bin(x[train_idx, ], y_low[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_low))
+  save_model_hdf5(model_cat_bin_low$model, model_ind_bin_low_path)
+  saveRDS(model_cat_bin_low$history, history_ind_bin_low_path)
+}
+
+model_ind_bin_high_path <- "data/models/ind/binary/2_dense_512/model_high.h5"
+history_ind_bin_high_path <- "data/models/ind/binary/2_dense_512/history_high.rds"
+if (file.exists(model_ind_bin_high_path) && file.exists(history_ind_bin_high_path)) {
+  model_ind_bin_high <- load_model_hdf5(model_ind_bin_high_path)
+  history_ind_bin_high <- readRDS(history_ind_bin_high_path)
+} else {
+  cp_callback_bin_high <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/binary/2_dense_512", "high.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_bin_high <- fit_model_bin(x[train_idx, ], y_high[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_high))
+  save_model_hdf5(model_cat_bin_high$model, model_ind_bin_high_path)
+  saveRDS(model_cat_bin_high$history, history_ind_bin_high_path)
+}
+
+model_ind_bin_close_path <- "data/models/ind/binary/2_dense_512/model_close.h5"
+history_ind_bin_close_path <- "data/models/ind/binary/2_dense_512/history_close.rds"
+if (file.exists(model_ind_bin_close_path) && file.exists(history_ind_bin_close_path)) {
+  model_ind_bin_close <- load_model_hdf5(model_ind_bin_close_path)
+  history_ind_bin_close <- readRDS(history_ind_bin_close_path)
+} else {
+  cp_callback_bin_close <- callback_model_checkpoint(
+    filepath = file.path("data/models/ind/binary/2_dense_512", "close.{epoch:02d}-{val_loss:.2f}.hdf5")
+  )
+  model_cat_bin_close <- fit_model_bin(x[train_idx, ], y_close[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_close))
+  save_model_hdf5(model_cat_bin_close$model, model_ind_bin_close_path)
+  saveRDS(model_cat_bin_close$history, history_ind_bin_close_path)
+}
+
+# 
+# translate_cum_prob <- function(cum_prob) {
+#   n_col <- ncol(cum_prob)
+#   n_row <- nrow(cum_prob)
+#   for (i in tail(seq_len(n_col), -1)) {
+#     cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1])
+#   }
+#   cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row))
+# }
+# 
+# pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+# pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+# pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+# 
+# ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+
+
+# plot_neural_sample_histogram(100, ind_binary)
+# 
+# fit_model_binary <- function(x, y, n_classes, epochs = 5) {
+# 
+#   y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y)))
+# 
+#   model <- keras_model_sequential()
+#   model %>%
+#     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>%
+#     layer_dense(units = 512, activation = 'relu') %>%
+#     layer_dense(units = n_groups_per_col, activation = 'sigmoid')
+# 
+#   model %>% compile(
+#     loss = 'binary_crossentropy',
+#     optimizer = optimizer_adam(),
+#     metrics = c('accuracy')
+#   )
+# 
+#   history <- model %>% fit(
+#     x = x,
+#     y = y,
+#     epochs = epochs, batch_size = 512,
+#     validation_split = 0.2
+#   )
+#   list(model = model, history = history)
+# }
+# 
+# model_bin_low <- fit_model_binary(x[train_idx, ], y_low[train_idx], 30, 1)
+# model_bin_high <- fit_model_binary(x[train_idx, ], y_high[train_idx], 30, 1)
+# model_bin_close <- fit_model_binary(x[train_idx, ], y_close[train_idx], 30, 1)
+
+translate_cum_prob <- function(cum_prob) {
+  n_col <- ncol(cum_prob)
+  n_row <- nrow(cum_prob)
+  for (i in tail(seq_len(n_col), -1)) {
+    cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1])
+  }
+  cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row))
+}
+
+pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+
+ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+
+plot_neural_sample_histogram(52, ind_binary)
+
+```
+
+
 
 
 ### Abhängige Modelle
@@ -276,20 +437,13 @@ n_groups_per_col <- 30
 dep_categorical <-  NULL
 dep_categorical$discretization <- multivariate_discretization(data_wide_10, train_idx, test_idx, c("Low_0", "High_0", "Close_0"), n_groups_per_col)
 
-data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
-scale <- map_dbl(data[train_idx, ], sd)
-center <- map_dbl(data[train_idx, ], mean)
-
-x <- scale(data, center, scale)
 y <- dep_categorical$discretization$groups
 
 model_dep_path  <- "data/models/dep/categorical/2_dense_512/model.h5"
 history_dep_path  <- "data/models/dep/categorical/2_dense_512/history.rds"
-pred_dep_path  <- "data/models/dep/categorical/2_dense_512/pred.rds"
-if (file.exists(model_dep_path) && file.exists(history_dep_path) && file.exists(pred_dep_path)) {
+if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
   model_dep <- load_model_hdf5(model_dep_path)
   history_dep <- readRDS(history_dep_path)
-  pred_dep <- readRDS(pred_dep_path)
 } else {
   cp_callback_dep <- callback_model_checkpoint(
     filepath = file.path("data/models/dep/categorical/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
@@ -297,9 +451,36 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path) && file.exists(
   model_dep <- fit_model_cat(x[train_idx, ], y[train_idx], callbacks = list(cp_callback_dep), epochs = 30, n_groups = 27000)
   save_model_hdf5(model_dep$model, model_dep_path)
   saveRDS(model_dep$history, history_dep_path)
-  pred_dep <- predict_proba(model_dep$model, x[test_idx, ], batch_size = 512)
-  saveRDS(pred_dep, pred_dep_path)
+  
 }
+
+```
+
+
+```{r}
+q <- 0.999
+
+dep_categorical$discretization$borders
+mid_dep_low <- calc_mid_prices(dep_categorical$discretization$borders$Low_0_lower, dep_categorical$discretization$borders$Low_0_upper)
+mid_dep_high <- calc_mid_prices(dep_categorical$discretization$borders$High_0_lower, dep_categorical$discretization$borders$High_0_upper)
+mid_dep_close <- calc_mid_prices(dep_categorical$discretization$borders$Close_0_lower, dep_categorical$discretization$borders$Close_0_upper)
+
+dep_buy_sell_max_prob_path <- "data/models/dep/categorical/2_dense_512/ind_buy_sell_max_prob.rds"
+if (file.exists(dep_buy_sell_max_prob_path)) {
+  dep_buy_sell_max_prob <- read_feather(dep_buy_sell_max_prob_path)
+} else {
+  n_eval <- length(test_idx)
+  
+  probs <- predict_proba(model_dep, x[test_idx[seq_len(n_eval)], ], batch_size = 512)
+
+  ind_buy_sell_max_prob <- lapply(seq_len(n_eval), function(i) {
+    threshold <- quantile(probs[i, ], q)
+    calc_best_buy_sell(probs[i, ], max(probs[i, ]), mid_dep_low, mid_dep_high, mid_dep_close, both_first = both_first[test_idx[i]])
+  }) %>% bind_rows()
+  write_feather(ind_buy_sell_max_prob, ind_buy_sell_max_prob_path)
+}
+
+factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell_max_prob$buy, sell = ind_buy_sell_max_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
 
 ```
 
@@ -316,51 +497,7 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path) && file.exists(
 <!-- ) -->
 
 
-<!-- fit_model_binary <- function(x, y, n_classes, epochs = 5) { -->
 
-<!--   y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y))) -->
-
-<!--   model <- keras_model_sequential()  -->
-<!--   model %>%  -->
-<!--     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>%  -->
-<!--     layer_dense(units = 512, activation = 'relu') %>% -->
-<!--     layer_dense(units = n_groups_per_col, activation = 'sigmoid') -->
-
-<!--   model %>% compile( -->
-<!--     loss = 'binary_crossentropy', -->
-<!--     optimizer = optimizer_adam(), -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% fit( -->
-<!--     x = x,  -->
-<!--     y = y,  -->
-<!--     epochs = epochs, batch_size = 512,  -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-<!--   list(model = model, history = history) -->
-<!-- } -->
-
-<!-- model_bin_low <- fit_model_binary(x[train_idx, ], y_low[train_idx], 30, 1) -->
-<!-- model_bin_high <- fit_model_binary(x[train_idx, ], y_high[train_idx], 30, 1) -->
-<!-- model_bin_close <- fit_model_binary(x[train_idx, ], y_close[train_idx], 30, 1) -->
-
-<!-- translate_cum_prob <- function(cum_prob) { -->
-<!--   n_col <- ncol(cum_prob) -->
-<!--   n_row <- nrow(cum_prob) -->
-<!--   for (i in tail(seq_len(n_col), -1)) { -->
-<!--     cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1]) -->
-<!--   } -->
-<!--   cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row)) -->
-<!-- } -->
-
-<!-- pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-<!-- pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-<!-- pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-
-<!-- ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close) -->
-
-<!-- plot_neural_sample_histogram(100, ind_binary) -->
 
 <!-- ``` -->
 
