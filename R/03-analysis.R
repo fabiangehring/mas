@@ -1519,6 +1519,22 @@ eval_buy_sell_scenarios_dep <- function(price_scenarios) {
 }
 
 
+#' Split vector into n equally length chunks
+#'
+#' @param x Vector to split
+#' @param n Number of splits
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' chunk2(1:10, 2)
+chunk2 <- function(x,n) {
+  if (n == 1) return(x)
+  split(x, cut(seq_along(x), min(n, length(x)), labels = FALSE))
+}
+
+
 #' Find optimal buy sell prices for given probability distributions of price scenarios
 #'
 #' @param low_pred_prob A data.frame (n_entries, n_probabilites) with predicted probabilities for every low bucket
@@ -1555,11 +1571,6 @@ find_optimal_buy_sell_idx_ind <- function(low_pred_prob, high_pred_prob, close_p
       sell_first_payoffs = sell_first_payoffs_mat, 
       both_first = both_first
     )
-  }
-  
-  chunk2 <- function(x,n) {
-    if (n == 1) return(x)
-    split(x, cut(seq_along(x), min(n, length(x)), labels = FALSE))
   }
   
   low_pred_prob_mat <- as.matrix(low_pred_prob)

@@ -10,8 +10,8 @@ library(pbmcapply)
 Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
 source("R/03-analysis.R")
 
-Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
-Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
+# Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
+# Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
 
 data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 
@@ -64,6 +64,7 @@ scale <- map_dbl(data[train_idx, ], sd)
 center <- map_dbl(data[train_idx, ], mean)
 
 x <- scale(data, center, scale)
+rm(data)
 
 calc_mid_prices <- function(lower, upper) {
   out <- (lower + upper) / 2
@@ -192,11 +193,10 @@ train_history %>%
 ```
 
 
-Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:single_pred) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
+Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:plot_binary_histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
 
-```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "single_pred", echo=FALSE, message=FALSE, warning = FALSE}
+```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "plot_binary_histogram", echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
-
 ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
 plot_neural_sample_histogram(eval_idx, ind_categorical)
 ```
@@ -207,7 +207,6 @@ Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn 
 
 ```{r}
 
-
 mid_low <- calc_mid_prices(ind_categorical$discretization$low$borders$lower, ind_categorical$discretization$low$borders$upper)
 mid_high <- calc_mid_prices(ind_categorical$discretization$high$borders$lower, ind_categorical$discretization$high$borders$upper)
 mid_close <- calc_mid_prices(ind_categorical$discretization$close$borders$lower, ind_categorical$discretization$close$borders$upper)
@@ -215,9 +214,7 @@ rm(ind_categorical)
 
 glob_scen <- expand_grid(Close = mid_close, High = mid_high, Low = mid_low) %>% mutate(ID = seq_len(nrow(.))) %>% filter(Low <= Close, High >= Close)
 
-data_test <- select(data_wide_10[test_idx[seq_len(n_eval)], ], Close_1, High = "High_0", Low = "Low_0", Close_0)
-
-
+data_test <- select(data_wide_10[test_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0)
 
 ```
 
@@ -243,10 +240,9 @@ factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell
 ```
 
 
-Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%. Bereits in dieser einfachen Form ist das gelernte Modell damit gleich gut gut, wie das Model mit Kaufs- und Verkaufsschranken als symmetrischer Abweichungen vom aktuellen Eröffnungskurs bei Unterscheidung von Hoch- und Tiefvolatilitätsphasen. Bei der Konzeption des Modelles war es gerade das Ziel, nicht nur eine Klassifikation in das wahrscheinlichste Bucket zu machen, sondern auch Voraussagen über die Verteilung der prognostizierten Preise machen zu können. Lediglich das Bucket mit höchster Wahrscheinlichkeit als Prognosewert zu verwenden ging damit zuwenig weit. Viel können nun verschiedene Kaufs- und Verkaufskombinationen für alle Preisszenarien berechnet und mit der jeweiligen Wahrscheinlichkeit gewichtet werden. Die optimale Strategie lässt sich dann diejenige mit dem höchsten erwarteten Payoff auswählen. Hierbei lohnt wiederum ein Blick auf die Berchnungskomplexität des Problems. In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien. Diese können für jeden Eintag des Testsets (rund 1'000'000 Einträge) ermittelt werden. Für jedes dieser Preisszenarien sollen wiederum verschiedene Paare von Kaufs- und Verkaufspreisen getestet werden. Orientiert man sich dabei an einer ähnlichen Granularität wir für die Preise resultieren 900 Szenarien für die Schranken (je 30 Werte für die Kaufs- und Verkaufsschranke). Damit müssen zur kompletten Evaluation $27'000 \times 1'000'000  \times 900$ Payoffs berechnet werden. Dies ist mit Hilfe der in Kapitel \@ref(infrastruktur_und_tools) vorgestellen Cloud-Infrastruktur und Tools nicht innerhalb kurzer Zeit möglich. Zur Reduktion der Komplexität lässt sich dabei ausnützen, dass nicht alle Szenarien von gleicher Bedeutung sind. Während die Verwendung des häufigsten Szenarios und die Verwendung aller Szenarios die beiden Extrempositionen einnehmen, ist auch die Verwendgung einiger wichtiger Preis- und Schrankenszenarien denkbar. Konkret werden diehjenigen Szenarien ausgewählt, welche die höchsten Eintretenswahrscheinlichkeiten aufweisen. Dabei hat es sich bewährt, diese Grenze als 99.9% Quantil der jeweiligen Wahrscheinlichkeiten zu wählen. Damit werden nur sehr wenige, dafür wichtige Szenarien berücksichtigt. Die Berechungszeits lässt sich damit sehr deutlich senken. Diese Vorgehensweise hat zudem den Vorteil, dass mit einer Reduzierung des Quantil sehr einfach mehr Werte einbezogen werden könnnen. Ferner wird auch die Schrankenszenarien sehr stark reduziert, indem als Kaufs- und Verkaufspreise nur die Tiefs- und Höchstwerte der betrachteten Preisszenarien berechnet werden. 
+Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%. Bereits in dieser einfachen Form ist das gelernte Modell damit gleich gut gut, wie das Model mit Kaufs- und Verkaufsschranken als symmetrischer Abweichungen vom aktuellen Eröffnungskurs bei Unterscheidung von Hoch- und Tiefvolatilitätsphasen. Bei der Konzeption des Modelles war es gerade das Ziel, nicht nur eine Klassifikation in das wahrscheinlichste Bucket zu machen, sondern auch Voraussagen über die Verteilung der prognostizierten Preise machen zu können. Lediglich das Bucket mit höchster Wahrscheinlichkeit als Prognosewert zu verwenden ging damit zuwenig weit. Viel können nun verschiedene Kaufs- und Verkaufskombinationen für alle Preisszenarien berechnet und mit der jeweiligen Wahrscheinlichkeit gewichtet werden. Die optimale Strategie lässt sich dann diejenige mit dem höchsten erwarteten Payoff auswählen. Hierbei lohnt wiederum ein Blick auf die Berchnungskomplexität des Problems. In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien. Diese können für jeden Eintag des Testsets (rund 1'000'000 Einträge) ermittelt werden. Für jedes dieser Preisszenarien sollen wiederum verschiedene Paare von Kaufs- und Verkaufspreisen getestet werden. Orientiert man sich dabei an einer ähnlichen Granularität wir für die Preise resultieren 900 Szenarien für die Schranken (je 30 Werte für die Kaufs- und Verkaufsschranke). Damit müssen zur kompletten Evaluation $27'000 \times 1'000'000  \times 900$ Payoffs berechnet werden. Dies ist mit Hilfe der in Kapitel \@ref(infrastruktur_und_tools) vorgestellen Cloud-Infrastruktur und Tools nicht innerhalb kurzer Zeit möglich. Zur Reduktion der Komplexität lässt sich dabei ausnützen, dass nicht alle Szenarien von gleicher Bedeutung sind. Während die Verwendung des häufigsten Szenarios und die Verwendung aller Szenarios die beiden Extrempositionen einnehmen, ist auch die Verwendgung einiger wichtiger Preis- und Schrankenszenarien denkbar. Konkret werden diehjenigen Szenarien ausgewählt, welche die höchsten Eintretenswahrscheinlichkeiten aufweisen. Dabei hat es sich bewährt, diese Grenze als Quantil der jeweiligen Wahrscheinlichkeiten zu wählen. Damit werden nur sehr wenige, dafür wichtige Szenarien berücksichtigt. Die Berechungszeits lässt sich damit sehr deutlich senken. Diese Vorgehensweise hat zudem den Vorteil, dass mit einer Reduzierung des Quantil sehr einfach mehr Werte einbezogen werden könnnen. Ferner wird auch die Schrankenszenarien sehr stark reduziert, indem als Kaufs- und Verkaufspreise nur die Tiefs- und Höchstwerte der betrachteten Preisszenarien berechnet werden. 
 
-
-TODO: Eigenheit: Unmögliche Szeanrien werden entfernt
+Das beschriebene Vorgehen sowohl für unabhängige wie auch abhängige Modelle möglich. Bei den unabhängigen Modellen gibt es ferner zusätzlich zu beachten, dass nicht mögliche Szenarien (bsp. prognostizierter Höchstpreis < prognostizierter Tieftspreis) entfernt, resp. deren prognostizierte Wahrscheinlichkeiten auf 0 gesetzt werden. Bei den Modellen mit voneinander abhängigen Preisen treten solche Szenarien nicht auf.
 
 
 ```{r}
@@ -271,12 +267,9 @@ factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = i
 ```
 
 
-
-
-Wird auch die Ordinalität...
+Bezieht man für die Pronose der Preisschranken alle Buckets mit 0.1% höchster Wahrscheinlichkeit mit ein (99.9% Quantil) resultiert für den Testdatensatz ein ÜBershusspayoff von `r round((factor_ind_buy_sell_0_999_prob - 1) * 100, 1)`% gegenüber der Referenzstartegie. Durch Berücksichtigung (eines Teils) der geschätzen Verteilung kann dieser damit noch einmal um `r round((factor_ind_buy_sell_0_999_prob - factor_ind_max_prob) * 100, 1)` Prozentpunkte gesteiegert werden und übertrifft damit die Performance einfacherer früherer Modelle.
 
 ``` {r}
-
 ind_binary <-  NULL
 ind_binary$discretization <- list(
   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
@@ -339,7 +332,7 @@ if (file.exists(model_ind_bin_high_path) && file.exists(history_ind_bin_high_pat
   cp_callback_bin_high <- callback_model_checkpoint(
     filepath = file.path("data/models/ind/binary/2_dense_512", "high.{epoch:02d}-{val_loss:.2f}.hdf5")
   )
-  model_cat_bin_high <- fit_model_bin(x[train_idx, ], y_high[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_high))
+  model_ind_bin_high <- fit_model_bin(x[train_idx, ], y_high[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_high))
   save_model_hdf5(model_cat_bin_high$model, model_ind_bin_high_path)
   saveRDS(model_cat_bin_high$history, history_ind_bin_high_path)
 }
@@ -353,58 +346,17 @@ if (file.exists(model_ind_bin_close_path) && file.exists(history_ind_bin_close_p
   cp_callback_bin_close <- callback_model_checkpoint(
     filepath = file.path("data/models/ind/binary/2_dense_512", "close.{epoch:02d}-{val_loss:.2f}.hdf5")
   )
-  model_cat_bin_close <- fit_model_bin(x[train_idx, ], y_close[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_close))
+  model_ind_bin_close <- fit_model_bin(x[train_idx, ], y_close[train_idx], n_classes = 30, callbacks = list(cp_callback_bin_close))
   save_model_hdf5(model_cat_bin_close$model, model_ind_bin_close_path)
   saveRDS(model_cat_bin_close$history, history_ind_bin_close_path)
 }
+```
 
-# 
-# translate_cum_prob <- function(cum_prob) {
-#   n_col <- ncol(cum_prob)
-#   n_row <- nrow(cum_prob)
-#   for (i in tail(seq_len(n_col), -1)) {
-#     cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1])
-#   }
-#   cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row))
-# }
-# 
-# pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-# pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-# pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-# 
-# ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+Wie in Abbildung \@(fig:plot_binary_histogram) gezeigt schien das Modell auch ohne explizite Modellierung der Ordinalität der Klassen diese implizit gelernt zu haben. Dies zeigt sich dadurch, dass benachbarte Klassen typsischerweise auch ähnliche Wahrscheinlichkeiten aufweisen. Eine explizite Modelierung der Ordinalität scheint damit im vorliegenden Fall nicht unbedingt nötig. Dies zeigt sich auch beim Vergleich der Ergebnisse mit ebendiesem Modell. 
 
+...
 
-# plot_neural_sample_histogram(100, ind_binary)
-# 
-# fit_model_binary <- function(x, y, n_classes, epochs = 5) {
-# 
-#   y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y)))
-# 
-#   model <- keras_model_sequential()
-#   model %>%
-#     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>%
-#     layer_dense(units = 512, activation = 'relu') %>%
-#     layer_dense(units = n_groups_per_col, activation = 'sigmoid')
-# 
-#   model %>% compile(
-#     loss = 'binary_crossentropy',
-#     optimizer = optimizer_adam(),
-#     metrics = c('accuracy')
-#   )
-# 
-#   history <- model %>% fit(
-#     x = x,
-#     y = y,
-#     epochs = epochs, batch_size = 512,
-#     validation_split = 0.2
-#   )
-#   list(model = model, history = history)
-# }
-# 
-# model_bin_low <- fit_model_binary(x[train_idx, ], y_low[train_idx], 30, 1)
-# model_bin_high <- fit_model_binary(x[train_idx, ], y_high[train_idx], 30, 1)
-# model_bin_close <- fit_model_binary(x[train_idx, ], y_close[train_idx], 30, 1)
+```{r, "make_ind_binary_predictions"}
 
 translate_cum_prob <- function(cum_prob) {
   n_col <- ncol(cum_prob)
@@ -415,23 +367,63 @@ translate_cum_prob <- function(cum_prob) {
   cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row))
 }
 
-pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
-
-ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
-
-plot_neural_sample_histogram(52, ind_binary)
+pred_bin_low <- predict_proba(model_ind_bin_low, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_high <- predict_proba(model_ind_bin_high, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
+pred_bin_close <- predict_proba(model_ind_bin_close, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
 
 ```
 
 
+```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "plot_binary_histogram", echo=FALSE, message=FALSE, warning = FALSE}
+eval_idx <- c(52, 12)
+ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+plot_neural_sample_histogram(eval_idx, ind_binary)
+```
+
+
+```{r}
+
+ind_bin_buy_sell_max_prob_path <- "data/models/ind/binary/2_dense_512/ind_buy_sell_max_prob.rds"
+if (file.exists(ind_bin_buy_sell_max_prob_path)) {
+  ind_bin_buy_sell_max_prob <- read_feather(ind_bin_buy_sell_max_prob_path)
+} else {
+  n_eval <- length(test_idx)
+  ind_bin_buy_sell_max_prob <- pbmclapply(seq_len(n_eval), function(i) {
+    probs <- as.vector(pred_bin_low[i, ] %o% pred_bin_high[i, ] %o% pred_bin_close[i, ])[glob_scen$ID]
+    calc_best_buy_sell(probs, max(probs), glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[test_idx[i]])
+  }, mc.cores = 3) %>% bind_rows()
+  write_feather(ind_bin_buy_sell_max_prob, ind_bin_buy_sell_max_prob_path)
+}
+
+factor_ind_bin_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_bin_buy_sell_max_prob$buy, sell = ind_bin_buy_sell_max_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+
+```
+
+```{r}
+
+ind_bin_buy_sell_0_999_prob_path <- "data/models/ind/binary/2_dense_512/ind_bin_buy_sell_0_999_prob.rds"
+if (file.exists(ind_bin_buy_sell_0_999_prob_path)) {
+  ind_bin_buy_sell_0_999_prob <- read_feather(ind_bin_buy_sell_0_999_prob_path)
+} else {
+  n_eval <- length(test_idx)
+  q <- 0.999
+  ind_bin_buy_sell_0_999_prob <- pbmclapply(seq_len(n_eval), function(i) {
+    probs <- as.vector(pred_bin_low[i, ] %o% pred_bin_high[i, ] %o% pred_bin_close[i, ])[glob_scen$ID]
+    threshold <- quantile(probs, q)
+    calc_best_buy_sell(probs, threshold, glob_scen$Low, glob_scen$High, glob_scen$Close, both_first = both_first[test_idx[i]])
+  }, mc.cores = 2) %>% bind_rows()
+  write_feather(ind_bin_buy_sell_0_999_prob, ind_bin_buy_sell_0_999_prob_path)
+}
+
+factor_ind_bin_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_bin_buy_sell_0_999_prob$buy, sell = ind_bin_buy_sell_0_999_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+
+```
 
 
 ### Abhängige Modelle
 
 
-```{r}
+```{r, echo=FALSE}
 n_groups_per_col <- 30
 
 dep_categorical <-  NULL
@@ -443,10 +435,12 @@ model_dep_path  <- "data/models/dep/categorical/2_dense_512/model.h5"
 history_dep_path  <- "data/models/dep/categorical/2_dense_512/history.rds"
 if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
   model_dep <- load_model_hdf5(model_dep_path)
+  # model_dep <- load_model_hdf5("data/models/dep/categorical/2_dense_512/dep.04-9.31.hdf5")
+
   history_dep <- readRDS(history_dep_path)
 } else {
   cp_callback_dep <- callback_model_checkpoint(
-    filepath = file.path("data/models/dep/categorical/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
+    filepath = file.path("data/models/dep/categorical/2_dense_512", "dep.{epoch:02d}-{val_loss:.2f}.hdf5")
   )
   model_dep <- fit_model_cat(x[train_idx, ], y[train_idx], callbacks = list(cp_callback_dep), epochs = 30, n_groups = 27000)
   save_model_hdf5(model_dep$model, model_dep_path)
@@ -458,1495 +452,59 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
 
 
 ```{r}
-q <- 0.999
-
 dep_categorical$discretization$borders
 mid_dep_low <- calc_mid_prices(dep_categorical$discretization$borders$Low_0_lower, dep_categorical$discretization$borders$Low_0_upper)
 mid_dep_high <- calc_mid_prices(dep_categorical$discretization$borders$High_0_lower, dep_categorical$discretization$borders$High_0_upper)
 mid_dep_close <- calc_mid_prices(dep_categorical$discretization$borders$Close_0_lower, dep_categorical$discretization$borders$Close_0_upper)
 
-dep_buy_sell_max_prob_path <- "data/models/dep/categorical/2_dense_512/ind_buy_sell_max_prob.rds"
+n_eval <- length(test_idx)
+dep_buy_sell_max_prob_path <- "data/models/dep/categorical/2_dense_512/dep_buy_sell_max_prob.rds"
 if (file.exists(dep_buy_sell_max_prob_path)) {
   dep_buy_sell_max_prob <- read_feather(dep_buy_sell_max_prob_path)
 } else {
-  n_eval <- length(test_idx)
+  chunk_size <- 4000
+  chunks <- chunk2(seq_len(length(test_idx)), ceiling(length(test_idx)/chunk_size))
+  dep_buy_sell_max_prob <- map_df(seq_along(chunks), function(curr_chunk_id) {
+    print(curr_chunk_id)
+    curr_chunk <- chunks[[curr_chunk_id]]
+    probs <- predict_proba(model_dep, x[test_idx[curr_chunk], ], batch_size = 512)
+    pbmclapply(seq_along(curr_chunk), function(i) {
+      calc_best_buy_sell(probs[i, ], max(probs[i, ]), mid_dep_low, mid_dep_high, mid_dep_close, both_first = both_first[test_idx[curr_chunk[i]]])
+    }, mc.cores = 4) %>% bind_rows()
+  })
   
-  probs <- predict_proba(model_dep, x[test_idx[seq_len(n_eval)], ], batch_size = 512)
-
-  ind_buy_sell_max_prob <- lapply(seq_len(n_eval), function(i) {
-    threshold <- quantile(probs[i, ], q)
-    calc_best_buy_sell(probs[i, ], max(probs[i, ]), mid_dep_low, mid_dep_high, mid_dep_close, both_first = both_first[test_idx[i]])
-  }) %>% bind_rows()
-  write_feather(ind_buy_sell_max_prob, ind_buy_sell_max_prob_path)
+  write_feather(dep_buy_sell_max_prob, dep_buy_sell_max_prob_path)
 }
 
-factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell_max_prob$buy, sell = ind_buy_sell_max_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+factor_dep_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_max_prob$buy, sell = dep_buy_sell_max_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
 
 ```
 
-
-<!-- ```{r} -->
-
-<!-- n_groups_per_col <- 30 -->
-
-<!-- ind_binary <-  NULL -->
-<!-- ind_binary$discretization <- list( -->
-<!--   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col), -->
-<!--   high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col), -->
-<!--   close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col) -->
-<!-- ) -->
-
-
-
-
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-
-<!-- data_wide_10_vol <- read_feather("data/steps/data_wide_10_vol.feather") -->
-<!-- n_groups_per_col <- 30 -->
-
-<!-- ind_cat_vol <-  NULL -->
-<!-- ind_cat_vol$discretization <- list( -->
-<!--   low = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Low_0", n_groups_per_col), -->
-<!--   high = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "High_0", n_groups_per_col), -->
-<!--   close = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Close_0", n_groups_per_col) -->
-<!-- ) -->
-
-
-<!-- data_vol <- select(data_wide_10_vol, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0")) -->
-
-<!-- scale_vol <- map_dbl(data_vol[train_idx, ], sd) -->
-<!-- center_vol <- map_dbl(data_vol[train_idx, ], mean) -->
-
-<!-- x_vol <- scale(data_vol, center_vol, scale_vol) -->
-<!-- y_vol_low <- ind_cat_vol$discretization$low$groups -->
-<!-- y_vol_high <- ind_cat_vol$discretization$high$groups -->
-<!-- y_vol_close <- ind_cat_vol$discretization$close$groups -->
-
-<!-- model_cat_vol_low <- fit_model_cat(x_vol[train_idx, ], y_vol_low[train_idx], 1) -->
-<!-- model_cat_vol_high <- fit_model_cat(x_vol[train_idx, ], y_vol_high[train_idx], 1) -->
-<!-- model_cat_vol_close <- fit_model_cat(x_vol[train_idx, ], y_vol_close[train_idx], 1) -->
-
-<!-- pred_cat_vol_low <- predict_proba(model_cat_vol_low$model, x_vol[test_idx, ], batch_size = 512) -->
-<!-- pred_cat_vol_high <- predict_proba(model_cat_vol_high$model, x_vol[test_idx, ], batch_size = 512) -->
-<!-- pred_cat_vol_close <- predict_proba(model_cat_vol_close$model, x_vol[test_idx, ], batch_size = 512) -->
-
-<!-- ind_cat_vol$pred <- list(low = pred_cat_vol_low, high = pred_cat_vol_high, close = pred_cat_vol_close) -->
-
-<!-- plot_neural_sample_histogram(52, ind_cat_vol) -->
-
-
-<!-- ``` -->
-
-
-<!-- **2. Abhöngige Modellierung der Preise**## Neuronale Netzwerke
-
-
-```{r, echo=FALSE, results="hide"}
-library(tidyverse)
-library(magrittr)
-library(keras)
-library(arrow)
-library(pbmcapply)
-Rcpp::sourceCpp('src/calc_payoff_per_title.cpp')
-source("R/03-analysis.R")
-
-Rcpp::sourceCpp('src/find_best_buy_sell_ind.cpp')
-Rcpp::sourceCpp('src/find_best_buy_sell_dep.cpp')
-
-data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
-
-set.seed(123456)
-train_idx <- sample(x = nrow(data_wide_10), size = floor(0.8 * nrow(data_wide_10)))
-test_idx <- setdiff(seq_len(nrow(data_wide_10)), train_idx)
-both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
-
-sample_idx <- seq_len(500)
-
-```
-
-
-Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Für die vorliegenden Analysen verwenden wir eine einfache Architektur mehrerer aufeinanderfolgender Dense Layer. Das Ziel der Analyse bleibt hingegen das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. Wie bereits früher ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff weiter in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls lukrativ sein könnte eher breite Preisschranken zu setzen, welche zwar weniger oft erreicht werden, in diesem Fall aber einen umso höheren Payoff abwerfen. Als erste der betrachteten Methoden sollen nachfolgend daher nicht nur der kommende Höchst- und Tiefstwerte pronostiziert werden, sondern auch deren Verteilung. Das Vorgehen zum Finden optimaler Kaufs- und Verkaufspreise wird dadurch zweistufig. In einem ersten Schritt wird die Verteilung der prognostizierten Tiefst-, Höchst- und Schlusspreise geschätzt.
-
-
-### Diskretisierung
-Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden dazu zwei Strategien verfolgt:
-
-**1. Unabhängige Modellierung von Low, High und Close Preisen**  
-Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich inbesondere auch dadurch, dass Bucketkombinationen enstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher vorausgesagt wird als der Tiefstpreis. Gelöst wird dieses Problem in der vorliegenden Analyse so, dass für solche Fälle keine Kaufs- und Verkaufspreise gestellt werden. All dies Fälle werden damit gleich wie im Referenzfall behandelt - namentlich wird damit aufgelaufenes Delta erst zum Tagesendkurs ausgeglichen. Der Vorteil dieses Vorgehens liegt darin, dass die Ermittlung gleich grosser Buckets sehr einfach gelingt. Zudem lässt sich das Problem unter der Annahme der Unabhängigkeit in 3 kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefts-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultiert dies in 3 Klassifikationsproblemen mit 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes diese Szeanrien als Multipliaktion der einzelnen Preiswahrscheinlichkeiten ermitteln lässt.
-
-**2. Abhängige Modellierung von Low, High und Close Preisen**
-Eine zweite Möglichkeit besteht darin, die Diskretisierung ohne Annahme der Unabhängigkeit der einzelnen Tagespreise zu gestalten. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Bucket werden danach die Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreise aufgeteilt. Anders als im Unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Auch das Klassifikationsproblem lässt sich damit nicht mehr auf kleinere Modelle aufteilen. Im obogen Beispiel müssen damit alle 27'000 Szeanrien auf einmal bearbeitet werden. Dies erhöht die Komplexität der Bearbeitung. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
-
-
-### Architektur
-Eine zweite Fragestellung die sich bei der Verwebdung von neuronalen Netzen ergibt, ist diejenige nach der geeigneten Architektur. Neuronale Netze haben sich inbesondere im Bereich der Computer Vision - beispielsweise zur Klassifikation des Bildinhaltes - als sehr leistungsfähig herausgestellt. Diese Probleme zeichenen sich dadurch aus, dass mit der Verwendung von Pixel-Daten sehr grosse Datenmengen zur Verfügung stehen und verarbeitet werden müssen. Im Vorliegenden Fall sind die Datenmengen in Relation zu Bilddaten bedeutend kleiner. Die positiven Erfahrungen, welche bei der Bilderkennung mit Convolutional Layers gemacht wurden lassen sich beim vorliegenden Sachverahlt auch nicht direkt übertragem. Aus diesem Grund und aus Überlegungen der Einfachheit entscheiden wir uns daher für eine einfache Architektur mit 2 hidden Dense Layers mit Grösse 512. Diverse Tests zur Erhöhung der Anzahl Knoten oder Gestskltung des Output-Layer dem Beifügen weiterer Layer haben zu keinen wesentlichen Verbesserungen geführt. Neben der Anzahl Layers stelltsich zudem die Frage nach der geeigneten Abbildung des Output Layers. Hierbei wurden zwei Vorgehensweisen untersucht.
-
-**1. Klassische Klassifikation**
-Eine erste Möglichkeit besteht darin, die Ordinalität der Klassen zu vernachlässigen. Eine solche Vernachlässigung macht insbesondere dann Sinn, wenn die einzlenen Klassen in keiner Abhängigkeit zueinander stehen. Wiederum bietet sich dabei der Vergleich mit der Bildklassifikation an - beispielsweise der Klassifikation des Bildes einer Katze. Es lässt sich je nach Verwendungszweck argumentieren, dass es bei einer Fehlklassifikation keine Rolle spielt, ob das Bild als Auto oder als Apfel erkannt wurde. Keines der beiden ist weniger oder mehr falsch, beide sind einfach falsch. Für diese Art der Klassifikation bietet sich eine Verlustfunktion der Art "Categorical Crossentropy" mit Aktivierung "softmax" des Outputlayers an. 
-
-**2. Ordinale Klassifikation**
-Im vorliegenden Fall - insbesondere bei unabhängiger Klassifikation von Tiefst-, Höchst- und Schlusspreisen - lassen sich die Buckets in eine logische Reihenfolge bringen. Wird ein Wert von 100 anstatt Klasse 10 fälschlicherweise Klasse 1 zugeordnet, so scheint dieser Fehler grösser als wenn die Fehlklassifikation in Klasse 9 erfolgt wäre. Eine Möglichkeit, diese Art von Klassifikationen in neuronalen Netzen zu modellieren zeigen @frank_hall. Grob besteht die Idee darin, nicht die Wahrscheinlichkeit der aktuellen Klasse zu modellieren, sondern die kumulierte Wahrscheinlichkeit der aktuellen und der darunterliegenden. Die Wahrscheinlichkeit der Zugehörigkeit zu einer spezifischen Klasse lässt sich dann einfach als Differnz der kumulierten Wahrscheinlichkeiten benachbater Klassen ableiten. Zu berücksichtigen gilt es hierbei, dass die kumulative Wahrscheinlichkeit nicht sinken darf, dies durch das geschätzte Modell aber nicht unbedingt garantiert ist. In der praktischen Umsetzung unterscheidet sich die Architektur zur Schätzung dieser Art von Modellen nicht gross von derjenigen der klassischen Klassifikation. Die Unterscheidungen beziehen sich auf eine andere Verlustfunktion (Binary Crossentropy), andere Aktivierung (Sigmoid) des Output Layers sowie eine etwas anderen Kodierung der Labels.
-
-
-### Zielgrösse
-
-### Ergebnisse
-
-Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise gerechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 10 Epochen gewählt wurde. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.[^Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Taring erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
-
-#### Unabhängige Modelle
-
-```{r}
-n_groups_per_col <- 30
-
-ind_categorical <-  NULL
-ind_categorical$discretization <- list(
-low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
-high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col),
-close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col)
-)
-
-data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
-scale <- map_dbl(data[train_idx, ], sd)
-center <- map_dbl(data[train_idx, ], mean)
-
-x <- scale(data, center, scale)
-y_low <- ind_categorical$discretization$low$groups
-y_high <- ind_categorical$discretization$high$groups
-y_close <- ind_categorical$discretization$close$groups
-
-
-fit_model_cat <- function(x, y, epochs = 10, callbacks = NULL) {
-model <- keras_model_sequential() 
-model %>% 
-layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>% 
-layer_dense(units = 512, activation = 'relu') %>%
-layer_dense(units = n_groups_per_col, activation = 'softmax')
-
-model %>% compile(
-loss = 'sparse_categorical_crossentropy',
-optimizer = optimizer_adam(),
-metrics = c('accuracy')
-)
-
-history <- model %>% fit(
-x = x, 
-y = y, 
-epochs = epochs, batch_size = 512, 
-validation_split = 0.2,
-callbacks = callbacks
-)
-list(model = model, history = history)
-}
-
-model_ind_low_path  <- "data/models/ind/categorical/2_dense_512/model_low.h5"
-history_ind_low_path  <- "data/models/ind/categorical/2_dense_512/history_low.rds"
-pred_ind_low_path  <- "data/models/ind/categorical/2_dense_512/pred_low.rds"
-if (file.exists(model_ind_low_path) && file.exists(pred_ind_low_path) && file.exists(history_ind_low_path)) {
-model_cat_low <- load_model_hdf5(model_ind_low_path)
-history_cat_low <- readRDS(history_ind_low_path)
-pred_cat_low <- readRDS(pred_ind_low_path)
-} else {
-cp_callback_low <- callback_model_checkpoint(
-filepath = file.path("data/models/ind/categorical/2_dense_512", "low.{epoch:02d}-{val_loss:.2f}.hdf5")
-)
-model_cat_low <- fit_model_cat(x[train_idx, ], y_low[train_idx], 30, callbacks = list(cp_callback_low))
-save_model_hdf5(model_cat_low$model, model_ind_low_path)
-saveRDS(model_cat_low$history, history_ind_low_path)
-pred_cat_low <- predict_proba(model_cat_low$model, x[test_idx, ], batch_size = 512)
-saveRDS(pred_cat_low, pred_ind_low_path)
-}
-
-model_ind_high_path  <- "data/models/ind/categorical/2_dense_512/model_high.h5"
-history_ind_high_path  <- "data/models/ind/categorical/2_dense_512/history_high.rds"
-pred_ind_high_path  <- "data/models/ind/categorical/2_dense_512/pred_high.rds"
-if (file.exists(model_ind_high_path) && file.exists(pred_ind_high_path) && file.exists(history_ind_low_path)) {
-model_cat_high <- load_model_hdf5(model_ind_high_path)
-history_cat_high <- readRDS(history_ind_high_path)
-pred_cat_high <- readRDS(pred_ind_high_path)
-} else {
-cp_callback_high <- callback_model_checkpoint(
-filepath = file.path("data/models/ind/categorical/2_dense_512", "high.{epoch:02d}-{val_loss:.2f}.hdf5")
-)
-model_cat_high <- fit_model_cat(x[train_idx, ], y_high[train_idx], 30, callbacks = list(cp_callback_high))
-save_model_hdf5(model_cat_high$model, model_ind_high_path)
-saveRDS(model_cat_high$history, history_ind_high_path)
-pred_cat_high <- predict_proba(model_cat_high$model, x[test_idx, ], batch_size = 512)
-saveRDS(pred_cat_high, pred_ind_high_path)
-}
-
-model_ind_close_path  <- "data/models/ind/categorical/2_dense_512/model_close.h5"
-history_ind_close_path  <- "data/models/ind/categorical/2_dense_512/history_close.rds"
-pred_ind_close_path  <- "data/models/ind/categorical/2_dense_512/pred_close.rds"
-if (file.exists(model_ind_close_path) && file.exists(history_ind_close_path) && file.exists(pred_ind_close_path)) {
-model_cat_close <- load_model_hdf5(model_ind_close_path)
-history_cat_close <- readRDS(history_ind_close_path)
-pred_cat_close <- readRDS(pred_ind_close_path)
-} else {
-cp_callback_close <- callback_model_checkpoint(
-filepath = file.path("data/models/ind/categorical/2_dense_512", "close.{epoch:02d}-{val_loss:.2f}.hdf5")
-)
-model_cat_close <- fit_model_cat(x[train_idx, ], y_close[train_idx], 30, callbacks = list(cp_callback_close))
-save_model_hdf5(model_cat_close$model, model_ind_close_path)
-saveRDS(model_cat_close$history, history_ind_close_path)
-pred_cat_close <- predict_proba(model_cat_close$model, x[test_idx, ], batch_size = 512)
-saveRDS(pred_cat_close, pred_ind_close_path)
-}
-```
-
-Während des Trainings der Netze für Tiefst-, Höchst und Schlusskurs zeigt sich der in Abbildung \@ref(fig:ind_train_progress) visualisierte Lernfortschritt. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
-
-- Die Genauigkeit richtig zugeordner Klassen liegt deutlich über demjenigen, welcher bei zufälliger Zuteilung erreicht werden könnte. Im vorliegenden Fall von 30 Buckets bei ungefähr gleichverteilter Anzahl Datenbunkte wäre dies lediglich 3.3%.
-- Die Genauigkeit der Prognose für Tiefst- und Höchstkurs ist deutlich höher als diejenige des Schlusskurses.
-- Über den Traingsverlauf nimmt die Genauigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist damit im vorliegenden Fall nicht auszumachen.
-
-
-```{r, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.asp=1, fig.pos = '!H', "ind_train_progress", echo=FALSE, message=FALSE, warning = FALSE} 
-train_history <- as_tibble(history_cat_low) %>% mutate(price = "low") %>%
-bind_rows(as_tibble(history_cat_high) %>% mutate(price = "high")) %>%
-bind_rows(as_tibble(history_cat_close) %>% mutate(price = "close")) %>%
-mutate(
-price = factor(price, levels = c("low", "high", "close")),
-data = do.call(recode, list(.x = data, validation = "Validierung", training = "Training"))
-)
-
-train_history %>% 
-filter(metric == "accuracy") %>%
-ggplot(mapping = aes(x = epoch, y = value, color = data)) +
-geom_line() + 
-facet_wrap(vars(price), ncol = 3,  scales = "free_y") +
-scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
-ylab("Genauigkeit") + 
-xlab("Epoche") +
-labs(color = "Daten") + 
-theme_bw()
-```
-
-
-Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:single_pred) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
-
-```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "single_pred", echo=FALSE, message=FALSE, warning = FALSE}
-eval_idx <- c(52, 12)
-
-ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
-plot_neural_sample_histogram(eval_idx, ind_categorical)
-```
-
-Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn auch nicht so deutlich wie dies vom Modell prognostiziert wird. Die entsprechenden Realisierungen für Low und High sind `r round(data_wide_10$Low_0[test_idx][eval_idx[1]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[1]], 2)` für das erste und `r round(data_wide_10$Low_0[test_idx][eval_idx[2]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[2]], 2)` für das Zweite Beispiel.
 
 
 ```{r}
-
-n_quant <- 30
-# 
-# buy <- unique(ceiling(quantile(data_wide_10$Low_0[train_idx], seq(1, 100, length.out = n_quant) / 100) *100) / 100)
-# sell <- unique(floor(quantile(data_wide_10$High_0[train_idx], seq(1, 100, length.out = n_quant) / 100) *100) / 100)
-# 
-# buy_sell <- expand_grid(buy, sell) %>% filter(buy < sell)
-# 
-# payoffs <- calc_payoff_const_gamma(select(data_wide_10[test_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0) )
-# 
-# 
-# test <- select(data_wide_10[test_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0)
-# payoffs <- calc_payoff_const_gamma(map_df(800, test), buy = c(100, 100), sell = c(102, 102))
-# 
-# 
-# payoffs <- calc_payoff_const_gamma(select(data_wide_10[test_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0) )
-
-calc_mid_prices <- function(lower, upper) {
-out <- (lower + upper) / 2
-out[!is.finite(out)] <- if_else(is.finite(lower[!is.finite(out)]), lower[!is.finite(out)], upper[!is.finite(out)])
-return(out)
-}
-
-n_probs <- 1000
-# b <- pbmclapply(X = 1:10000, FUN = function(j) {
-
-
-find_best_buy_sell <- function(scen) {
-
-curr_buy_sell <- unique(scen %>% select(buy = Low, sell = High))
-best_id <- map_dbl(seq_len(nrow(curr_buy_sell)), function(i) sum(calc_payoff_const_gamma(scen, buy = curr_buy_sell$buy[i], sell = curr_buy_sell$sell[i]))) %>%
-which.max()
-
-curr_buy_sell[best_id, ]
+n_eval <- length(test_idx)
+dep_buy_sell_0_999_prob_path <- "data/models/dep/categorical/2_dense_512/dep_buy_sell_0_999_prob.rds"
+if (file.exists(dep_buy_sell_0_999_prob_path)) {
+  dep_buy_sell_0_999_prob <- read_feather(dep_buy_sell_0_999_prob_path)
+} else {
+  chunk_size <- 4000
+  chunks <- chunk2(seq_len(length(test_idx)), ceiling(length(test_idx)/chunk_size))
+  q <- 0.999
+  dep_buy_sell_0_999_prob <- map_df(seq_along(chunks), function(curr_chunk_id) {
+    print(curr_chunk_id)
+    curr_chunk <- chunks[[curr_chunk_id]]
+    probs <- predict_proba(model_dep, x[test_idx[curr_chunk], ], batch_size = 512)
+    pbmclapply(seq_along(curr_chunk), function(i) {
+      threshold <- quantile(probs[i, ], q)
+      calc_best_buy_sell(probs[i, ], threshold, mid_dep_low, mid_dep_high, mid_dep_close, both_first = both_first[test_idx[curr_chunk[i]]])
+    }, mc.cores = 4) %>% bind_rows()
+  })
+  
+  write_feather(dep_buy_sell_0_999_prob, dep_buy_sell_0_999_prob_path)
 }
 
 
-mid_low <- calc_mid_prices(ind_categorical$discretization$low$borders$lower, ind_categorical$discretization$low$borders$upper)
-mid_high <- calc_mid_prices(ind_categorical$discretization$high$borders$lower, ind_categorical$discretization$high$borders$upper)
-mid_close <- calc_mid_prices(ind_categorical$discretization$close$borders$lower, ind_categorical$discretization$close$borders$upper)
-glob_scen <- expand_grid(Close_1 = 100, Low = mid_low, High = mid_high, Close_0 = mid_close) 
-
-n_eval <- 10000
-a <- pbmclapply(function(i) {
-
-map(j, function(j) {
-probs <- as.vector(pred_cat_low[i, ] %o% pred_cat_high[i, ] %o% pred_cat_close[i, ])
-curr_scen <- glob_scen %>% 
-mutate(Prob = probs) %>% 
-filter(Low < High & Close_0 < High & Close_0 > Low) %>%
-mutate(Prob = Prob / sum(Prob)) %>%
-top_n(1000, wt = Prob)
-
-find_best_buy_sell(curr_scen)
-})
-
-}, mc.cores = 4)
-
-
-data_test <- select(data_wide_10[test_idx[seq_len(n_eval)], ], Close_1, High = "High_0", Low = "Low_0", Close_0)
-buy_comp <- data_wide_10$Open_0[test_idx[seq_len(n_eval)]]
-
-test <- bind_rows(a)
-sum(calc_payoff_const_gamma(data_test, buy = test$buy, sell = test$sell))
-sum(calc_payoff_const_gamma(data_test))
-
-sum(calc_payoff_const_gamma(data_test, buy = buy_comp * 0.97, sell = buy_comp * 1.03))
-
-
-# }, mc.cores = 4)
-
-
-test <- runif(900)
-probs <- sort(as.vector(pred_cat_low[j, ] %o% pred_cat_high[j, ] %o% pred_cat_close[j, ]), decreasing = TRUE)[1:1000]
-a <- mclapply(1:3, function(i) {
-outer(1:1000, 1:1000)
-# map(i, function(j) {
-#    # probs <- sort(as.vector(pred_cat_low[j, ] %o% pred_cat_high[j, ] %o% pred_cat_close[j, ]), decreasing = TRUE)[1:1000]
-#    # sum(probs)
-#   outer(1:2, 3:4)
-#   outer(probs, test)
-# which.max(colSums(outerprobs %o% test))
-}, mc.cores = 3)
-
+factor_dep_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_0_999_prob$buy, sell = dep_buy_sell_0_999_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
 
 ```
-
-<!-- ```{r} -->
-
-<!-- n_groups_per_col <- 30 -->
-
-<!-- ind_binary <-  NULL -->
-<!-- ind_binary$discretization <- list( -->
-<!--   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col), -->
-<!--   high = multivariate_discretization(data_wide_10, train_idx, test_idx, "High_0", n_groups_per_col), -->
-<!--   close = multivariate_discretization(data_wide_10, train_idx, test_idx, "Close_0", n_groups_per_col) -->
-<!-- ) -->
-
-
-<!-- fit_model_binary <- function(x, y, n_classes, epochs = 5) { -->
-
-<!--   y <- as.matrix(purrr::map_dfc(seq_len(n_classes) - 1, ~as.integer(.<=y))) -->
-
-<!--   model <- keras_model_sequential()  -->
-<!--   model %>%  -->
-<!--     layer_dense(units = 512, activation = 'relu', input_shape = ncol(data)) %>%  -->
-<!--     layer_dense(units = 512, activation = 'relu') %>% -->
-<!--     layer_dense(units = n_groups_per_col, activation = 'sigmoid') -->
-
-<!--   model %>% compile( -->
-<!--     loss = 'binary_crossentropy', -->
-<!--     optimizer = optimizer_adam(), -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% fit( -->
-<!--     x = x,  -->
-<!--     y = y,  -->
-<!--     epochs = epochs, batch_size = 512,  -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-<!--   list(model = model, history = history) -->
-<!-- } -->
-
-<!-- model_bin_low <- fit_model_binary(x[train_idx, ], y_low[train_idx], 30, 1) -->
-<!-- model_bin_high <- fit_model_binary(x[train_idx, ], y_high[train_idx], 30, 1) -->
-<!-- model_bin_close <- fit_model_binary(x[train_idx, ], y_close[train_idx], 30, 1) -->
-
-<!-- translate_cum_prob <- function(cum_prob) { -->
-<!--   n_col <- ncol(cum_prob) -->
-<!--   n_row <- nrow(cum_prob) -->
-<!--   for (i in tail(seq_len(n_col), -1)) { -->
-<!--     cum_prob[, i] <- pmin(cum_prob[, i], cum_prob[, i-1]) -->
-<!--   } -->
-<!--   cum_prob - cbind(cum_prob[, head(1 + seq_len(n_col), -1)],rep(0, n_row)) -->
-<!-- } -->
-
-<!-- pred_bin_low <- predict_proba(model_bin_low$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-<!-- pred_bin_high <- predict_proba(model_bin_high$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-<!-- pred_bin_close <- predict_proba(model_bin_close$model, x[test_idx, ], batch_size = 512) %>% translate_cum_prob() -->
-
-<!-- ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close) -->
-
-<!-- plot_neural_sample_histogram(100, ind_binary) -->
-
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-
-<!-- data_wide_10_vol <- read_feather("data/steps/data_wide_10_vol.feather") -->
-<!-- n_groups_per_col <- 30 -->
-
-<!-- ind_cat_vol <-  NULL -->
-<!-- ind_cat_vol$discretization <- list( -->
-<!--   low = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Low_0", n_groups_per_col), -->
-<!--   high = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "High_0", n_groups_per_col), -->
-<!--   close = multivariate_discretization(data_wide_10_vol, train_idx, test_idx, "Close_0", n_groups_per_col) -->
-<!-- ) -->
-
-
-<!-- data_vol <- select(data_wide_10_vol, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0")) -->
-
-<!-- scale_vol <- map_dbl(data_vol[train_idx, ], sd) -->
-<!-- center_vol <- map_dbl(data_vol[train_idx, ], mean) -->
-
-<!-- x_vol <- scale(data_vol, center_vol, scale_vol) -->
-<!-- y_vol_low <- ind_cat_vol$discretization$low$groups -->
-<!-- y_vol_high <- ind_cat_vol$discretization$high$groups -->
-<!-- y_vol_close <- ind_cat_vol$discretization$close$groups -->
-
-<!-- model_cat_vol_low <- fit_model_cat(x_vol[train_idx, ], y_vol_low[train_idx], 1) -->
-<!-- model_cat_vol_high <- fit_model_cat(x_vol[train_idx, ], y_vol_high[train_idx], 1) -->
-<!-- model_cat_vol_close <- fit_model_cat(x_vol[train_idx, ], y_vol_close[train_idx], 1) -->
-
-<!-- pred_cat_vol_low <- predict_proba(model_cat_vol_low$model, x_vol[test_idx, ], batch_size = 512) -->
-<!-- pred_cat_vol_high <- predict_proba(model_cat_vol_high$model, x_vol[test_idx, ], batch_size = 512) -->
-<!-- pred_cat_vol_close <- predict_proba(model_cat_vol_close$model, x_vol[test_idx, ], batch_size = 512) -->
-
-<!-- ind_cat_vol$pred <- list(low = pred_cat_vol_low, high = pred_cat_vol_high, close = pred_cat_vol_close) -->
-
-<!-- plot_neural_sample_histogram(52, ind_cat_vol) -->
-
-
-<!-- ``` -->
-
-
-<!-- **2. Abhöngige Modellierung der Preise**   -->
-
-
-
-<!-- ### Unabhängige Vorhersagewerte -->
-
-<!-- #### Ohne Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-indipendent-categorical-training, echo=FALSE} -->
-<!-- ind_categorical <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = FALSE, n_groups_per_col = 30) -->
-
-<!-- table(ind_categorical$discretization$low$groups) -->
-<!-- table(ind_categorical$discretization$high$groups) -->
-<!-- table(ind_categorical$discretization$close$groups) -->
-
-
-<!-- ind_categorical_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = TRUE, n_groups_per_col = 9) -->
-
-<!-- table(ind_categorical_spread$discretization$low$groups) -->
-<!-- table(ind_categorical_spread$discretization$high$groups) -->
-<!-- table(ind_categorical_spread$discretization$close$groups) -->
-
-
-<!-- ind_binary_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "binary", spread = TRUE, n_groups_per_col = 9) -->
-
-
-
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',} -->
-<!-- plot_neural_sample_histogram(53, ind_categorical) -->
-<!-- plot_neural_sample_histogram(53, ind_categorical_spread) -->
-<!-- ``` -->
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-
-<!-- sample_idx <- seq_len(500) -->
-<!-- ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_10, both_first, test_idx, spread = TRUE, sample_idx = sample_idx) -->
-
-<!-- test_data <- select(data_wide_10[test_idx, ][sample_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0) -->
-
-<!-- ind_categorical_payoff_spread <- calc_payoff_const_gamma( -->
-<!--   quotes_line = test_data,  -->
-<!--   both_first = both_first[test_idx][sample_idx],  -->
-<!--   buy = ind_categorical_buy_sell$buy, -->
-<!--   sell = ind_categorical_buy_sell$sell -->
-<!-- ) -->
-
-<!-- sum(ind_categorical_payoff_spread) / sum(calc_payoff_const_gamma(quotes_line = test_data, both_first = both_first[test_idx][sample_idx])) -->
-
-<!-- ``` -->
-
-<!-- #### Mit Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-dependent-binary, echo=FALSE} -->
-<!-- ind_binary <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "binary") -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-dependent-binary-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',} -->
-<!-- plot_neural_sample_histogram(53, ind_binary) -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-<!-- ind_binary_buy_sell <- find_optimal_buy_sell_ind(ind_binary, data_wide_3_all, both_first, test_idx, sample_idx) -->
-<!-- ``` -->
-
-
-<!-- ### Abhängigige Vorhersagewerte -->
-<!-- #### Ohne Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-indipendent-categorical-training, echo=FALSE} -->
-<!-- dep_categorical <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical", n_groups_per_col = 10) -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-<!-- dep_categorical_buy_sell <- find_optimal_buy_sell_dep(dep_categorical, data_wide_3_all, both_first, test_idx, sample_idx) -->
-<!-- ``` -->
-
-
-<!-- #### Mit Berücksichtigung der Ordinalität -->
-
-
-
-<!-- ```{r, keras-individual-categorial, echo=FALSE} -->
-
-<!-- fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) { -->
-
-<!--   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date)) -->
-<!--   train_data <- all_data[train_idx, ] -->
-<!--   test_data <- all_data[test_idx, ] -->
-
-<!--   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-<!--   train_labels <- all_labels[train_idx] -->
-<!--   test_labels <- all_labels[test_idx] -->
-
-<!--   model <- keras::keras_model_sequential() %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--     keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax") -->
-
-<!--   model %>% keras::compile( -->
-<!--     optimizer = 'adam', -->
-<!--     loss = 'sparse_categorical_crossentropy', -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% keras::fit( -->
-<!--     train_data, -->
-<!--     train_labels, -->
-<!--     epochs = 10, -->
-<!--     batch_size = 512, -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-
-<!--   return(list(model = model, history = history)) -->
-<!-- } -->
-
-<!-- low_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_win_3_bin_30$model, "data/low_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_win_3_bin_30$history, "data/low_win_3_bin_30_history.rds") -->
-<!-- # low_win_3_bin_30$model <- load_model_hdf5("data/low_win_3_bin_30_model.hdf5") -->
-
-<!-- high_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_win_3_bin_30$model, "data/high_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_win_3_bin_30$history, "data/high_win_3_bin_30_history.rds") -->
-<!-- # high_win_3_bin_30$model <- load_model_hdf5("data/high_win_3_bin_30_model.hdf5") -->
-
-<!-- close_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_win_3_bin_30$model, "data/close_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_win_3_bin_30$history, "data/close_win_3_bin_30_history.rds") -->
-<!-- # close_win_3_bin_30$model <- load_model_hdf5("data/close_win_3_bin_30_model.hdf5") -->
-
-
-<!-- low_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_binary_win_3_bin_30$model, "data/low_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_binary_win_3_bin_30$history, "data/low_binary_win_3_bin_30_history.rds") -->
-
-<!-- high_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_binary_win_3_bin_30$model, "data/high_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_binary_win_3_bin_30$history, "data/high_binary_win_3_bin_30_history.rds") -->
-
-<!-- close_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_binary_win_3_bin_30$model, "data/close_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_binary_win_3_bin_30$history, "data/close_binary_win_3_bin_30_history.rds") -->
-
-
-<!-- ``` -->
-
-
-
-
-<!-- ```{r, keras-individual-categorial-evaluation, echo=FALSE} -->
-<!-- get_class_prices <- function(borders) { -->
-<!--   class_borders <- borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border")) -->
-<!--   class_borders[1, "Lower_Border"] <- class_borders[1, "Upper_Border"] -->
-<!--   class_borders[nrow(class_borders), "Upper_Border"] <- class_borders[nrow(class_borders), "Lower_Border"] -->
-<!--   (class_borders$Lower_Border + class_borders$Upper_Border) / 2 -->
-<!-- } -->
-
-<!-- test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ] -->
-<!-- n_groups_per_col <- 100 -->
-
-
-<!-- curr_eval_id <- 781 -->
-
-<!-- # buy prices -->
-<!-- model_low <- load_model_hdf5("models/model_low_100.hdf5") -->
-<!-- pred_prob_low <- predict_proba(model_low, test_data[curr_eval_id, , drop = FALSE], batch_size = 512) -->
-<!-- # pred_classes_low <- predict_classes(model_low, test_data, batch_size = 512) -->
-
-<!-- discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col) -->
-<!-- hist_data_low <- discretization_low$borders %>% -->
-<!--   mutate(prob = as.vector(pred_prob_low)) %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>% -->
-<!--   select("lower", "upper", "prob") %>% -->
-<!--   mutate(group = "Low") -->
-
-<!-- # sell prices -->
-<!-- model_high <- load_model_hdf5("models/model_high_100.hdf5") -->
-<!-- pred_prob_high <- predict_proba(model_high, test_data[curr_eval_id, , drop = FALSE], batch_size = 512) -->
-<!-- # pred_classes_high <- predict_classes(model_high, test_data, batch_size = 512) -->
-
-<!-- discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col) -->
-
-<!-- hist_data_high <- discretization_high$borders %>% -->
-<!--   mutate(prob = as.vector(pred_prob_high)) %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>% -->
-<!--   select("lower", "upper", "prob") %>% -->
-<!--   mutate(group = "High") -->
-
-<!-- plot_price_histogram(bind_rows(hist_data_low, hist_data_high), "Some test") -->
-
-<!-- test <- expand.grid( -->
-<!--   Close_1 = 100, -->
-<!--   Low = discretization_low$borders$Low_0_lower, -->
-<!--   High = discretization_high$borders$High_0_lower, -->
-<!--   Close_0 = (discretization_low$borders$Low_0_lower + discretization_high$borders$High_0_lower) / 2 -->
-<!-- ) -->
-
-<!-- test$Low <- ifelse(!is.finite(test$Low ), 97, test$Low) -->
-<!-- test$High <- ifelse(!is.finite(test$Low ), 103, test$Low) -->
-<!-- test$Close_0 <- ifelse(!is.finite(test$Low ), 100, test$Low) -->
-
-
-<!-- set.seed(123456) -->
-<!-- both_first <- c("buy", "sell")[sample(c(1, 2), nrow(test), replace = TRUE)] -->
-
-<!-- calc_payoff_const_gamma(tibble(Close_1 = 100, Low = 102, High = 105, Close_0 = 103), buy = -Inf, sell = Inf, both_first = "buy") -->
-
-
-<!-- microbenchmark::microbenchmark({ -->
-<!--   sum(calc_payoff_const_gamma(test, buy = 97, sell = 103, both_first = both_first)) -->
-<!-- }) -->
-
-
-
-<!-- sell <- get_class_prices(discretization_high$borders, pred_classes_high) -->
-
-
-<!-- eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0) -->
-
-
-
-<!-- data_wide_3_all[test_idx, ][1, ] -->
-<!-- buy[1] -->
-<!-- sell[1] -->
-
-<!-- scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first)) -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct -->
-
-<!-- # max -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct -->
-
-<!-- # open -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.045), sell = eval_data$Open * (1 + 0.045), both_first = both_first)) / scale_fct -->
-
-
-<!-- ``` -->
-
-
-<!-- ```{r, keras-combined-individual-binary, echo=FALSE} -->
-
-<!-- fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) { -->
-
-<!--   # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf -->
-<!--   # http://orca.st.usm.edu/~zwang/files/rank.pdf -->
-<!--   # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/ -->
-
-<!--   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date)) -->
-<!--   train_data <- all_data[train_idx, ] -->
-
-<!--   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-<!--   train_labels <- all_labels[train_idx] -->
-
-<!--   # make them "ordinal" -->
-<!--   train_labels <- purrr::map(seq_len(n_groups_per_col) - 1, ~as.integer(.<=train_labels)) %>% unlist() %>% matrix(., ncol = n_groups_per_col) -->
-
-<!--   model <- keras::keras_model_sequential() %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--     keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid") -->
-
-<!--   model %>% keras::compile( -->
-<!--     optimizer = 'adam', -->
-<!--     loss = 'binary_crossentropy', -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% keras::fit( -->
-<!--     train_data, -->
-<!--     train_labels, -->
-<!--     epochs = 10, -->
-<!--     batch_size = 512, -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-
-<!--   return(list(model = model, history = history)) -->
-<!-- } -->
-
-
-<!-- low_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_binary_win_3_bin_30$model, "data/low_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_binary_win_3_bin_30$history, "data/low_binary_win_3_bin_30_history.rds") -->
-
-<!-- high_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_binary_win_3_bin_30$model, "data/high_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_binary_win_3_bin_30$history, "data/high_binary_win_3_bin_30_history.rds") -->
-
-<!-- close_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_binary_win_3_bin_30$model, "data/close_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_binary_win_3_bin_30$history, "data/close_binary_win_3_bin_30_history.rds") -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, keras-combined-softmax-no-saampling, echo=FALSE} -->
-
-<!-- n_groups_per_col <- 10 -->
-<!-- cols <- c("Low_0", "High_0", "Close_0") -->
-<!-- all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-
-<!-- train_labels <- all_labels[train_idx] -->
-<!-- test_labels <- all_labels[test_idx] -->
-
-<!-- model <- keras::keras_model_sequential() %>% -->
-<!--   keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--   keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--   keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax") -->
-
-<!-- model %>% keras::compile( -->
-<!--   optimizer = 'adam', -->
-<!--   loss = 'sparse_categorical_crossentropy', -->
-<!--   metrics = c('accuracy') -->
-<!-- ) -->
-
-<!-- history <- model %>% keras::fit( -->
-<!--   train_data, -->
-<!--   train_labels, -->
-<!--   epochs = 2, -->
-<!--   batch_size = 512, -->
-<!--   validation_split = 0.2 -->
-<!-- ) -->
-
-<!-- summary(model) -->
-<!-- keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5") -->
-<!-- print("done") -->
-
-<!-- ``` -->
-
-
-<!-- ### Modellvergleich -->
-
-<!-- ```{r nn-models-compare} -->
-<!-- test_sample <- data_wide_3_all %>% .[test_idx, ] %>% .[sample_idx, ] %>% rename(Low = "Low_0", High = "High_0") -->
-<!-- sum(calc_payoff_const_gamma(test_sample, both_first = both_first[test_idx][sample_idx])) -->
-<!-- sum(calc_payoff_const_gamma(test_sample, buy = ind_categorical_buy_sell$buy, sell = ind_categorical_buy_sell$sell, both_first = both_first[test_idx][sample_idx])) -->
-<!-- ``` -->
-
-
-<!-- ##### Old -->
-
-
-
-<!-- ```{r, knn-calculation, echo=FALSE} -->
-<!-- # data_bkp <- data -->
-<!-- # data <- data_bkp -->
-<!-- orig_order <- order(desc(data$Date)) -->
-<!-- data <- data %>% select(-Ticker) %>% arrange(desc(Date)) -->
-
-<!-- counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt)) -->
-<!-- n_chunks <- 100 -->
-<!-- breaks <- nrow(data) / n_chunks * seq_len(n_chunks) -->
-
-<!-- split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]]) -->
-
-<!-- nn <- function(i, split_dates, data, dates){ -->
-<!--   split_date <- split_dates[[i]] -->
-<!--   curr_data <- data[dates <= split_date, ] -->
-<!--   curr_dates <- dates[dates <= split_date] -->
-<!--   curr_query <- data[dates <= split_date & dates > ifelse(i == 1, -Inf, split_dates[[i-1]]), ] -->
-<!--   RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50) -->
-<!-- } -->
-
-<!-- knn_eucl_list <- pbmcapply::pbmclapply( -->
-<!--   X = rev(seq_len(n_chunks)), -->
-<!--   FUN = nn, -->
-<!--   split_dates = split_dates, -->
-<!--   data = as.matrix(select(data, -Date)), -->
-<!--   dates = data$Date, -->
-<!--   mc.cores = parallel::detectCores() -->
-<!-- ) -->
-
-<!-- knn_eucl_list_hash <- digest::digest(knn_eucl_list) -->
-<!-- # saveRDS(knn_eucl_list_hash, paste0("tmp/knn_eucl_list_", knn_eucl_list_hash, ".rds")) -->
-
-<!-- knn_eucl <- purrr::transpose(knn_eucl_list) %>% map(~do.call(rbind, .[rev(seq_along(.))])) -->
-<!-- knn_eucl_hash <- digest::digest(knn_eucl) -->
-<!-- # arrow::write_feather(as_tibble(knn_eucl$nn.idx), paste0("tmp/knn_eucl_idx_", knn_eucl_hash, ".feather")) -->
-<!-- # arrow::write_feather(as_tibble(knn_eucl$nn.dists), paste0("tmp/knn_eucl_dists_", knn_eucl_hash, ".feather")) -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, knn-single-plot, echo=FALSE} -->
-
-<!-- knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather") -->
-<!-- knn_eucl_dists <- arrow::read_feather("tmp/knn_eucl_dists_7d3356cf64a5f81081840f6b1b370d77.feather") -->
-
-
-<!-- idx <- 123456 -->
-
-<!-- knn_eucl_idx[idx, ] -->
-<!-- knn_eucl_dists[idx, ] -->
-<!-- select(data[idx, ], -c("Ticker", "Date")) -->
-<!-- select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")) -->
-
-<!-- sqrt(sum((select(data[idx, ], -c("Ticker", "Date")) - select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")))^2)) -->
-
-<!-- id_cols <- c("Ticker", "Date") -->
-<!-- knn <- RANN::nn2( -->
-<!--   data = select(data, -id_cols), -->
-<!--   query = select(data[idx, ], -id_cols), -->
-<!--   k = 10 -->
-<!-- ) -->
-
-<!-- plot_nn( -->
-<!--   data_wide_curr = data_all[idx, ], -->
-<!--   data_wide_nn = data_all[c(3660437, 2876442, 1411227), ] -->
-<!-- ) -->
-
-<!-- # id <- 280000 -->
-<!-- # valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0] -->
-<!-- # -->
-<!-- # k <- 10 -->
-<!-- # plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_len(k)],]) -->
-
-<!-- ``` -->
-
-<!-- ```{r, knn-prediction-power, echo=FALSE} -->
-<!-- # k <- 20 -->
-<!-- # -->
-<!-- # nn_idx <- as.matrix(arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather")) -->
-<!-- # -->
-<!-- # nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn_idx[, seq_len(k)]) -->
-<!-- # na_row_bool <- rowSums(is.na(nn_pred)) > 0 -->
-<!-- # -->
-<!-- # nn_pred_sample <- nn_pred[!na_row_bool, ] %>% rename(Buy = Low_0, Sell = High_0) -->
-<!-- # quotes_line_sample <- quotes_line[!na_row_bool, ] -->
-<!-- # -->
-<!-- # plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample) -->
-<!-- # -->
-<!-- # -->
-<!-- # ### perform bootstraping -->
-<!-- # size_map <- quotes_line %>% -->
-<!-- #   select(Date) %>% -->
-<!-- #   group_by(Date) %>% -->
-<!-- #   summarize(count = n()) %>% -->
-<!-- #   ungroup() %>% -->
-<!-- #   mutate(size = cumsum(count) - count) %>% -->
-<!-- #   select(-count) -->
-<!-- # size <- quotes_line %>% select(Date) %>% left_join(size_map, by = "Date") %>% .[["size"]] -->
-<!-- # ### -->
-<!-- # -->
-<!-- # boot_nn_idx_1 <- bootstrap_nn_idx(nn_idx, size, 20, 123456) -->
-<!-- # -->
-<!-- # nn_pred_boot <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = boot_nn_idx_1) -->
-<!-- # na_row_bool_boot <- rowSums(is.na(nn_pred_boot)) > 0 -->
-<!-- # -->
-<!-- # nn_pred_boot_sample <- nn_pred_boot[!na_row_bool_boot, ] %>% rename(Buy = Low_0, Sell = High_0) -->
-<!-- # quotes_line_boot_sample <- quotes_line[!na_row_bool_boot, ] -->
-<!-- # -->
-<!-- # plot_ratio_history(quotes_line = quotes_line_boot_sample, data_pred = nn_pred_boot_sample) -->
-<!-- # -->
-<!-- # -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, knn-bootstraping, echo=FALSE} -->
-<!-- # k <- 20 -->
-<!-- # quotes_line <- readRDS("tmp/quotes_line.rds") -->
-<!-- # quotes_line_sorted <- quotes_line %>% arrange(Date) -->
-<!-- # -->
-<!-- # nn_idx <- arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather") -->
-<!-- # -->
-<!-- # nn_idx_sorted <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds") %>% .[["nn.idx"]] %>% sort_nn_idx(quotes_line$Date) -->
-<!-- # -->
-<!-- # -->
-<!-- # set.seed(123456) -->
-<!-- # boot_pred <- map(seq_len(100), function(i) { -->
-<!-- #   print(i) -->
-<!-- #   curr_nn_idx_boot <- bootstrap_nn(sort(quotes_line$Date), sort_nn_idx(nn_idx_sorted), k = k) -->
-<!-- #   pred_nn(select(quotes_line_sorted, c("Low", "High")), nn_idx = curr_nn_idx_boot) -->
-<!-- # }) -->
-<!-- # # saveRDS(boot_pred, "tmp/boot_pred.rds") -->
-<!-- # -->
-<!-- # boot_pred <- readRDS("tmp/boot_pred.rds") -->
-<!-- # -->
-<!-- # -->
-<!-- # all_complete <- rep(TRUE, nrow(quotes_line_sorted)) -->
-<!-- # for(i in seq_along(boot_pred)) { -->
-<!-- #   print(i) -->
-<!-- #   all_complete <- all_complete * rowSums(is.na(boot_pred[[i]])) == 0 -->
-<!-- #   gc() -->
-<!-- # } -->
-<!-- # -->
-<!-- # na_row_bool <- rowSums(is.na(nn_idx_sorted)) + rowSums(is.na()) -->
-<!-- # -->
-<!-- # test <- map(boot_pred, ~sum(calc_payoff_const_gamma(quotes_line_sorted[all_complete], buy = .$Low, sell = .$High, both_first = 234567))) -->
-<!-- # -->
-<!-- # na_row_bool <- rowSums(is.na(nn$nn.idx)) == 0 -->
-
-<!-- # nn_idx[4418184, ] -->
-<!-- # quotes_line[4418184, ] -->
-
-
-
-
-<!-- ``` -->
-
-<!-- ## Neuronale Netzwerke -->
-
-<!-- ## Autoregressive Modelle -->
--->
-
-
-
-<!-- ### Unabhängige Vorhersagewerte -->
-
-<!-- #### Ohne Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-indipendent-categorical-training, echo=FALSE} -->
-<!-- ind_categorical <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = FALSE, n_groups_per_col = 30) -->
-
-<!-- table(ind_categorical$discretization$low$groups) -->
-<!-- table(ind_categorical$discretization$high$groups) -->
-<!-- table(ind_categorical$discretization$close$groups) -->
-
-
-<!-- ind_categorical_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "categorical", spread = TRUE, n_groups_per_col = 9) -->
-
-<!-- table(ind_categorical_spread$discretization$low$groups) -->
-<!-- table(ind_categorical_spread$discretization$high$groups) -->
-<!-- table(ind_categorical_spread$discretization$close$groups) -->
-
-
-<!-- ind_binary_spread <- get_neural_model_ind(data_wide_10, architecture = "2_dense_512", crossentropy = "binary", spread = TRUE, n_groups_per_col = 9) -->
-
-
-
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',} -->
-<!-- plot_neural_sample_histogram(53, ind_categorical) -->
-<!-- plot_neural_sample_histogram(53, ind_categorical_spread) -->
-<!-- ``` -->
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-
-<!-- sample_idx <- seq_len(500) -->
-<!-- ind_categorical_buy_sell <- find_optimal_buy_sell_ind(ind_categorical, data_wide_10, both_first, test_idx, spread = TRUE, sample_idx = sample_idx) -->
-
-<!-- test_data <- select(data_wide_10[test_idx, ][sample_idx, ], Close_1, High = "High_0", Low = "Low_0", Close_0) -->
-
-<!-- ind_categorical_payoff_spread <- calc_payoff_const_gamma( -->
-<!--   quotes_line = test_data,  -->
-<!--   both_first = both_first[test_idx][sample_idx],  -->
-<!--   buy = ind_categorical_buy_sell$buy, -->
-<!--   sell = ind_categorical_buy_sell$sell -->
-<!-- ) -->
-
-<!-- sum(ind_categorical_payoff_spread) / sum(calc_payoff_const_gamma(quotes_line = test_data, both_first = both_first[test_idx][sample_idx])) -->
-
-<!-- ``` -->
-
-<!-- #### Mit Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-dependent-binary, echo=FALSE} -->
-<!-- ind_binary <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "binary") -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-dependent-binary-plotting, fig.cap='Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise', fig.asp=1, fig.pos = '!H',} -->
-<!-- plot_neural_sample_histogram(53, ind_binary) -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-<!-- ind_binary_buy_sell <- find_optimal_buy_sell_ind(ind_binary, data_wide_3_all, both_first, test_idx, sample_idx) -->
-<!-- ``` -->
-
-
-<!-- ### Abhängigige Vorhersagewerte -->
-<!-- #### Ohne Berücksichtigung der Ordinalität -->
-
-<!-- ```{r nn-indipendent-categorical-training, echo=FALSE} -->
-<!-- dep_categorical <- get_neural_model_dep(data_wide_3_all, architecture = "2_dense_512", crossentropy = "categorical", n_groups_per_col = 10) -->
-<!-- ``` -->
-
-
-<!-- ```{r nn-indipendent-categorical-evaluation} -->
-<!-- dep_categorical_buy_sell <- find_optimal_buy_sell_dep(dep_categorical, data_wide_3_all, both_first, test_idx, sample_idx) -->
-<!-- ``` -->
-
-
-<!-- #### Mit Berücksichtigung der Ordinalität -->
-
-
-
-<!-- ```{r, keras-individual-categorial, echo=FALSE} -->
-
-<!-- fit_categorical_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) { -->
-
-<!--   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date)) -->
-<!--   train_data <- all_data[train_idx, ] -->
-<!--   test_data <- all_data[test_idx, ] -->
-
-<!--   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-<!--   train_labels <- all_labels[train_idx] -->
-<!--   test_labels <- all_labels[test_idx] -->
-
-<!--   model <- keras::keras_model_sequential() %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--     keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax") -->
-
-<!--   model %>% keras::compile( -->
-<!--     optimizer = 'adam', -->
-<!--     loss = 'sparse_categorical_crossentropy', -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% keras::fit( -->
-<!--     train_data, -->
-<!--     train_labels, -->
-<!--     epochs = 10, -->
-<!--     batch_size = 512, -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-
-<!--   return(list(model = model, history = history)) -->
-<!-- } -->
-
-<!-- low_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_win_3_bin_30$model, "data/low_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_win_3_bin_30$history, "data/low_win_3_bin_30_history.rds") -->
-<!-- # low_win_3_bin_30$model <- load_model_hdf5("data/low_win_3_bin_30_model.hdf5") -->
-
-<!-- high_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_win_3_bin_30$model, "data/high_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_win_3_bin_30$history, "data/high_win_3_bin_30_history.rds") -->
-<!-- # high_win_3_bin_30$model <- load_model_hdf5("data/high_win_3_bin_30_model.hdf5") -->
-
-<!-- close_win_3_bin_30 <- fit_categorical_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_win_3_bin_30$model, "data/close_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_win_3_bin_30$history, "data/close_win_3_bin_30_history.rds") -->
-<!-- # close_win_3_bin_30$model <- load_model_hdf5("data/close_win_3_bin_30_model.hdf5") -->
-
-
-<!-- low_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_binary_win_3_bin_30$model, "data/low_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_binary_win_3_bin_30$history, "data/low_binary_win_3_bin_30_history.rds") -->
-
-<!-- high_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_binary_win_3_bin_30$model, "data/high_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_binary_win_3_bin_30$history, "data/high_binary_win_3_bin_30_history.rds") -->
-
-<!-- close_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_binary_win_3_bin_30$model, "data/close_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_binary_win_3_bin_30$history, "data/close_binary_win_3_bin_30_history.rds") -->
-
-
-<!-- ``` -->
-
-
-
-
-<!-- ```{r, keras-individual-categorial-evaluation, echo=FALSE} -->
-<!-- get_class_prices <- function(borders) { -->
-<!--   class_borders <- borders %>% set_names(c("Bucket", "Lower_Border", "Upper_Border")) -->
-<!--   class_borders[1, "Lower_Border"] <- class_borders[1, "Upper_Border"] -->
-<!--   class_borders[nrow(class_borders), "Upper_Border"] <- class_borders[nrow(class_borders), "Lower_Border"] -->
-<!--   (class_borders$Lower_Border + class_borders$Upper_Border) / 2 -->
-<!-- } -->
-
-<!-- test_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date))[test_idx, ] -->
-<!-- n_groups_per_col <- 100 -->
-
-
-<!-- curr_eval_id <- 781 -->
-
-<!-- # buy prices -->
-<!-- model_low <- load_model_hdf5("models/model_low_100.hdf5") -->
-<!-- pred_prob_low <- predict_proba(model_low, test_data[curr_eval_id, , drop = FALSE], batch_size = 512) -->
-<!-- # pred_classes_low <- predict_classes(model_low, test_data, batch_size = 512) -->
-
-<!-- discretization_low <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "Low_0", n_groups_per_col) -->
-<!-- hist_data_low <- discretization_low$borders %>% -->
-<!--   mutate(prob = as.vector(pred_prob_low)) %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>% -->
-<!--   select("lower", "upper", "prob") %>% -->
-<!--   mutate(group = "Low") -->
-
-<!-- # sell prices -->
-<!-- model_high <- load_model_hdf5("models/model_high_100.hdf5") -->
-<!-- pred_prob_high <- predict_proba(model_high, test_data[curr_eval_id, , drop = FALSE], batch_size = 512) -->
-<!-- # pred_classes_high <- predict_classes(model_high, test_data, batch_size = 512) -->
-
-<!-- discretization_high <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, "High_0", n_groups_per_col) -->
-
-<!-- hist_data_high <- discretization_high$borders %>% -->
-<!--   mutate(prob = as.vector(pred_prob_high)) %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("lower")), ~"lower") %>% -->
-<!--   rename_at(dplyr::vars(tidyselect::ends_with("upper")), ~"upper") %>% -->
-<!--   select("lower", "upper", "prob") %>% -->
-<!--   mutate(group = "High") -->
-
-<!-- plot_price_histogram(bind_rows(hist_data_low, hist_data_high), "Some test") -->
-
-<!-- test <- expand.grid( -->
-<!--   Close_1 = 100, -->
-<!--   Low = discretization_low$borders$Low_0_lower, -->
-<!--   High = discretization_high$borders$High_0_lower, -->
-<!--   Close_0 = (discretization_low$borders$Low_0_lower + discretization_high$borders$High_0_lower) / 2 -->
-<!-- ) -->
-
-<!-- test$Low <- ifelse(!is.finite(test$Low ), 97, test$Low) -->
-<!-- test$High <- ifelse(!is.finite(test$Low ), 103, test$Low) -->
-<!-- test$Close_0 <- ifelse(!is.finite(test$Low ), 100, test$Low) -->
-
-
-<!-- set.seed(123456) -->
-<!-- both_first <- c("buy", "sell")[sample(c(1, 2), nrow(test), replace = TRUE)] -->
-
-<!-- calc_payoff_const_gamma(tibble(Close_1 = 100, Low = 102, High = 105, Close_0 = 103), buy = -Inf, sell = Inf, both_first = "buy") -->
-
-
-<!-- microbenchmark::microbenchmark({ -->
-<!--   sum(calc_payoff_const_gamma(test, buy = 97, sell = 103, both_first = both_first)) -->
-<!-- }) -->
-
-
-
-<!-- sell <- get_class_prices(discretization_high$borders, pred_classes_high) -->
-
-
-<!-- eval_data <- data_wide_3_all[test_idx, ] %>% select(Close_1, Open = Open_0, Low = Low_0, High = High_0, Close_0) -->
-
-
-
-<!-- data_wide_3_all[test_idx, ][1, ] -->
-<!-- buy[1] -->
-<!-- sell[1] -->
-
-<!-- scale_fct <- sum(calc_payoff_const_gamma(eval_data, both_first = both_first)) -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = buy, sell = sell, both_first = both_first)) / scale_fct -->
-
-<!-- # max -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Low, sell = eval_data$High, both_first = both_first)) / scale_fct -->
-
-<!-- # open -->
-<!-- sum(calc_payoff_const_gamma(eval_data, buy = eval_data$Open * (1 - 0.045), sell = eval_data$Open * (1 + 0.045), both_first = both_first)) / scale_fct -->
-
-
-<!-- ``` -->
-
-
-<!-- ```{r, keras-combined-individual-binary, echo=FALSE} -->
-
-<!-- fit_binary_model <- function(data_all, data, train_idx, test_idx, cols, n_groups_per_col) { -->
-
-<!--   # https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf -->
-<!--   # http://orca.st.usm.edu/~zwang/files/rank.pdf -->
-<!--   # https://machinelearningmastery.com/how-to-prepare-categorical-data-for-deep-learning-in-python/ -->
-
-<!--   all_data <- as.matrix(dplyr::select(data_wide_3, -Ticker, -Date)) -->
-<!--   train_data <- all_data[train_idx, ] -->
-
-<!--   all_labels <- multivariate_discretization(data_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-<!--   train_labels <- all_labels[train_idx] -->
-
-<!--   # make them "ordinal" -->
-<!--   train_labels <- purrr::map(seq_len(n_groups_per_col) - 1, ~as.integer(.<=train_labels)) %>% unlist() %>% matrix(., ncol = n_groups_per_col) -->
-
-<!--   model <- keras::keras_model_sequential() %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--     keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--     keras::layer_dense(units = n_groups_per_col^length(cols), activation = "sigmoid") -->
-
-<!--   model %>% keras::compile( -->
-<!--     optimizer = 'adam', -->
-<!--     loss = 'binary_crossentropy', -->
-<!--     metrics = c('accuracy') -->
-<!--   ) -->
-
-<!--   history <- model %>% keras::fit( -->
-<!--     train_data, -->
-<!--     train_labels, -->
-<!--     epochs = 10, -->
-<!--     batch_size = 512, -->
-<!--     validation_split = 0.2 -->
-<!--   ) -->
-
-<!--   return(list(model = model, history = history)) -->
-<!-- } -->
-
-
-<!-- low_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Low_0", 30) -->
-<!-- save_model_hdf5(low_binary_win_3_bin_30$model, "data/low_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(low_binary_win_3_bin_30$history, "data/low_binary_win_3_bin_30_history.rds") -->
-
-<!-- high_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "High_0", 30) -->
-<!-- save_model_hdf5(high_binary_win_3_bin_30$model, "data/high_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(high_binary_win_3_bin_30$history, "data/high_binary_win_3_bin_30_history.rds") -->
-
-<!-- close_binary_win_3_bin_30 <- fit_binary_model(data_wide_3_all, data_wide_3, train_idx, test_idx, "Close_0", 30) -->
-<!-- save_model_hdf5(close_binary_win_3_bin_30$model, "data/close_binary_win_3_bin_30_model.hdf5") -->
-<!-- saveRDS(close_binary_win_3_bin_30$history, "data/close_binary_win_3_bin_30_history.rds") -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, keras-combined-softmax-no-saampling, echo=FALSE} -->
-
-<!-- n_groups_per_col <- 10 -->
-<!-- cols <- c("Low_0", "High_0", "Close_0") -->
-<!-- all_labels <- multivariate_discretization(data_wide_3_all, train_idx, test_idx, cols, n_groups_per_col) %$% groups -->
-
-<!-- train_labels <- all_labels[train_idx] -->
-<!-- test_labels <- all_labels[test_idx] -->
-
-<!-- model <- keras::keras_model_sequential() %>% -->
-<!--   keras::layer_dense(units = 512, activation = "relu",  input_shape = dim(train_data)[2]) %>% -->
-<!--   keras::layer_dense(units = 512, activation = "relu") %>% -->
-<!--   keras::layer_dense(units = n_groups_per_col^length(cols), activation = "softmax") -->
-
-<!-- model %>% keras::compile( -->
-<!--   optimizer = 'adam', -->
-<!--   loss = 'sparse_categorical_crossentropy', -->
-<!--   metrics = c('accuracy') -->
-<!-- ) -->
-
-<!-- history <- model %>% keras::fit( -->
-<!--   train_data, -->
-<!--   train_labels, -->
-<!--   epochs = 2, -->
-<!--   batch_size = 512, -->
-<!--   validation_split = 0.2 -->
-<!-- ) -->
-
-<!-- summary(model) -->
-<!-- keras::save_model_hdf5(model, "data/2_dense_512_window_3_epoch_50_batch_128_val_split_20.hdf5") -->
-<!-- print("done") -->
-
-<!-- ``` -->
-
-
-<!-- ### Modellvergleich -->
-
-<!-- ```{r nn-models-compare} -->
-<!-- test_sample <- data_wide_3_all %>% .[test_idx, ] %>% .[sample_idx, ] %>% rename(Low = "Low_0", High = "High_0") -->
-<!-- sum(calc_payoff_const_gamma(test_sample, both_first = both_first[test_idx][sample_idx])) -->
-<!-- sum(calc_payoff_const_gamma(test_sample, buy = ind_categorical_buy_sell$buy, sell = ind_categorical_buy_sell$sell, both_first = both_first[test_idx][sample_idx])) -->
-<!-- ``` -->
-
-
-<!-- ##### Old -->
-
-
-
-<!-- ```{r, knn-calculation, echo=FALSE} -->
-<!-- # data_bkp <- data -->
-<!-- # data <- data_bkp -->
-<!-- orig_order <- order(desc(data$Date)) -->
-<!-- data <- data %>% select(-Ticker) %>% arrange(desc(Date)) -->
-
-<!-- counts <- data %>% select(Date) %>% group_by(Date) %>% summarise(cnt = n()) %>% ungroup() %>% mutate(cum_sum = cumsum(cnt)) -->
-<!-- n_chunks <- 100 -->
-<!-- breaks <- nrow(data) / n_chunks * seq_len(n_chunks) -->
-
-<!-- split_dates <- map(breaks, ~counts$Date[[min(which(counts$cum_sum>=.))]]) -->
-
-<!-- nn <- function(i, split_dates, data, dates){ -->
-<!--   split_date <- split_dates[[i]] -->
-<!--   curr_data <- data[dates <= split_date, ] -->
-<!--   curr_dates <- dates[dates <= split_date] -->
-<!--   curr_query <- data[dates <= split_date & dates > ifelse(i == 1, -Inf, split_dates[[i-1]]), ] -->
-<!--   RANN2::nn2_cpp2(data = curr_data, query = curr_query, group = as.integer(curr_dates), k = 50, k_internal = 1.2*50) -->
-<!-- } -->
-
-<!-- knn_eucl_list <- pbmcapply::pbmclapply( -->
-<!--   X = rev(seq_len(n_chunks)), -->
-<!--   FUN = nn, -->
-<!--   split_dates = split_dates, -->
-<!--   data = as.matrix(select(data, -Date)), -->
-<!--   dates = data$Date, -->
-<!--   mc.cores = parallel::detectCores() -->
-<!-- ) -->
-
-<!-- knn_eucl_list_hash <- digest::digest(knn_eucl_list) -->
-<!-- # saveRDS(knn_eucl_list_hash, paste0("tmp/knn_eucl_list_", knn_eucl_list_hash, ".rds")) -->
-
-<!-- knn_eucl <- purrr::transpose(knn_eucl_list) %>% map(~do.call(rbind, .[rev(seq_along(.))])) -->
-<!-- knn_eucl_hash <- digest::digest(knn_eucl) -->
-<!-- # arrow::write_feather(as_tibble(knn_eucl$nn.idx), paste0("tmp/knn_eucl_idx_", knn_eucl_hash, ".feather")) -->
-<!-- # arrow::write_feather(as_tibble(knn_eucl$nn.dists), paste0("tmp/knn_eucl_dists_", knn_eucl_hash, ".feather")) -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, knn-single-plot, echo=FALSE} -->
-
-<!-- knn_eucl_idx <- arrow::read_feather("tmp/knn_eucl_idx_7d3356cf64a5f81081840f6b1b370d77.feather") -->
-<!-- knn_eucl_dists <- arrow::read_feather("tmp/knn_eucl_dists_7d3356cf64a5f81081840f6b1b370d77.feather") -->
-
-
-<!-- idx <- 123456 -->
-
-<!-- knn_eucl_idx[idx, ] -->
-<!-- knn_eucl_dists[idx, ] -->
-<!-- select(data[idx, ], -c("Ticker", "Date")) -->
-<!-- select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")) -->
-
-<!-- sqrt(sum((select(data[idx, ], -c("Ticker", "Date")) - select(data[head(as.integer(knn_eucl_idx[idx, ]), 1), ], -c("Ticker", "Date")))^2)) -->
-
-<!-- id_cols <- c("Ticker", "Date") -->
-<!-- knn <- RANN::nn2( -->
-<!--   data = select(data, -id_cols), -->
-<!--   query = select(data[idx, ], -id_cols), -->
-<!--   k = 10 -->
-<!-- ) -->
-
-<!-- plot_nn( -->
-<!--   data_wide_curr = data_all[idx, ], -->
-<!--   data_wide_nn = data_all[c(3660437, 2876442, 1411227), ] -->
-<!-- ) -->
-
-<!-- # id <- 280000 -->
-<!-- # valid_idx <- seq_len(n)[rowSums(is.na(nn$nn.idx)) == 0] -->
-<!-- # -->
-<!-- # k <- 10 -->
-<!-- # plot_nn(data_wide_0[valid_idx[id], ], data_wide_0[nn$nn.idx[valid_idx[id], seq_len(k)],]) -->
-
-<!-- ``` -->
-
-<!-- ```{r, knn-prediction-power, echo=FALSE} -->
-<!-- # k <- 20 -->
-<!-- # -->
-<!-- # nn_idx <- as.matrix(arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather")) -->
-<!-- # -->
-<!-- # nn_pred <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = nn_idx[, seq_len(k)]) -->
-<!-- # na_row_bool <- rowSums(is.na(nn_pred)) > 0 -->
-<!-- # -->
-<!-- # nn_pred_sample <- nn_pred[!na_row_bool, ] %>% rename(Buy = Low_0, Sell = High_0) -->
-<!-- # quotes_line_sample <- quotes_line[!na_row_bool, ] -->
-<!-- # -->
-<!-- # plot_ratio_history(quotes_line = quotes_line_sample, data_pred = nn_pred_sample) -->
-<!-- # -->
-<!-- # -->
-<!-- # ### perform bootstraping -->
-<!-- # size_map <- quotes_line %>% -->
-<!-- #   select(Date) %>% -->
-<!-- #   group_by(Date) %>% -->
-<!-- #   summarize(count = n()) %>% -->
-<!-- #   ungroup() %>% -->
-<!-- #   mutate(size = cumsum(count) - count) %>% -->
-<!-- #   select(-count) -->
-<!-- # size <- quotes_line %>% select(Date) %>% left_join(size_map, by = "Date") %>% .[["size"]] -->
-<!-- # ### -->
-<!-- # -->
-<!-- # boot_nn_idx_1 <- bootstrap_nn_idx(nn_idx, size, 20, 123456) -->
-<!-- # -->
-<!-- # nn_pred_boot <- pred_nn(select(data_wide_0, c("Low_0", "High_0")), nn_idx = boot_nn_idx_1) -->
-<!-- # na_row_bool_boot <- rowSums(is.na(nn_pred_boot)) > 0 -->
-<!-- # -->
-<!-- # nn_pred_boot_sample <- nn_pred_boot[!na_row_bool_boot, ] %>% rename(Buy = Low_0, Sell = High_0) -->
-<!-- # quotes_line_boot_sample <- quotes_line[!na_row_bool_boot, ] -->
-<!-- # -->
-<!-- # plot_ratio_history(quotes_line = quotes_line_boot_sample, data_pred = nn_pred_boot_sample) -->
-<!-- # -->
-<!-- # -->
-
-<!-- ``` -->
-
-
-
-<!-- ```{r, knn-bootstraping, echo=FALSE} -->
-<!-- # k <- 20 -->
-<!-- # quotes_line <- readRDS("tmp/quotes_line.rds") -->
-<!-- # quotes_line_sorted <- quotes_line %>% arrange(Date) -->
-<!-- # -->
-<!-- # nn_idx <- arrow::read_arrow("data/nn_idx_eucl_olhc_w3_38a896430298c738055505dc89e042ac.feather") -->
-<!-- # -->
-<!-- # nn_idx_sorted <- readRDS("data/nn_eucl_olhc_w3_38a896430298c738055505dc89e042ac.rds") %>% .[["nn.idx"]] %>% sort_nn_idx(quotes_line$Date) -->
-<!-- # -->
-<!-- # -->
-<!-- # set.seed(123456) -->
-<!-- # boot_pred <- map(seq_len(100), function(i) { -->
-<!-- #   print(i) -->
-<!-- #   curr_nn_idx_boot <- bootstrap_nn(sort(quotes_line$Date), sort_nn_idx(nn_idx_sorted), k = k) -->
-<!-- #   pred_nn(select(quotes_line_sorted, c("Low", "High")), nn_idx = curr_nn_idx_boot) -->
-<!-- # }) -->
-<!-- # # saveRDS(boot_pred, "tmp/boot_pred.rds") -->
-<!-- # -->
-<!-- # boot_pred <- readRDS("tmp/boot_pred.rds") -->
-<!-- # -->
-<!-- # -->
-<!-- # all_complete <- rep(TRUE, nrow(quotes_line_sorted)) -->
-<!-- # for(i in seq_along(boot_pred)) { -->
-<!-- #   print(i) -->
-<!-- #   all_complete <- all_complete * rowSums(is.na(boot_pred[[i]])) == 0 -->
-<!-- #   gc() -->
-<!-- # } -->
-<!-- # -->
-<!-- # na_row_bool <- rowSums(is.na(nn_idx_sorted)) + rowSums(is.na()) -->
-<!-- # -->
-<!-- # test <- map(boot_pred, ~sum(calc_payoff_const_gamma(quotes_line_sorted[all_complete], buy = .$Low, sell = .$High, both_first = 234567))) -->
-<!-- # -->
-<!-- # na_row_bool <- rowSums(is.na(nn$nn.idx)) == 0 -->
-
-<!-- # nn_idx[4418184, ] -->
-<!-- # quotes_line[4418184, ] -->
-
-
-
-
-<!-- ``` -->
-
-<!-- ## Neuronale Netzwerke -->
-
-<!-- ## Autoregressive Modelle -->
