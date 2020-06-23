@@ -2,7 +2,7 @@
 
 
 ### Ohne Berücksichtigung der Marktvolatilität
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 suppressPackageStartupMessages({
   library(dplyr)
   library(stringr)
@@ -209,8 +209,10 @@ Die Grafiken zeigen das erwartete Bild. Für die Gruppe tieferer vergangener Vol
 
 Insbesondere bei der Gruppe der höheren Volatilitäten weist die Kurve aber weiterhin eine bimodale Form auf. Es scheint, als ob mit der gemachten Gruppierung zwar ein Teil der Varianz des aktuellen Tages erklärt werden konnte, weitere Teile davon aber unerklärt bleiben. Eine Möglichkeit bestünde nun darin, die Anzahl Gruppierungen weiter zu erhöhen, indem beispeilsweise nicht nur der Median, sondern die Quartile, Dezile, Percentile etc. als Klassifikatoren gewählt werden. Darauf sei an dieser Stelle verzichtet und zu andern Ansätzen des maschinellen Lernens übergegangen.
 
-
-
+```{r, echo=FALSE, results='hide'}
+rm(list = ls())
+gc()
+```
 
 
 

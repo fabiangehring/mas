@@ -1,6 +1,6 @@
 ## Nearest Neighbor Ansätze
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE, echo=FALSE, results='hide'}
 suppressPackageStartupMessages({
   library(tidyverse)
   library(RANN)
@@ -71,7 +71,7 @@ Beiden Ansätzen gemein ist hingegen, dass sie sich sehr gut parallelisieren las
 ### Bestimmung Kaufs- und Verkaufspreise
 
 
-```{r, knn-calculation, echo=FALSE}
+```{r, knn-calculation, echo=FALSE, results='hide', warning=FALSE}
 
 data_wide_10 <- arrow::read_feather("data/steps/data_wide_10.feather")
 data_knn_3 <- select(data_wide_10, c("Date", levels(interaction(c("Open_", "Low_", "High_", "Close_"), 1:3, sep="")), "Open_0")) %>%
@@ -116,9 +116,9 @@ if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
 ```
 
 
-Sind die Nachbarn eines Eintrages ermittelt lässt sich eine Prognose für den weiteren Kursverlauf des aktuellen Eintrages ableiten. Dazu wird aus den bekannten Kursverläufen der Nachbarn mittels geeigneter Metrik ein Prognosewert für den Folgetag abgeleitet. Abbildung \@ref(fig:example_nearest_neighbor_outlook) illustriert dieses Vorgehen anhand eines Beispiels. Die Grafiken zeigen die Kursverläufe des aktuellen Eintrages (rot) sowie diejenigen der nächsten 5 Nachbarn für den aktuellen zu prognostizierenden Tag (t) sowie die 3 jeweils vorangegangenen Handelstage (t-1, ... , t-3). Die gestrichelte rote Linie zeigt den auf Basis der Nachbarn prognostizierten Wert.
+Sind die Nachbarn eines Eintrages ermittelt lässt sich eine Prognose für den weiteren Kursverlauf des aktuellen Eintrages ableiten. Dazu wird aus den bekannten Kursverläufen der Nachbarn mittels geeigneter Metrik ein Prognosewert für den Folgetag abgeleitet. Abbildung \@ref(fig:example-nearest-neighbor-outlook) illustriert dieses Vorgehen anhand eines Beispiels. Die Grafiken zeigen die Kursverläufe des aktuellen Eintrages (rot) sowie diejenigen der nächsten 5 Nachbarn für den aktuellen zu prognostizierenden Tag (t) sowie die 3 jeweils vorangegangenen Handelstage (t-1, ... , t-3). Die gestrichelte rote Linie zeigt den auf Basis der Nachbarn prognostizierten Wert.
 
-``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis naeshter Nachhbarn', fig.asp=1, fig.pos = '!H', anef-data, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, example-nearest-neighbor-outlook, fig.cap='Exemplarische Kursprognose auf Basis nächster Nachhbarn', fig.asp=1, fig.pos = '!H',  echo=FALSE, message=FALSE, warning=FALSE}
 k <- 5
 curr_idx <- 432100
 
@@ -131,6 +131,7 @@ data_knn_3_incl_0 <- select(data_wide_10, c("Date", cols_3_incl_0)) %>%
 
 data_wide_curr <- data_knn_3_incl_0[curr_idx,]
 data_wide_nn_eucl <- data_knn_3_incl_0[unlist(nn_3_eucl_idx[curr_idx, ], use.names = FALSE)[seq_len(k)], ]
+
 data_wide_nn_manh <- data_knn_3_incl_0[unlist(nn_3_manh_idx[curr_idx, ], use.names = FALSE)[seq_len(k)], ]
 
 
@@ -141,7 +142,7 @@ plot_nn(data_wide_curr = data_wide_curr, data_wide_nn = data_wide_nn_manh)
 
 ```
 
-Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp. Verkaufsschranken gewählt, lässt sich der Payoff berechnen und mit demjenigen der Referenzstartegie vergleichen. Wie bereits ausgeführt werden bei der Suche nach Nachbarn nur Einträge der Vergangenheit berücksichtigt. Die Menge an verfügbaren Vergleichsverläufen nimmt damit mit fortlaufender Zeit zu. Stellt man den Payoff-Vergleich für das Training Set über die Zeit dar (vgl. Abbildung \@ref(fig:hist-knn)), wird der Lerneffekt der Methode sichtbar. Insbesondere 3 Eigenschaften der Kurve lassen sich ausmachen:
+Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp. Verkaufsschranken gewählt, lässt sich der Payoff berechnen und mit demjenigen der Referenzstartegie vergleichen. Wie bereits ausgeführt werden bei der Suche nach Nachbarn nur Einträge der Vergangenheit berücksichtigt. Die Menge an verfügbaren Vergleichsverläufen nimmt damit mit fortlaufender Zeit zu. Stellt man den Payoff-Vergleich für das Training Set über die Zeit dar (vgl. Abbildung \@ref(fig:knn-learning-history)), wird der Lerneffekt der Methode sichtbar. Insbesondere 3 Eigenschaften der Kurve lassen sich ausmachen:
 
 1. Hohe Volatilität des Vergleichsfaktor zu Beginn
 1. Steigende Faktorhöhe mit fortlaufender Zeitdauer
@@ -149,7 +150,7 @@ Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp
 
 Beide Eigenschaften decken sich mit der Intuition. Da zu Beginn der Datenreihe nur sehr wenige Vergleichsverläufe zur Verfügung stehen, reagiert die Kurve sehr sensitiv und schlägt entsprechend aus. Dies glättet sich im Laufe der Zeit mit dem Vorhandensein von mehr Vergleichsmöglichkeiten. Die zweite Eiegenschaft des steigenden Faktors zeigt, dass der erhoffte Lerneffekt einzutreten scheint. Tatsächlich scheinen ähnliche Kursverläufe in der Vergangenheit zukünftige Entwicklungen teilweise erklären zu können. Dies deckt sich mit der Erkenntnis des vergangenen Kapitels. Anders als zuvor kann dieser Lernmechanismus hier aber sehr individuell und nicht beschränkt auf 2 Gruppen erfolgen. Die dritte Eigenschaft zeigt, dass dieser Lerneffekt  nach gewisser Zeit gesättigt scheint.
 
-``` {r, fig.cap='Exemmplarische Kursprognose auf Bassis näcshter Nachhbarn', fig.asp=1, fig.pos = '!H', anehist-knndasdasdf, echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, knn-learning-history, fig.cap='Entwicklung der Modellperformance über die Zeit', fig.asp=1, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
 data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
 
 hist_pred_train_path <- "data/knn/hist_pred_train.feather"
@@ -174,7 +175,7 @@ Eine erste Möglichkeit zur Prognose von Tiefst-, Höchst- und Schlusskurs beste
 
 Die zweite hier betrachtete Möglichkeit besteht darin, die Kaufs- und Verkaufspreise nicht direkt, sondern als Abweichung vom Eröffnungskurs zu modellieren. Hierzu wird für jeden Nachbarn die Differenz von Eröffnungs- und Tiefstpreis resp. Eröffnungs- und Höchstpreis berechnet. Die entsprechende Metrik (Mittelwert oder Median) wird dann auf diese Werte angewandt und auf den tatsächlichen Eröffnungspreis des zu analysierenden Titels appliziert. Dies hat den Vorteil, dass der bekannte Eröffnungspreis keiner Unsicherheit mehr unterliegt.
 
-Tabelle \@ref(tab:knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen für des Testingset einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
+Tabelle \@ref(knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen für des Testingset einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
 
 Allen Ergebnissen gemein ist hingegen, dass sie der einfachen Strategie des Vorkapitels nicht überlegen sind. Im Gegenteil fallen die Payoffs im Vergleich trotz deutlich höherem Berechnungsaufwand in der Tendenz schlechter aus, wenn auch der Payoff der Referenzstrategie weiter deutlich geschlagen wird. Die Hoffnung, dass mit der Individualisierung der einzelnen Einträge mehr kursrelevante Information extrahiert werden kann, bestätigt sich nicht. Ein Grund könnte in der durch die Berechnungskomplexität beschränkte Begrenzung auf ein Zeitfenster von 3 vorangegangenen Tagen sein.
 
@@ -244,24 +245,17 @@ if (all(map_lgl(factor_table_paths, ~!file.exists(.)))) {
 
 
 ```{r}
-
 kable(eucl_table, col.names = c("", "Mittelwert", "Median", "Mittelwert", "Median"), digits = 3) %>%
   add_header_above(c(" ", "Euklidisch" = 2, "Manhattan" = 2)) %>%
   column_spec(1, bold = TRUE)
 # kable_styling(latex_options = c("repeat_header"))
-
-
-```
-
-```{r}
-long_dt <-rbind(mtcars, mtcars)
-kable(long_dt)%>%
-  add_header_above(c(" ", "Group 1" = 5, "Group 2" = 6))%>%
-  kable_styling(latex_options =c("repeat_header"))
 ```
 
 
-
+```{r, echo=FALSE, results='hide'}
+rm(list = ls())
+gc()
+```
 
 
 

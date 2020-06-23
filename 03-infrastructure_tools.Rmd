@@ -58,7 +58,9 @@ Ebenfalls als wertvoll zeigte sich die Verwendung von kapselbaren conda Environm
 Es zeigt sich, dass das erwähnte Problem der Instabilität von Keras und Tensorflow bei direkter Verwendung der Python Libraries nicht auftauchte. Erwähnenswert ist hier aber, dass für die Verwendung der GPU Version auf dem System sowohl passende Grafiktreiber sowie die zur Tensorflow Version passende Version von CUDA installiert sein muss. Erwähnenswert ist dies inbesondere daher, da es auch bei aktuellster Tensorflow Bibliothek nicht die aktuellste CUDA Version sein durfte. Über die zu verwendenden Versionen gibt die Tensorflow Website Auskunft (https://www.tensorflow.org/install/gpu).
 
 
-
-
+```{r, echo=FALSE, results='hide'}
+rm(list = ls())
+gc()
+```
 
 

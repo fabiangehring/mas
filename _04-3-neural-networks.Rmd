@@ -34,29 +34,26 @@ Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Pr
 **1. Unabhängige Modellierung von Low, High und Close Preisen**  
 Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich inbesondere auch dadurch, dass Bucketkombinationen enstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher vorausgesagt wird als der Tiefstpreis. Gelöst wird dieses Problem in der vorliegenden Analyse so, dass für solche Fälle keine Kaufs- und Verkaufspreise gestellt werden. All dies Fälle werden damit gleich wie im Referenzfall behandelt - namentlich wird damit aufgelaufenes Delta erst zum Tagesendkurs ausgeglichen. Der Vorteil dieses Vorgehens liegt darin, dass die Ermittlung gleich grosser Buckets sehr einfach gelingt. Zudem lässt sich das Problem unter der Annahme der Unabhängigkeit in 3 kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefts-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultiert dies in 3 Klassifikationsproblemen mit 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes diese Szeanrien als Multipliaktion der einzelnen Preiswahrscheinlichkeiten ermitteln lässt.
 
-**2. Abhängige Modellierung von Low, High und Close Preisen**
+**2. Abhängige Modellierung von Low, High und Close Preisen**  
 Eine zweite Möglichkeit besteht darin, die Diskretisierung ohne Annahme der Unabhängigkeit der einzelnen Tagespreise zu gestalten. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Bucket werden danach die Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreise aufgeteilt. Anders als im Unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Auch das Klassifikationsproblem lässt sich damit nicht mehr auf kleinere Modelle aufteilen. Im obogen Beispiel müssen damit alle 27'000 Szeanrien auf einmal bearbeitet werden. Dies erhöht die Komplexität der Bearbeitung. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
 
 
 ### Architektur
 Eine zweite Fragestellung die sich bei der Verwebdung von neuronalen Netzen ergibt, ist diejenige nach der geeigneten Architektur. Neuronale Netze haben sich inbesondere im Bereich der Computer Vision - beispielsweise zur Klassifikation des Bildinhaltes - als sehr leistungsfähig herausgestellt. Diese Probleme zeichenen sich dadurch aus, dass mit der Verwendung von Pixel-Daten sehr grosse Datenmengen zur Verfügung stehen und verarbeitet werden müssen. Im Vorliegenden Fall sind die Datenmengen in Relation zu Bilddaten bedeutend kleiner. Die positiven Erfahrungen, welche bei der Bilderkennung mit Convolutional Layers gemacht wurden lassen sich beim vorliegenden Sachverahlt auch nicht direkt übertragem. Aus diesem Grund und aus Überlegungen der Einfachheit entscheiden wir uns daher für eine einfache Architektur mit 2 hidden Dense Layers mit Grösse 512. Diverse Tests zur Erhöhung der Anzahl Knoten oder Gestskltung des Output-Layer dem Beifügen weiterer Layer haben zu keinen wesentlichen Verbesserungen geführt. Neben der Anzahl Layers stelltsich zudem die Frage nach der geeigneten Abbildung des Output Layers. Hierbei wurden zwei Vorgehensweisen untersucht.
 
-**1. Klassische Klassifikation**
+**1. Klassische Klassifikation**  
 Eine erste Möglichkeit besteht darin, die Ordinalität der Klassen zu vernachlässigen. Eine solche Vernachlässigung macht insbesondere dann Sinn, wenn die einzlenen Klassen in keiner Abhängigkeit zueinander stehen. Wiederum bietet sich dabei der Vergleich mit der Bildklassifikation an - beispielsweise der Klassifikation des Bildes einer Katze. Es lässt sich je nach Verwendungszweck argumentieren, dass es bei einer Fehlklassifikation keine Rolle spielt, ob das Bild als Auto oder als Apfel erkannt wurde. Keines der beiden ist weniger oder mehr falsch, beide sind einfach falsch. Für diese Art der Klassifikation bietet sich eine Verlustfunktion der Art "Categorical Crossentropy" mit Aktivierung "softmax" des Outputlayers an. 
 
-**2. Ordinale Klassifikation**
+**2. Ordinale Klassifikation**  
 Im vorliegenden Fall - insbesondere bei unabhängiger Klassifikation von Tiefst-, Höchst- und Schlusspreisen - lassen sich die Buckets in eine logische Reihenfolge bringen. Wird ein Wert von 100 anstatt Klasse 10 fälschlicherweise Klasse 1 zugeordnet, so scheint dieser Fehler grösser als wenn die Fehlklassifikation in Klasse 9 erfolgt wäre. Eine Möglichkeit, diese Art von Klassifikationen in neuronalen Netzen zu modellieren zeigen @frank_hall. Grob besteht die Idee darin, nicht die Wahrscheinlichkeit der aktuellen Klasse zu modellieren, sondern die kumulierte Wahrscheinlichkeit der aktuellen und der darunterliegenden. Die Wahrscheinlichkeit der Zugehörigkeit zu einer spezifischen Klasse lässt sich dann einfach als Differnz der kumulierten Wahrscheinlichkeiten benachbater Klassen ableiten. Zu berücksichtigen gilt es hierbei, dass die kumulative Wahrscheinlichkeit nicht sinken darf, dies durch das geschätzte Modell aber nicht unbedingt garantiert ist. In der praktischen Umsetzung unterscheidet sich die Architektur zur Schätzung dieser Art von Modellen nicht gross von derjenigen der klassischen Klassifikation. Die Unterscheidungen beziehen sich auf eine andere Verlustfunktion (Binary Crossentropy), andere Aktivierung (Sigmoid) des Output Layers sowie eine etwas anderen Kodierung der Labels.
 
 
-### Zielgrösse
-
 ### Ergebnisse
 
-Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise gerechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 10 Epochen gewählt wurde. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.[^Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Taring erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
+Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise gerechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 10 Epochen gewählt wurde. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.^[Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Training erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
 
 #### Unabhängige Modelle
-
-```{r}
+```{r, echo=FALSE, results='hide', message=FALSE}
 n_groups_per_col <- 30
 
 data <- select(data_wide_10, c(as.vector(outer(c("Open", "High", "Low", "Close"), 10:1, function(x, y) paste(x, y, sep = "_"))), "Open_0"))
@@ -164,14 +161,14 @@ if (file.exists(model_ind_close_path) && file.exists(history_ind_close_path) && 
 }
 ```
 
-Während des Trainings der Netze für Tiefst-, Höchst und Schlusskurs zeigt sich der in Abbildung \@ref(fig:ind_train_progress) visualisierte Lernfortschritt. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
+Während des Trainings der Netze für Tiefst-, Höchst und Schlusskurs zeigt sich der in Abbildung \@ref(fig:ind-train-progress) visualisierte Lernfortschritt. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
 
 - Die Genauigkeit richtig zugeordner Klassen liegt deutlich über demjenigen, welcher bei zufälliger Zuteilung erreicht werden könnte. Im vorliegenden Fall von 30 Buckets bei ungefähr gleichverteilter Anzahl Datenbunkte wäre dies lediglich 3.3%.
 - Die Genauigkeit der Prognose für Tiefst- und Höchstkurs ist deutlich höher als diejenige des Schlusskurses.
 - Über den Traingsverlauf nimmt die Genauigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist damit im vorliegenden Fall nicht auszumachen.
 
 
-```{r, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.asp=1, fig.pos = '!H', "ind_train_progress", echo=FALSE, message=FALSE, warning = FALSE} 
+```{r, ind-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE} 
 train_history <- as_tibble(history_cat_low) %>% mutate(price = "low") %>%
   bind_rows(as_tibble(history_cat_high) %>% mutate(price = "high")) %>%
   bind_rows(as_tibble(history_cat_close) %>% mutate(price = "close")) %>%
@@ -193,12 +190,13 @@ train_history %>%
 ```
 
 
-Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:plot_binary_histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
+Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:plot-binary-histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
 
-```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "plot_binary_histogram", echo=FALSE, message=FALSE, warning = FALSE}
+```{r, plot-categorical-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.height=3, fig.pos = '!H',  echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
 ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
 plot_neural_sample_histogram(eval_idx, ind_categorical)
+rm(list = c("pred_cat_low", "pred_cat_high", "pred_cat_close"))
 ```
 
 Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn auch nicht so deutlich wie dies vom Modell prognostiziert wird. Die entsprechenden Realisierungen für Low und High sind `r round(data_wide_10$Low_0[test_idx][eval_idx[1]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[1]], 2)` für das erste und `r round(data_wide_10$Low_0[test_idx][eval_idx[2]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[2]], 2)` für das zweite Beispiel.
@@ -267,9 +265,10 @@ factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = i
 ```
 
 
+
 Bezieht man für die Pronose der Preisschranken alle Buckets mit 0.1% höchster Wahrscheinlichkeit mit ein (99.9% Quantil) resultiert für den Testdatensatz ein ÜBershusspayoff von `r round((factor_ind_buy_sell_0_999_prob - 1) * 100, 1)`% gegenüber der Referenzstartegie. Durch Berücksichtigung (eines Teils) der geschätzen Verteilung kann dieser damit noch einmal um `r round((factor_ind_buy_sell_0_999_prob - factor_ind_max_prob) * 100, 1)` Prozentpunkte gesteiegert werden und übertrifft damit die Performance einfacherer früherer Modelle.
 
-``` {r}
+``` {r, echo=FALSE, results='hide'}
 ind_binary <-  NULL
 ind_binary$discretization <- list(
   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
@@ -352,11 +351,9 @@ if (file.exists(model_ind_bin_close_path) && file.exists(history_ind_bin_close_p
 }
 ```
 
-Wie in Abbildung \@(fig:plot_binary_histogram) gezeigt schien das Modell auch ohne explizite Modellierung der Ordinalität der Klassen diese implizit gelernt zu haben. Dies zeigt sich dadurch, dass benachbarte Klassen typsischerweise auch ähnliche Wahrscheinlichkeiten aufweisen. Eine explizite Modelierung der Ordinalität scheint damit im vorliegenden Fall nicht unbedingt nötig. Dies zeigt sich auch beim Vergleich der Ergebnisse mit ebendiesem Modell. 
+Wie in Abbildung \@(fig:plot-binary-histogram) gezeigt schien das Modell auch ohne explizite Modellierung der Ordinalität der Klassen diese implizit gelernt zu haben. Dies zeigt sich dadurch, dass benachbarte Klassen typsischerweise auch ähnliche Wahrscheinlichkeiten aufweisen. Eine explizite Modelierung der Ordinalität scheint damit im vorliegenden Fall nicht unbedingt nötig. Dies zeigt sich auch beim Vergleich der Ergebnisse mit ebendiesem Modell. 
 
-...
-
-```{r, "make_ind_binary_predictions"}
+```{r, make-ind-binary-predictions}
 
 translate_cum_prob <- function(cum_prob) {
   n_col <- ncol(cum_prob)
@@ -374,14 +371,15 @@ pred_bin_close <- predict_proba(model_ind_bin_close, x[test_idx, ], batch_size =
 ```
 
 
-```{r, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.asp=1, fig.pos = '!H', "plot_binary_histogram", echo=FALSE, message=FALSE, warning = FALSE}
+```{r, plot-binary-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
 ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
 plot_neural_sample_histogram(eval_idx, ind_binary)
+rm(list = c("pred_bin_low", "pred_bin_high", "pred_bin_close"))
 ```
 
 
-```{r}
+```{r, echo=FALSE, results='hide'}
 
 ind_bin_buy_sell_max_prob_path <- "data/models/ind/binary/2_dense_512/ind_buy_sell_max_prob.rds"
 if (file.exists(ind_bin_buy_sell_max_prob_path)) {
@@ -399,7 +397,7 @@ factor_ind_bin_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_bin_
 
 ```
 
-```{r}
+```{r, echo=FALSE, results='hide'}
 
 ind_bin_buy_sell_0_999_prob_path <- "data/models/ind/binary/2_dense_512/ind_bin_buy_sell_0_999_prob.rds"
 if (file.exists(ind_bin_buy_sell_0_999_prob_path)) {
@@ -420,10 +418,7 @@ factor_ind_bin_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy
 ```
 
 
-### Abhängige Modelle
-
-
-```{r, echo=FALSE}
+```{r, echo=FALSE, results='hide'}
 n_groups_per_col <- 30
 
 dep_categorical <-  NULL
@@ -451,7 +446,9 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
 ```
 
 
-```{r}
+#### Abhängige Modelle
+
+```{r, echo=FALSE, results='hide'}
 dep_categorical$discretization$borders
 mid_dep_low <- calc_mid_prices(dep_categorical$discretization$borders$Low_0_lower, dep_categorical$discretization$borders$Low_0_upper)
 mid_dep_high <- calc_mid_prices(dep_categorical$discretization$borders$High_0_lower, dep_categorical$discretization$borders$High_0_upper)
@@ -482,7 +479,7 @@ factor_dep_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell
 
 
 
-```{r}
+```{r, echo=FALSE, results='hide'}
 n_eval <- length(test_idx)
 dep_buy_sell_0_999_prob_path <- "data/models/dep/categorical/2_dense_512/dep_buy_sell_0_999_prob.rds"
 if (file.exists(dep_buy_sell_0_999_prob_path)) {
@@ -507,4 +504,9 @@ if (file.exists(dep_buy_sell_0_999_prob_path)) {
 
 factor_dep_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_0_999_prob$buy, sell = dep_buy_sell_0_999_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
 
+```
+
+```{r, echo=FALSE, results='hide'}
+rm(list = ls())
+gc()
 ```

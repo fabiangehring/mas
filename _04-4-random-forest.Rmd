@@ -36,3 +36,8 @@ rf_fit <- train(Low_0 ~ .,
                 method = "ranger")
 
 ```
+
+```{r, echo=FASLE, results='hide'}
+rm(list = ls())
+gc()
+```

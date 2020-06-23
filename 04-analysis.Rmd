@@ -1,6 +1,6 @@
 # Analyse
 
-```{r message=FALSE, warning=FALSE, setup_analysis, echo=FALSE}
+```{r, setup_analysis, message=FALSE, warning=FALSE, echo=FALSE, results='hide'}
 suppressPackageStartupMessages({
   library(dplyr)
   library(stringr)
@@ -39,11 +39,11 @@ Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstr
 Eine weitere Gemeinsamkeit aller Analysen ist, dass der bereinigte Datensatz in ein Trainings- (80%) und ein Testdatensatz (20%) aufgeteilt wird. Diese Aufteilung erfolgt zufällig und wird für alle Analysen zwecks Vergleichbarkeit der Ergebnisse beibehalten. 
 
 
-# ```{r child="_04-1-optimization.Rmd", echo=FALSE}
-# ```
+```{r child="_04-1-optimization.Rmd", echo=FALSE}
+```
 
-# ```{r child="_04-2-knn.Rmd", echo=FALSE}
-# ```
+```{r child="_04-2-knn.Rmd", echo=FALSE}
+```
 
 ```{r child="_04-3-neural-networks.Rmd", echo=FALSE}
 ```

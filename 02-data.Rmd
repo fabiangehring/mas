@@ -4,7 +4,7 @@
 
 ### Aktienuniversum
 
-```{r, retrieve-etf-data, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, retrieve-etf-data, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 suppressPackageStartupMessages({
   library(tidyselect)
   library(tidyverse)
@@ -100,9 +100,9 @@ Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten 
 ## Aufbereitung
 ### Bereinigung
 
-Mit Yahoo Finance wird ein bekannter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(tab:summary-before-clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können. So enthält der Datensatz beispielsweise offensichtlich falsche Werte (z.b. negative Preise) aber auch einige Lücken.
+Mit Yahoo Finance wird ein bekannter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(summary-before-clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können. So enthält der Datensatz beispielsweise offensichtlich falsche Werte (z.b. negative Preise) aber auch einige Lücken.
 
-```{r, summary_before_clean, echo=FALSE}
+```{r, summary-before-clean, echo=FALSE}
 summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
 ```
 
@@ -124,7 +124,7 @@ if (!file.exists(file_quotes_clean)) {
 }
 ```
 1. **Entfernen von fehlerhaften Adjustierungsdaten**  
-Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte auf. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferner auf, dass komischerweise auch einige sehr sehr kleine (im Bereich $-10^{-6}$) - wenn auch knapp postive Werte - gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
+Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte auf. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferner auf, dass komischerweise auch einige sehr sehr kleine (im Bereich $10^{-6}$) - wenn auch knapp postive Werte - gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
 
 ```{r, filter-data-measure-order, echo=FALSE}
 if (!file.exists(file_quotes_clean)) {
@@ -308,4 +308,9 @@ if (!file.exists(path_data_wide_10_vol)) {
 
 ```
 
+
+```{r, echo=FALSE, results='hide'}
+rm(list = ls())
+gc()
+```
 
