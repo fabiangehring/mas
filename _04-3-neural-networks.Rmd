@@ -25,32 +25,36 @@ sample_idx <- seq_len(500)
 ```
 
 
-Als dritte Analysemethode sollen im vorliegenden Kapitel neuronale Netzwerke verwendet werden. Diese Methoden erlauben den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Für die vorliegenden Analysen verwenden wir eine einfache Architektur mehrerer aufeinanderfolgender Dense Layer. Das Ziel der Analyse bleibt hingegen das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. Wie bereits früher ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff weiter in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls lukrativ sein könnte eher breite Preisschranken zu setzen, welche zwar weniger oft erreicht werden, in diesem Fall aber einen umso höheren Payoff abwerfen. Als erste der betrachteten Methoden sollen nachfolgend daher nicht nur der kommende Höchst- und Tiefstwerte pronostiziert werden, sondern auch deren Verteilung. Das Vorgehen zum Finden optimaler Kaufs- und Verkaufspreise wird dadurch zweistufig. In einem ersten Schritt wird die Verteilung der prognostizierten Tiefst-, Höchst- und Schlusspreise geschätzt.
+Als dritte Methode sollen im vorliegenden Kapitel neuronale Netzwerke analysiert werden. Diese Methode erlaubt den Umgang mit sehr grossen Datenmengen, weshalb die Beschränkung auf ein sehr kurzes Zeitfenster hier nicht nötig ist. Die Architektur wird sehr einfach gehalten und besteht aus mehreren vollständig miteinander verknüpfter Schichten (Dense Layer). Das Ziel der Analyse bleibt das gleiche wie in den Kapiteln zuvor: Es soll basierend auf vergangenen Kursverläufen möglich optimale Kaufs- und Verkaufskurse für den laufenden Tag prognositiert werden. 
+
+Wie bereits ausgeführt ist der resultierende Payoff dabei abhängig von der Höhe der Preisbewegung und der der Wahrscheinlichkeit der Ausführung. Da der Payoff in quadratischer Form von der Höhe der Kursbewegung abhängt haben frühere Überlegungen bereits gezeigt, dass es allenfalls vorteilhaft sein könnte, eher breite Preisschranken zu setzen. Diese werden zwar weniger oft erreicht, werfen im Falle der Ausführung aber einen umso höheren Payoff ab. Ziel ist es daher, nicht nur Punktprognosen für die Preisexteme des Tages zu machen, sondern auch Erkenntnisse über deren Verteilungen zu gewinnen. Sind diese bekannt, können unter Berücksichtigung der Eintretenswahrscheinlichkeiten der jeweilign Preisentwicklungen die optimalen Kaufs- und Verkaufsschranken eruiert werden.
 
 
 ### Diskretisierung
-Zur Modellierung der Verteilung werden die zu prognostizierenden zukünftigen Preis (Tiefst-, Höchst- und Schlusspreis) in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit berechnen. Wichtig für die ein solches Klassifikationsproblem ist dabei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden dazu zwei Strategien verfolgt:
+Zur Modellierung der Verteilung werden die Tiefst-, Höchst- und Schlusspreise in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit ermitteln. ZU beachten gilt es hierbei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden zwei Einteilungsverfahren verfolgt:
 
-**1. Unabhängige Modellierung von Low, High und Close Preisen**  
-Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich inbesondere auch dadurch, dass Bucketkombinationen enstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher vorausgesagt wird als der Tiefstpreis. Gelöst wird dieses Problem in der vorliegenden Analyse so, dass für solche Fälle keine Kaufs- und Verkaufspreise gestellt werden. All dies Fälle werden damit gleich wie im Referenzfall behandelt - namentlich wird damit aufgelaufenes Delta erst zum Tagesendkurs ausgeglichen. Der Vorteil dieses Vorgehens liegt darin, dass die Ermittlung gleich grosser Buckets sehr einfach gelingt. Zudem lässt sich das Problem unter der Annahme der Unabhängigkeit in 3 kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefts-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultiert dies in 3 Klassifikationsproblemen mit 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes diese Szeanrien als Multipliaktion der einzelnen Preiswahrscheinlichkeiten ermitteln lässt.
+1. **Unabhängige Modellierung von Low, High und Close Preisen**
+Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefts-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich inbesondere dadurch, dass Bucketkombinationen enstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher vorausgesagt wird als der Tiefstpreis. 
 
-**2. Abhängige Modellierung von Low, High und Close Preisen**  
-Eine zweite Möglichkeit besteht darin, die Diskretisierung ohne Annahme der Unabhängigkeit der einzelnen Tagespreise zu gestalten. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Bucket werden danach die Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreise aufgeteilt. Anders als im Unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Auch das Klassifikationsproblem lässt sich damit nicht mehr auf kleinere Modelle aufteilen. Im obogen Beispiel müssen damit alle 27'000 Szeanrien auf einmal bearbeitet werden. Dies erhöht die Komplexität der Bearbeitung. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
+Der Vorteil dieses Vorgehens liegt andererseits darin, dass die Ermittlung gleich grosser Buckets mittels Quantilbildung sehr einfach möglich ist. Zudem lässt sich das Problem unter der Annahme der Unabhängigkeit in 3 kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefts-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultiert dies in 3 Klassifikationsproblemen à 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes diese Szeanrien als Multipliaktion der einzelnen Preiswahrscheinlichkeiten ergibt.
+
+2. **Abhängige Modellierung von Low, High und Close Preisen**  
+Eine zweite Möglichkeit besteht darin, die Diskretisierung mit Annahme einer Abhängigkeit der einzelnen Tagespreise vorzunehmen. Die Diskretisierung unter dem Ziel möglich gleich grosser Buckets gestaltet sich dabei etwas schwieriger. Wir verwenden dazu den Ansatz, welcher zuerst die Tiefstpreise in gleich grosse Buckets aufteilt. Für jedes dieser Buckets werden danach die darin enthaltenen Höchstkurse in gleich grosse Buckets aufgeteilt. Die resultierenden Buckets werden danach wiederum in möglichst gleich grosse Buckets bezüglich Schlusspreisen aufgeteilt. Anders als im unabhängigen Fall sind die Bucket-Grenzen damit nicht immer gleich. Das Klassifikationsproblem lässt auch nicht mehr auf kleinere Modelle aufteilen. Alle 27'000 Szenarien müssen damit in einem grösseren Modell auf einmal bearbeitet werden. Der Vorteil dieser Methode liegt darin, dass eine Abhängikeit der Preise ökonomisch plausibler ist und auch unmögliche Szenarien nicht mehr vorkommen.
 
 
 ### Architektur
-Eine zweite Fragestellung die sich bei der Verwebdung von neuronalen Netzen ergibt, ist diejenige nach der geeigneten Architektur. Neuronale Netze haben sich inbesondere im Bereich der Computer Vision - beispielsweise zur Klassifikation des Bildinhaltes - als sehr leistungsfähig herausgestellt. Diese Probleme zeichenen sich dadurch aus, dass mit der Verwendung von Pixel-Daten sehr grosse Datenmengen zur Verfügung stehen und verarbeitet werden müssen. Im Vorliegenden Fall sind die Datenmengen in Relation zu Bilddaten bedeutend kleiner. Die positiven Erfahrungen, welche bei der Bilderkennung mit Convolutional Layers gemacht wurden lassen sich beim vorliegenden Sachverahlt auch nicht direkt übertragem. Aus diesem Grund und aus Überlegungen der Einfachheit entscheiden wir uns daher für eine einfache Architektur mit 2 hidden Dense Layers mit Grösse 512. Diverse Tests zur Erhöhung der Anzahl Knoten oder Gestskltung des Output-Layer dem Beifügen weiterer Layer haben zu keinen wesentlichen Verbesserungen geführt. Neben der Anzahl Layers stelltsich zudem die Frage nach der geeigneten Abbildung des Output Layers. Hierbei wurden zwei Vorgehensweisen untersucht.
+Neuronale Netze haben sich inbesondere im Bereich der Computer Vision - beispielsweise zur Klassifikation des Bildinhaltes - als sehr leistungsfähig herausgestellt [vgl. @krizhevsky_sutskever_hinton]. Diese Probleme zeichenen sich dadurch aus, dass mit der Verwendung von Pixel-Daten sehr grosse Datenmengen zur Verfügung stehen und verarbeitet werden müssen. Im vorliegenden Fall sind die Datenmengen in Relation zu Bilddaten bedeutend kleiner. Aus diesem Grund und aus Überlegungen der Einfachheit entscheiden wir uns daher für eine einfache Architektur mit 2 versteckten Dense Layer mit jeweils 512 Knoten. Diverse Tests zur Erhöhung der Knotenanzahl oder dem Beifügen weiterer Layer haben zu keinen wesentlichen Verbesserungen geführt. Neben der Anzahl Layer stellt sich zudem die Frage nach der geeigneten Abbildung des Output Layers. Hierbei werden zwei Vorgehensweisen untersucht.
 
-**1. Klassische Klassifikation**  
-Eine erste Möglichkeit besteht darin, die Ordinalität der Klassen zu vernachlässigen. Eine solche Vernachlässigung macht insbesondere dann Sinn, wenn die einzlenen Klassen in keiner Abhängigkeit zueinander stehen. Wiederum bietet sich dabei der Vergleich mit der Bildklassifikation an - beispielsweise der Klassifikation des Bildes einer Katze. Es lässt sich je nach Verwendungszweck argumentieren, dass es bei einer Fehlklassifikation keine Rolle spielt, ob das Bild als Auto oder als Apfel erkannt wurde. Keines der beiden ist weniger oder mehr falsch, beide sind einfach falsch. Für diese Art der Klassifikation bietet sich eine Verlustfunktion der Art "Categorical Crossentropy" mit Aktivierung "softmax" des Outputlayers an. 
+1. **Klassische Klassifikation**  
+Eine erste Möglichkeit besteht darin, die Ordinalität der Klassen zu vernachlässigen. Eine solche Vernachlässigung macht insbesondere dann Sinn, wenn die einzelnen Klassen in keiner Abhängigkeit zueinander stehen. Wiederum bietet sich dabei der Vergleich mit der Bildklassifikation an - beispielsweise der Klassifikation des Bildes einer Katze. Es lässt sich je nach Verwendungszweck argumentieren, dass es bei einer Fehlklassifikation keine Rolle spielt, ob das Bild als Auto oder als Apfel erkannt wurde. Keines der beiden ist "weniger" oder "mehr" falsch, beide sind schlicht falsch. Für diese Art der Klassifikation bietet sich eine Verlustfunktion der Art "Categorical Crossentropy" und eine Aktivierung des Outputlayers mittels "Softmax"-Funktion an. 
 
-**2. Ordinale Klassifikation**  
-Im vorliegenden Fall - insbesondere bei unabhängiger Klassifikation von Tiefst-, Höchst- und Schlusspreisen - lassen sich die Buckets in eine logische Reihenfolge bringen. Wird ein Wert von 100 anstatt Klasse 10 fälschlicherweise Klasse 1 zugeordnet, so scheint dieser Fehler grösser als wenn die Fehlklassifikation in Klasse 9 erfolgt wäre. Eine Möglichkeit, diese Art von Klassifikationen in neuronalen Netzen zu modellieren zeigen @frank_hall. Grob besteht die Idee darin, nicht die Wahrscheinlichkeit der aktuellen Klasse zu modellieren, sondern die kumulierte Wahrscheinlichkeit der aktuellen und der darunterliegenden. Die Wahrscheinlichkeit der Zugehörigkeit zu einer spezifischen Klasse lässt sich dann einfach als Differnz der kumulierten Wahrscheinlichkeiten benachbater Klassen ableiten. Zu berücksichtigen gilt es hierbei, dass die kumulative Wahrscheinlichkeit nicht sinken darf, dies durch das geschätzte Modell aber nicht unbedingt garantiert ist. In der praktischen Umsetzung unterscheidet sich die Architektur zur Schätzung dieser Art von Modellen nicht gross von derjenigen der klassischen Klassifikation. Die Unterscheidungen beziehen sich auf eine andere Verlustfunktion (Binary Crossentropy), andere Aktivierung (Sigmoid) des Output Layers sowie eine etwas anderen Kodierung der Labels.
+2. **Ordinale Klassifikation**  
+Im vorliegenden Fall - insbesondere bei unabhängiger Klassifikation von Tiefst-, Höchst- und Schlusspreisen - lassen sich die Buckets in eine logische Reihenfolge bringen. Wird ein Wert von 100 anstatt richtig Klasse 10 fälschlicherweise Klasse 1 zugeordnet, so scheint dieser Fehler grösser als wenn die Fehlklassifikation in Klasse 9 erfolgt wäre. Eine Möglichkeit, diese Art von Klassifikationen in neuronalen Netzen zu modellieren zeigen @frank_hall. Grob besteht die Idee darin, die Wahrscheinlichkeit der aktuellen Klasse nicht direkt, sondern als kumulierte Wahrscheinlichkeit inklusive der Klassen links oder rechts zu modellieren. Die Wahrscheinlichkeit einer spezifischen Klasse lässt sich dann als Differenz der kumulierten Wahrscheinlichkeiten benachbarter Klassen berechnen. Zu berücksichtigen gilt es hierbei, dass die kumulative Wahrscheinlichkeit in der Theorie nicht sinken kann. Dies ist durch das geschätzte Modell aber nicht garantiert. Wir lösen dieses Problem, indem für die Auswertung jeweils das Minimum der aktuellen kumulierten Wahrscheinlichkeit und der Vorhergehenden verwendet wird. In der Architektur unterscheidet sich diese Art der Modelle durch eine andere Verlustfunktion (Binary Crossentropy), eine andere Aktivierungsfunktion (Sigmoid) des Output Layers sowie eine etwas anderen Kodierung der Labels.
 
 
 ### Ergebnisse
 
-Alle der nachfolgenden Modelle wurden mit 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise gerechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 10 Epochen gewählt wurde. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.^[Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Training erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
+Wie bereits erwähnt werden alle Modelle mit jeweils 30 Buckets im Falle unabhängig modellierter Preise, respektive 27'000 Preisszenarien im Falle abhängiger Preise berechnet. Ebenfalls allen Modellen gemein ist, dass eine Batch-Grösse von 512 und ein Training über 30 Epochen gewählt wird. Ferner werden als Features alle 4 Preiskennzahlen der letzten 10 Tage plus der Eröffnungskurs des aktuellen Tages verwendet. Jedes dieser Features wird vor dem Training skaliert.^[Im Detail erfolgt die Skalierung auf Basis des Mittelwertes und Standardabweichung jedes Features des Trainingsets.] Das eigentliche Training erfolgt auf 80% des Trainingsets, 20% der Trainingsdaten dienen der Validierung.
 
 #### Unabhängige Modelle
 ```{r, echo=FALSE, results='hide', message=FALSE}
@@ -161,11 +165,11 @@ if (file.exists(model_ind_close_path) && file.exists(history_ind_close_path) && 
 }
 ```
 
-Während des Trainings der Netze für Tiefst-, Höchst und Schlusskurs zeigt sich der in Abbildung \@ref(fig:ind-train-progress) visualisierte Lernfortschritt. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
+Während des Trainings der Netze unabhängiger Preise zeigen sich die in Abbildung \@ref(fig:ind-train-progress) visualisierten Lernfortschritte. Als Genauigkeit wird hierbei der Anteil welcher dem richtigen Bucket zugeordnet wurde angegeben. Bei der Betrachtung des Lernprozesses lassen sich folgende Erkenntnisse gewinnen:
 
-- Die Genauigkeit richtig zugeordner Klassen liegt deutlich über demjenigen, welcher bei zufälliger Zuteilung erreicht werden könnte. Im vorliegenden Fall von 30 Buckets bei ungefähr gleichverteilter Anzahl Datenbunkte wäre dies lediglich 3.3%.
+- Die Genauigkeit richtig zugeordner Klassen liegt deutlich über derjenigen einer zufälligen Zuteilung von 3.3% $(1/30)$.
 - Die Genauigkeit der Prognose für Tiefst- und Höchstkurs ist deutlich höher als diejenige des Schlusskurses.
-- Über den Traingsverlauf nimmt die Genauigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist damit im vorliegenden Fall nicht auszumachen.
+- Über den Traingsverlauf nimmt die Genauigkeit mit abnehmender Geschwindigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist im vorliegenden Fall nicht auszumachen.
 
 
 ```{r, ind-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE} 
@@ -190,7 +194,7 @@ train_history %>%
 ```
 
 
-Mit Hilfe der trainierten Modelle lassen sich nun Voraussagen über die Wahrscheinlichkeitsverteilungen der Daten im Testset machen. Für einzelne Beobachtungen lassen sich diese gar visualisieren. Abbildung \@ref(fig:plot-binary-histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge im Testset. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert ist, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
+Die trainierten Modelle lassen sich nun zur Prognose der Wahrscheinlichkeitsverteilungen der Daten im Testset heranziehen. Für einzelne Beobachtungen lassen sich diese einfach visualisieren. Abbildung \@ref(fig:plot-categorical-histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert wird, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
 
 ```{r, plot-categorical-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise', fig.height=3, fig.pos = '!H',  echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
@@ -199,8 +203,7 @@ plot_neural_sample_histogram(eval_idx, ind_categorical)
 rm(list = c("pred_cat_low", "pred_cat_high", "pred_cat_close"))
 ```
 
-Tatsächlich unterscheiden sich die realisierten Tiefts- und Schlusskurse, wenn auch nicht so deutlich wie dies vom Modell prognostiziert wird. Die entsprechenden Realisierungen für Low und High sind `r round(data_wide_10$Low_0[test_idx][eval_idx[1]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[1]], 2)` für das erste und `r round(data_wide_10$Low_0[test_idx][eval_idx[2]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[2]], 2)` für das zweite Beispiel.
-
+Tatsächlich unterscheiden sich die realisierten Tiefts- und Höchstkurse, wenn auch nicht ganz so deutlich wie dies vom Modell prognostiziert. Die entsprechenden Realisierungen sind `r round(data_wide_10$Low_0[test_idx][eval_idx[1]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[1]], 2)` für das erste und `r round(data_wide_10$Low_0[test_idx][eval_idx[2]], 2)` und `r round(data_wide_10$High_0[test_idx][eval_idx[2]], 2)` für das zweite Beispiel.
 
 
 ```{r}
@@ -216,7 +219,7 @@ data_test <- select(data_wide_10[test_idx, ], Close_1, High = "High_0", Low = "L
 
 ```
 
-Zur Überprüfung der Modelleignung soll erneut der Payoff des Testsets ermittelt und mit demjenigen der Referenzstrategie verglichen werden. Eine erste Möglichkeit besteht darin, die Kaufs- resp. Verkaufsschranken als Tiefst- respektive den Höchstpreis desjenigen Buckets vorauszusagen, welchem das Modell die höchste Wahrscheinlichkeit vorhersagt.[^Da ein Bucket durch untere und obere Grenze bestimmt ist, verwenden wir den Mittelwert von oberer und unterer Grenze als Vorhersagewert. Ist eine der Grenzen nicht finit, wird die andere Grenze als Vorhersagewert verwendet.] 
+Um den Payoff des ganzen Testsets berechnen zu können, müssen aus den geschätzen Verteilungen die optimale Kaufs- und Verkaufsschranken ermittelt werden. Eine erste Möglichkeit besteht darin, die Kaufs- resp. Verkaufsschranken als Tiefst- respektive den Höchstpreis desjenigen Buckets vorauszusagen, welchem das Modell die höchste Eintretenswahrscheinlichkeit prognostiziert.[^Da ein Bucket durch untere und obere Grenze bestimmt ist, verwenden wir den Mittelwert von oberer und unterer Grenze als Vorhersagewert. Ist eine der Grenzen nicht finit, wird die andere Grenze als Vorhersagewert verwendet.] 
 
 ```{r}
 
@@ -238,9 +241,15 @@ factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell
 ```
 
 
-Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%. Bereits in dieser einfachen Form ist das gelernte Modell damit gleich gut gut, wie das Model mit Kaufs- und Verkaufsschranken als symmetrischer Abweichungen vom aktuellen Eröffnungskurs bei Unterscheidung von Hoch- und Tiefvolatilitätsphasen. Bei der Konzeption des Modelles war es gerade das Ziel, nicht nur eine Klassifikation in das wahrscheinlichste Bucket zu machen, sondern auch Voraussagen über die Verteilung der prognostizierten Preise machen zu können. Lediglich das Bucket mit höchster Wahrscheinlichkeit als Prognosewert zu verwenden ging damit zuwenig weit. Viel können nun verschiedene Kaufs- und Verkaufskombinationen für alle Preisszenarien berechnet und mit der jeweiligen Wahrscheinlichkeit gewichtet werden. Die optimale Strategie lässt sich dann diejenige mit dem höchsten erwarteten Payoff auswählen. Hierbei lohnt wiederum ein Blick auf die Berchnungskomplexität des Problems. In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien. Diese können für jeden Eintag des Testsets (rund 1'000'000 Einträge) ermittelt werden. Für jedes dieser Preisszenarien sollen wiederum verschiedene Paare von Kaufs- und Verkaufspreisen getestet werden. Orientiert man sich dabei an einer ähnlichen Granularität wir für die Preise resultieren 900 Szenarien für die Schranken (je 30 Werte für die Kaufs- und Verkaufsschranke). Damit müssen zur kompletten Evaluation $27'000 \times 1'000'000  \times 900$ Payoffs berechnet werden. Dies ist mit Hilfe der in Kapitel \@ref(infrastruktur_und_tools) vorgestellen Cloud-Infrastruktur und Tools nicht innerhalb kurzer Zeit möglich. Zur Reduktion der Komplexität lässt sich dabei ausnützen, dass nicht alle Szenarien von gleicher Bedeutung sind. Während die Verwendung des häufigsten Szenarios und die Verwendung aller Szenarios die beiden Extrempositionen einnehmen, ist auch die Verwendgung einiger wichtiger Preis- und Schrankenszenarien denkbar. Konkret werden diehjenigen Szenarien ausgewählt, welche die höchsten Eintretenswahrscheinlichkeiten aufweisen. Dabei hat es sich bewährt, diese Grenze als Quantil der jeweiligen Wahrscheinlichkeiten zu wählen. Damit werden nur sehr wenige, dafür wichtige Szenarien berücksichtigt. Die Berechungszeits lässt sich damit sehr deutlich senken. Diese Vorgehensweise hat zudem den Vorteil, dass mit einer Reduzierung des Quantil sehr einfach mehr Werte einbezogen werden könnnen. Ferner wird auch die Schrankenszenarien sehr stark reduziert, indem als Kaufs- und Verkaufspreise nur die Tiefs- und Höchstwerte der betrachteten Preisszenarien berechnet werden. 
+Mit Hilfe der so ermittelten Schranken lässts sich wie bei den vorangegangenen Methoden der Payoff des Testsets ermitteln und ins Verhältnis zur Referenzstategie setzen. Es resultiert ein Überschusspayoff von `r round((factor_ind_max_prob - 1) * 100, 1)`%. Bereits in dieser einfachen Form ist das gelernte Modell damit änhlich gut, wie das Model basierend auf symmetrischen Abweichungen vom aktuellen Eröffnungskurs bei Unterscheidung von Hoch- und Tiefvolatilitätsphasen. 
 
-Das beschriebene Vorgehen sowohl für unabhängige wie auch abhängige Modelle möglich. Bei den unabhängigen Modellen gibt es ferner zusätzlich zu beachten, dass nicht mögliche Szenarien (bsp. prognostizierter Höchstpreis < prognostizierter Tieftspreis) entfernt, resp. deren prognostizierte Wahrscheinlichkeiten auf 0 gesetzt werden. Bei den Modellen mit voneinander abhängigen Preisen treten solche Szenarien nicht auf.
+Während der Konzeption des Modelles wurde grossen Wert darauf gelegt, auch die Verteilung der Preise prognostizieren zu können. Lediglich das Wahrschenilichgste Szenario für die Prognose der Preisschranken zu verwenden, greift damit etwas kurz. Tatsächloch erlauben es vorhandenen Werte nun auch, den Payoff verschiedener Kaufs- und Verkaufsschranken für jedes der Preisszenarien zu berechnen und mit der jeweiligen Wahrscheinlichkeit zu gewichten. Als optimale Strategie lässt sich dann diejenige mit dem höchsten erwarteten Payoff auswählen.
+
+Wiederum lohnt sich dabei erst ein Blick auf die Berchnungskomplexität des Problems: In der vorliegenden Analyse wurden je Preistyp 30 Buckets verwendet. Dies resultiert in 27'000 möglichen Preisszenarien. Diese können für jeden Eintrag des Testsets (rund 1'000'000 Einträge) ermittelt werden. Für jedes dieser Preisszenarien sollen wiederum verschiedene Paare von Kaufs- und Verkaufsschranken getestet werden. Orientiert man sich dabei an einer ähnlichen Granularität wie bei den Preisen, resultieren 900 Szenarien für die Schranken (je 30 Werte für die Kaufs- und Verkaufsschranke). Damit müssen zur kompletten Evaluation $27'000 \times 1'000'000  \times 900$ Payoffs berechnet werden. Dies ist mit Hilfe der in Kapitel \@ref(infrastruktur_und_tools) vorgestellen Cloud-Infrastruktur und Tools nicht innerhalb kurzer Zeit möglich. 
+
+Zur Reduktion der Komplexität lässt sich aber ausnützen, dass nicht alle Szenarien von gleicher Bedeutung sind. Während die Verwendung des häufigsten Szenarios und die Verwendung aller Szenarien die beiden Extrempositionen bilden, ist auch die Verwendung einiger wichtiger Preis- und Schrankenszenarien denkbar. Konkret lohnt es sich, diejenigen Szenarien auszuwählen, welche die höchsten Eintretenswahrscheinlichkeiten aufweisen. Dabei hat es sich bewährt, diese Grenze als Quantil der jeweiligen Wahrscheinlichkeiten zu wählen. Damit können nur sehr wenige, dafür wichtige Szenarien berücksichtigt werden. Die Berechnungskomplexität lässt sich damit deutlich senken. Diese Vorgehensweise hat zudem den Vorteil, dass mit einer Reduzierung des Quantils auch sehr einfach mehr Werte einbezogen werden könnnen, sollte dies gewünscht werden. Ferner wird auch die Schrankenszenarien sehr stark reduziert, indem als Kaufs- und Verkaufspreise nur die Tiefs- und Höchstwerte der betrachteten Preisszenarien berechnet werden. 
+
+Das beschriebene Vorgehen ist sowohl für unabhängige wie apäter auch für abhängige Modelle möglich. Bei den unabhängigen Modellen gibt es ferner zu beachten, dass nicht mögliche Szenarien (bsp. prognostizierter Höchstpreis < prognostizierter Tieftspreis) entfernt, respektive deren prognostizierte Wahrscheinlichkeiten vor der Auswertung auf 0 gesetzt werden. Bei den Modellen mit voneinander abhängigen Preisen treten solche Szenarien nicht auf.
 
 
 ```{r}
@@ -265,8 +274,7 @@ factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = i
 ```
 
 
-
-Bezieht man für die Pronose der Preisschranken alle Buckets mit 0.1% höchster Wahrscheinlichkeit mit ein (99.9% Quantil) resultiert für den Testdatensatz ein ÜBershusspayoff von `r round((factor_ind_buy_sell_0_999_prob - 1) * 100, 1)`% gegenüber der Referenzstartegie. Durch Berücksichtigung (eines Teils) der geschätzen Verteilung kann dieser damit noch einmal um `r round((factor_ind_buy_sell_0_999_prob - factor_ind_max_prob) * 100, 1)` Prozentpunkte gesteiegert werden und übertrifft damit die Performance einfacherer früherer Modelle.
+Bezieht man die Buckets mit den 0.1% höchsten Eintretenswahrscheinlichkeiten (99.9% Quantil) in die Auswertung mit ein, resultiert ein Überschusspayoff von `r round((factor_ind_buy_sell_0_999_prob - 1) * 100, 1)`% gegenüber der Referenzstartegie. Durch Berücksichtigung (eines Teils) der geschätzen Verteilung kann die Modell-Performance damit noch einmal um `r round((factor_ind_buy_sell_0_999_prob - factor_ind_max_prob) * 100, 1)` Prozentpunkte gesteigert werden und übertrifft damit die Performance früherer Modelle.
 
 ``` {r, echo=FALSE, results='hide'}
 ind_binary <-  NULL
@@ -351,7 +359,7 @@ if (file.exists(model_ind_bin_close_path) && file.exists(history_ind_bin_close_p
 }
 ```
 
-Wie in Abbildung \@(fig:plot-binary-histogram) gezeigt schien das Modell auch ohne explizite Modellierung der Ordinalität der Klassen diese implizit gelernt zu haben. Dies zeigt sich dadurch, dass benachbarte Klassen typsischerweise auch ähnliche Wahrscheinlichkeiten aufweisen. Eine explizite Modelierung der Ordinalität scheint damit im vorliegenden Fall nicht unbedingt nötig. Dies zeigt sich auch beim Vergleich der Ergebnisse mit ebendiesem Modell. 
+Führt man die gleichen Analysen auch für das Modell durch, welches die Ordinalität der Klassen explizit modelliert, ergeben sich sehr ähnliche Ergebnisse. Wie in Abbildung \@(fig:plot-binary-histogram) ersichtlich, weisen die beiden exeplarischen Einträge im Testdatensatz auch bei diesem Modell sehr ähnliche Preisverteilungen auf. Dies zeigt, dass eine explizite Modelierung der Ordinalität offenbar nicht unbedingt nötig ist. Die Verteilung scheint auch ohne explizite Modellierung richtig gelernt worden zu sein.  
 
 ```{r, make-ind-binary-predictions}
 
@@ -418,6 +426,14 @@ factor_ind_bin_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy
 ```
 
 
+Der Komplettheit halber seien die Überschusspayoffs des ordinalen Modelles an dieser Stelle aber dennoch aufgeführt. Diese betragen bei der Berücksichtigung des Buckets mit höchster Wahrscheinlichkeit `r round((factor_ind_bin_max_prob - 1) * 100, 1)`% und bei Berücksichtigung der 0.1% grössten Wahrscheinlichkeiten `r round((factor_ind_bin_buy_sell_0_999_prob - 1) * 100, 1)`. Beide Werte sind damit Vergleichbar mit dem Modell ohne ordinale Modellierung.
+
+
+#### Abhängige Modelle
+
+Die meisten aus der Analye der unabhängigen Modelle lassen sich auch auf die abhängigen Modelle gewinnen. Ein Unterschied liegt allerdings darin, dass sich jedes der 27'000 Buckets im abhängigen Fall nicht nur auf den Bereich eines Preises, sondern auf den Bereich aller der drei Preise für Tiefst-. Höchst- und Schlusskurs gleichzeitig bezieht. Die Bildung einer Reihenfolge der Buckets für eine ordinale Modellierung sind damit nicht mehr gegeben. Überträgt man die Erkenntnisse aus vorigem Kapitel scheint dies aber nicht weiter problematisch. Ein weiterer Unterschied ergibt sich bei der Berechnungsdauer des Modelles. Diese erhöht sich im Falle des abhängigen Modelles deutlich und es empfiehlt sich die Berechnung auf einer oder mehrerer GPUs, um die Berechungsdauer zu verkürzen.
+
+
 ```{r, echo=FALSE, results='hide'}
 n_groups_per_col <- 30
 
@@ -430,9 +446,8 @@ model_dep_path  <- "data/models/dep/categorical/2_dense_512/model.h5"
 history_dep_path  <- "data/models/dep/categorical/2_dense_512/history.rds"
 if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
   model_dep <- load_model_hdf5(model_dep_path)
-  # model_dep <- load_model_hdf5("data/models/dep/categorical/2_dense_512/dep.04-9.31.hdf5")
-
-  history_dep <- readRDS(history_dep_path)
+  model_dep <- load_model_hdf5("data/models/dep/categorical/2_dense_512/dep.04-9.31.hdf5")
+  # history_dep <- readRDS(history_dep_path)
 } else {
   cp_callback_dep <- callback_model_checkpoint(
     filepath = file.path("data/models/dep/categorical/2_dense_512", "dep.{epoch:02d}-{val_loss:.2f}.hdf5")
@@ -440,13 +455,29 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
   model_dep <- fit_model_cat(x[train_idx, ], y[train_idx], callbacks = list(cp_callback_dep), epochs = 30, n_groups = 27000)
   save_model_hdf5(model_dep$model, model_dep_path)
   saveRDS(model_dep$history, history_dep_path)
-  
 }
-
 ```
 
 
-#### Abhängige Modelle
+
+```{r, dep-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE} 
+train_history <- as_tibble(history_dep) %>%
+  mutate(data = do.call(recode, list(.x = data, validation = "Validierung", training = "Training")))
+
+train_history %>% 
+  filter(metric == "loss") %>%
+  ggplot(mapping = aes(x = epoch, y = value, color = data)) +
+  geom_line() + 
+  # facet_wrap(vars(price), ncol = 3,  scales = "free_y") +
+  scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
+  ylab("Verlust") + 
+  xlab("Epoche") +
+  labs(color = "Daten") + 
+  theme_bw()
+```
+
+
+Wie in Abbildung @\ref(dep-train-progress) ersichtlich zeigt sich ein weiterer Unterschied darin, dass es während des Trainings des abhängigen Modelles innerhalb der verwendeten 30 Epochen zu einem Overfitting kommt. Dies zeigt sich dadurch, dass sich nach anfänglicher Verbesserung des Verlustes sowohl für Trainings- wie auch Validierungsset die beiden Werte nach Epoche 5 wieder auseinanderentwickeln. Wir entscheiden uns daher dafür das Modell aus Epoche 5 zu verwenden.
 
 ```{r, echo=FALSE, results='hide'}
 dep_categorical$discretization$borders
@@ -474,10 +505,9 @@ if (file.exists(dep_buy_sell_max_prob_path)) {
 }
 
 factor_dep_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_max_prob$buy, sell = dep_buy_sell_max_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
-
 ```
 
-
+Für dieses lassen sich die gleichen Auswertungen wie zuvor durchführen. Wiederum lässt sich zum Vergleich mit den andern Modellen der Überschusspayoff im Vergleich mit der Referenzstrategie ermitteln. Für Verkaufsschranken ermittelt auf lediglich dem Bucket mit höchster Eintretenswahrscheinlichkeit liegt dieser bei `r round((factor_dep_max_prob - 1) * 100, 1)`% und vermag vorherige Modelle zu überbieten. 
 
 ```{r, echo=FALSE, results='hide'}
 n_eval <- length(test_idx)
@@ -505,6 +535,8 @@ if (file.exists(dep_buy_sell_0_999_prob_path)) {
 factor_dep_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_0_999_prob$buy, sell = dep_buy_sell_0_999_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
 
 ```
+
+Werden wiederum gar die Buckets mit höchsten 0.1 Eintretenswahrscheinlichkeiten beigezogen, resultiert gar ein Überschusspayoff von  `r round((factor_dep_max_prob - 1) * 100, 1)`%. Es handelt sich damit innerhalb der analysierten Modelle um dasjenige mit der besten Performance.
 
 ```{r, echo=FALSE, results='hide'}
 rm(list = ls())
