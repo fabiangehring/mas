@@ -100,7 +100,7 @@ Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten 
 ## Aufbereitung
 ### Bereinigung
 
-Mit Yahoo Finance wird ein bekannter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(summary-before-clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können. So enthält der Datensatz beispielsweise offensichtlich falsche Werte (z.b. negative Preise) aber auch einige Lücken.
+Mit Yahoo Finance wird ein bekannter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(tab:summary-before-clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können. So enthält der Datensatz beispielsweise offensichtlich falsche Werte (z.b. negative Preise) aber auch einige Lücken.
 
 ```{r, summary-before-clean, echo=FALSE}
 summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])

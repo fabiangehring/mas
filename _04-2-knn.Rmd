@@ -175,7 +175,7 @@ Eine erste Möglichkeit zur Prognose von Tiefst-, Höchst- und Schlusskurs beste
 
 Die zweite hier betrachtete Möglichkeit besteht darin, die Kaufs- und Verkaufspreise nicht direkt, sondern als Abweichung vom Eröffnungskurs zu modellieren. Hierzu wird für jeden Nachbarn die Differenz von Eröffnungs- und Tiefstpreis resp. Eröffnungs- und Höchstpreis berechnet. Die entsprechende Metrik (Mittelwert oder Median) wird dann auf diese Werte angewandt und auf den tatsächlichen Eröffnungspreis des zu analysierenden Titels appliziert. Dies hat den Vorteil, dass der bekannte Eröffnungspreis keiner Unsicherheit mehr unterliegt.
 
-Tabelle \@ref(knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen für des Testingset einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
+Tabelle \@ref(tab:knn-payoff-factors) stellt die Ergebnisse aller Parametrisierungen für des Testingset einander gegenüber. Es zeigt sich, dass eine direkte Prognose der Kaufs- und Verkaufspreise derjenigen einer Prognose der Veränderung im Vergleich zum Eröffnungspreis klar unterlegen ist. Bezüglich Distanzmass lässt sich kein eindeutiger Gewinner feststellen, beide Masse weisen ähnliche Performance aus. Ähnliches gilt für die Anzahl der berücksichtigten Nachbarn.
 
 Allen Ergebnissen gemein ist hingegen, dass sie der einfachen Strategie des Vorkapitels nicht überlegen sind. Im Gegenteil fallen die Payoffs im Vergleich trotz deutlich höherem Berechnungsaufwand in der Tendenz schlechter aus, wenn auch der Payoff der Referenzstrategie weiter deutlich geschlagen wird. Die Hoffnung, dass mit der Individualisierung der einzelnen Einträge mehr kursrelevante Information extrahiert werden kann, bestätigt sich nicht. Ein Grund könnte in der durch die Berechnungskomplexität beschränkte Begrenzung auf ein Zeitfenster von 3 vorangegangenen Tagen sein.
 
@@ -244,7 +244,7 @@ if (all(map_lgl(factor_table_paths, ~!file.exists(.)))) {
 ```
 
 
-```{r}
+```{r, knn-payoff-factors}
 kable(eucl_table, col.names = c("", "Mittelwert", "Median", "Mittelwert", "Median"), digits = 3) %>%
   add_header_above(c(" ", "Euklidisch" = 2, "Manhattan" = 2)) %>%
   column_spec(1, bold = TRUE)

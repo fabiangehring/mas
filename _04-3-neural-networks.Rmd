@@ -445,9 +445,9 @@ y <- dep_categorical$discretization$groups
 model_dep_path  <- "data/models/dep/categorical/2_dense_512/model.h5"
 history_dep_path  <- "data/models/dep/categorical/2_dense_512/history.rds"
 if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
-  model_dep <- load_model_hdf5(model_dep_path)
+  # model_dep <- load_model_hdf5(model_dep_path)
   model_dep <- load_model_hdf5("data/models/dep/categorical/2_dense_512/dep.04-9.31.hdf5")
-  # history_dep <- readRDS(history_dep_path)
+  history_dep <- readRDS(history_dep_path)
 } else {
   cp_callback_dep <- callback_model_checkpoint(
     filepath = file.path("data/models/dep/categorical/2_dense_512", "dep.{epoch:02d}-{val_loss:.2f}.hdf5")
@@ -464,7 +464,7 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
 train_history <- as_tibble(history_dep) %>%
   mutate(data = do.call(recode, list(.x = data, validation = "Validierung", training = "Training")))
 
-train_history %>% 
+  train_history %>% 
   filter(metric == "loss") %>%
   ggplot(mapping = aes(x = epoch, y = value, color = data)) +
   geom_line() + 
