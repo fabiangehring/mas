@@ -1,5 +1,5 @@
 ---
-title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktionoptionen mit Hilfe verschiedener Machine Learning Methoden"
+title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden"
 author: "Fabian Gehring, Zürcher Hochschule für Angewandte Wissenschaften"
 site: bookdown::bookdown_site
 documentclass: scrartcl
@@ -44,12 +44,12 @@ for (file in list.files(here("R"), full.names = TRUE)) source(file)
 
 # Management Summary {-#summary}
 
-In vorliegender Arbeit wird untersucht, ob mit Hilfe maschineller Lernalgorithmen Kaufs- und Verkaufsschranken von Aktien so prognostiziert werden können, dass der Ausgleich von aufgelaufenem Delta bei Optionspositionen mit höheren Payoff erfolgen kann als mit einfacheren Strategien. Es gilt dabei die Nebenbedingung, dass die Position zum Tagesende bezüglich Preisschwankungen abgesichert sein muss. Als Referenz dient dabei die Strategie, bei welcher untertags kein Kauf- und Verkauf von Aktien erfolgt, sondern der Ausgleich des Deltas komplett zum Tagesschlusskurs erfolgt.
-Als Datenbasis dienen die historischen Eröffnungs-, Tiefst-, Höchst- und Schlusskurse von rund 1'600 grossen kotierten Unternehmungen weltweit. Für die Preisprognosen werden drei verschiedene Ansätze verfolgt und verglichen. 
+In vorliegender Arbeit wird untersucht, ob mit Hilfe maschineller Lernalgorithmen Kaufs- und Verkaufsschranken von Aktien so prognostiziert werden können, dass der Ausgleich von aufgelaufenem Delta bei Optionspositionen mit höherem Payoff erfolgen kann als mit einfacheren Strategien. Es gilt dabei die Nebenbedingung, dass die Position zum Tagesende bezüglich Preisschwankungen abgesichert sein muss. Als Referenz dient dabei die Strategie, bei welcher untertags kein Kauf- und Verkauf von Aktien erfolgt, sondern der Ausgleich des Deltas komplett zum Tagesschlusskurs erfolgt.
+Als Datenbasis dienen die historischen Eröffnungs-, Tiefst-, Höchst- und Schlusskurse von rund 1'600 grossen kotierten Unternehmungen weltweit. 
 
-In einem ersten Ansatz werden die Kaufs- und Verkaufsschranken als symmetrische Auslenkungen vom jeweiligen Eröffnungskurses gesetzt. Der Payoff der Referenzstrategie lässt sich so um rund 6% übertreffen. Es zeigt sich dabei, dass die Volatilität der vergangenen 10 Tage einen erklärenden Einfluss auf die Höhe der optimalen Auslenkung hat. Die Überperformance lässt durch Aufteilung der Daten in Tief- und Hochvolatilitätsumfeld auf rund 8% steigern.
+In einem ersten Ansatz werden die Kaufs- und Verkaufsschranken als symmetrische Auslenkungen vom jeweiligen Eröffnungskurs gesetzt. Der Payoff der Referenzstrategie lässt sich so um rund 6% übertreffen. Es zeigt sich dabei, dass die Volatilität der vergangenen 10 Tage einen erklärenden Einfluss auf die Höhe der optimalen Auslenkung hat. Die Überperformance lässt sich durch Aufteilung der Daten in Tief- und Hochvolatilitätsumfeld auf rund 8% steigern.
 
-Der zweite Ansatz basierend auf der Suche vergangener ähnlicher Kursverläufe mittels K-Nearest-Neigbor Verfahren. Die Überperformance dieses Ansatzes liegt bei rund 8%. Die Analyse zeigt ferner, dass die Performance mit steigender Anzahl Vergleichskurse über die Zeit zunimmt. Stehend genügen Vergleichskurse zur Verfügung kann eine eine Sättigung des Lerneffekts beobachtet werden.
+Der zweite Ansatz basierend auf der Suche vergangener ähnlicher Kursverläufe mittels K-Nearest-Neigbor Verfahren. Die Überperformance dieses Ansatzes liegt bei rund 8%. Die Analyse zeigt ferner, dass die Performance mit steigender Anzahl Vergleichskurse über die Zeit zunimmt. Stehen genügend Vergleichskurse zur Verfügung kann eine Sättigung des Lerneffekts beobachtet werden.
 
-Im dritten Ansatz werden die Kaufs- und Verkaufsschranken mittels neuronaler Netze vorhergesagt. Als einzige der untersuchten Methoden wird mit diesem Verfahren auch die Verteilungen der prognostizierten Preise mit einbezogen. Es resultieren Überschussrenditen bis zu 15% im Vergleich zur Referenzstrategie. Dabei zeigt sich, dass mit der Modellierung ordinaler Preisklassen als auch mit der Modellierung voneinander abhängiger Innertagspreise bessere Ergebnisse erzielt werden können als bei der Modellierung voneinander unabhängiger Preise.
+Im dritten Ansatz werden die Kaufs- und Verkaufsschranken mittels neuronaler Netze vorhergesagt. Als einzige der untersuchten Methoden wird mit diesem Verfahren auch die Verteilungen der prognostizierten Preise miteinbezogen. Es resultieren Überschussrenditen bis zu 15% im Vergleich zur Referenzstrategie. Dabei zeigt sich, dass mit der Modellierung ordinaler Preisklassen als auch mit der Modellierung voneinander abhängiger Innertagspreise bessere Ergebnisse erzielt werden können als bei der Modellierung voneinander unabhängiger Preise.
 
