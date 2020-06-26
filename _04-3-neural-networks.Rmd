@@ -75,7 +75,7 @@ calc_mid_prices <- function(lower, upper) {
 ```
 
 
-```{r}
+```{r, echo=FALSE, results='hide', message=FALSE}
 ind_categorical <-  NULL
 ind_categorical$discretization <- list(
   low = multivariate_discretization(data_wide_10, train_idx, test_idx, "Low_0", n_groups_per_col),
@@ -477,7 +477,7 @@ train_history <- as_tibble(history_dep) %>%
 ```
 
 
-Wie in Abbildung @\ref(fig:dep-train-progress) ersichtlich zeigt sich ein weiterer Unterschied darin, dass es während des Trainings des abhängigen Modelles innerhalb der verwendeten 30 Epochen zu einem Overfitting kommt. Dies zeigt sich dadurch, dass sich nach anfänglicher Verbesserung des Verlustes sowohl für Trainings- wie auch Validierungsset die beiden Werte nach Epoche 5 wieder auseinanderentwickeln. Wir entscheiden uns daher dafür das Modell aus Epoche 5 zu verwenden.
+Wie in Abbildung \@ref(fig:dep-train-progress) ersichtlich zeigt sich ein weiterer Unterschied darin, dass es während des Trainings des abhängigen Modelles innerhalb der verwendeten 30 Epochen zu einem Overfitting kommt. Dies zeigt sich dadurch, dass sich nach anfänglicher Verbesserung des Verlustes sowohl für Trainings- wie auch Validierungsset die beiden Werte nach Epoche 5 wieder auseinanderentwickeln. Wir entscheiden uns daher dafür das Modell aus Epoche 5 zu verwenden.
 
 ```{r, echo=FALSE, results='hide'}
 dep_categorical$discretization$borders

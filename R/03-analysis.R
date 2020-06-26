@@ -728,7 +728,7 @@ plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first 
   ggplot2::ggplot(payoffs, aes(x = date, y = ratio_cum)) +
     ggplot2::geom_line() +
     ggplot2::xlab("Zeit") +
-    ggplot2::ylab("Verhältnis Payoff Passives / Aktives Szenario") +
+    ggplot2::ylab("Payoffaktor zur Referenzstrategie") +
     ggplot2::ggtitle(title) + 
     ggplot2::theme_bw()
   

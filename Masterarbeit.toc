@@ -13,27 +13,27 @@
 \contentsline {subsection}{\numberline {2.2}Aufbereitung}{11}{subsection.2.2}%
 \contentsline {subsubsection}{\numberline {2.2.1}Bereinigung}{11}{subsubsection.2.2.1}%
 \contentsline {subsubsection}{\numberline {2.2.2}Normalisierung}{13}{subsubsection.2.2.2}%
-\contentsline {subsubsection}{\numberline {2.2.3}Adjustierung unterschiedlicher Volatilitäten}{15}{subsubsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.3}Adjustierung unterschiedlicher Volatilitäten}{14}{subsubsection.2.2.3}%
 \contentsline {section}{\numberline {3}Infrastruktur und Tools}{16}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Cloud Setup}{16}{subsection.3.1}%
-\contentsline {subsubsection}{\numberline {3.1.1}Microsoft Azure}{17}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Microsoft Azure}{16}{subsubsection.3.1.1}%
 \contentsline {subsubsection}{\numberline {3.1.2}Google Cloud}{17}{subsubsection.3.1.2}%
 \contentsline {subsubsection}{\numberline {3.1.3}Amazon Web Services (AWS)}{18}{subsubsection.3.1.3}%
 \contentsline {subsection}{\numberline {3.2}Verwendete Software}{18}{subsection.3.2}%
 \contentsline {subsubsection}{\numberline {3.2.1}R / RStudio Server}{18}{subsubsection.3.2.1}%
-\contentsline {subsubsection}{\numberline {3.2.2}Python / (Ana)conda}{20}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.2}Python / (Ana)conda}{19}{subsubsection.3.2.2}%
 \contentsline {section}{\numberline {4}Analyse}{20}{section.4}%
 \contentsline {subsection}{\numberline {4.1}Einfache Optimierungen}{21}{subsection.4.1}%
 \contentsline {subsubsection}{\numberline {4.1.1}Ohne Berücksichtigung der Marktvolatilität}{21}{subsubsection.4.1.1}%
 \contentsline {subsubsection}{\numberline {4.1.2}Mit Berücksichtigung der Marktvolatilität}{23}{subsubsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.2}Nearest Neighbor Ansätze}{24}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.2}Nearest Neighbor Ansätze}{23}{subsection.4.2}%
 \contentsline {subsubsection}{\numberline {4.2.1}Distanzmasse}{24}{subsubsection.4.2.1}%
 \contentsline {subsubsection}{\numberline {4.2.2}Setup und Berechnungsdauer}{25}{subsubsection.4.2.2}%
 \contentsline {subsubsection}{\numberline {4.2.3}Bestimmung Kaufs- und Verkaufspreise}{26}{subsubsection.4.2.3}%
 \contentsline {subsection}{\numberline {4.3}Neuronale Netzwerke}{30}{subsection.4.3}%
-\contentsline {subsubsection}{\numberline {4.3.1}Diskretisierung}{31}{subsubsection.4.3.1}%
-\contentsline {subsubsection}{\numberline {4.3.2}Architektur}{32}{subsubsection.4.3.2}%
-\contentsline {subsubsection}{\numberline {4.3.3}Ergebnisse}{33}{subsubsection.4.3.3}%
-\contentsline {paragraph}{\numberline {4.3.3.1}Unabhängige Modelle}{33}{paragraph.4.3.3.1}%
-\contentsline {paragraph}{\numberline {4.3.3.2}Abhängige Modelle}{37}{paragraph.4.3.3.2}%
-\contentsline {section}{\numberline {5}Fazit und Ausblick}{38}{section.5}%
+\contentsline {subsubsection}{\numberline {4.3.1}Diskretisierung}{30}{subsubsection.4.3.1}%
+\contentsline {subsubsection}{\numberline {4.3.2}Architektur}{31}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Ergebnisse}{32}{subsubsection.4.3.3}%
+\contentsline {paragraph}{\numberline {4.3.3.1}Unabhängige Modelle}{32}{paragraph.4.3.3.1}%
+\contentsline {paragraph}{\numberline {4.3.3.2}Abhängige Modelle}{36}{paragraph.4.3.3.2}%
+\contentsline {section}{\numberline {5}Fazit und Ausblick}{37}{section.5}%

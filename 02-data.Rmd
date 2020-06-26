@@ -41,8 +41,8 @@ Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltwei
 
 ``` {r etf-data-nestle-stock, echo=FALSE}
 stock_nesn <- dplyr::filter(stocks_raw, Ticker == "NESN")
-knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption = "Attribute der Nestlé Aktie per 28. Februar 2020") %>%
-  kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
+knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption = "Attribute der Nestlé Aktie per 28. Februar 2020", booktabs = TRUE) %>%
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
 ```
 
 Neben eindeutigen Kennzeichner wie "Ticker" und "ISIN" enthält der Datensatz auch Informationen zur "Asset Class". Für die vorliegende Analyse ist hierbei lediglich die Ausprägung "Equity" zulässig. Die Kennzahlen "Weight", "Market Value" und "Notional Value" geben Auskunft über die Grösse der betrachteten Unternehmung und eignen sich auch zum Vergleich ebendieser. Zu beachten gilt, dass im Falle von Aktien der "Notional Value" dem "Market Value" entspricht und sich dieser bis auf rundungsbedingte Differenzen auch aus der Anzahl ausgegebener Titel mal Tagesendkurs ("Shares" x "Price") ermitteln lässt. 
@@ -86,8 +86,8 @@ Für alle Titel werden in einem zweiten Schritt die historischen Aktienkurse zum
 ``` {r quote-data-nestle, echo=FALSE}
 quote_nesn <- dplyr::filter(quotes_raw, Ticker == "NESN.SW" & Date == as.Date("2019-04-12"))
 
-knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption = "Kursinformationen der Nesté Aktie per 12. April 2019") %>%
-  kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
+knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption = "Kursinformationen der Nesté Aktie per 12. April 2019", booktabs = TRUE) %>%
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
 ```
 
 Die Werte "Open", "Low", "High" und "Close" enthalten die erwähnten Eröffnungs-, Tiefst-, Höchst- und Schlusskurse des Titels. Mit "Volume" werden die Anzahl gehandelter Titel am jeweiligen Tag angegeben. Unter "Adjusted" ist der um Dividendenausschüttungen korrigierte Schlusskurs aufgeführt.^[Allfällige Aktiensplits sind in allen Werten bereits berücksichtigt.] 
@@ -102,8 +102,27 @@ Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten 
 
 Mit Yahoo Finance wird ein bekannter Datenanbieter gewählt. Der Blick auf einige Quantilskennzahlen der Rohdaten in Tabelle \@ref(tab:summary-before-clean) zeigt aber, dass dennoch einige Datenprobleme ausgemacht werden können. So enthält der Datensatz beispielsweise offensichtlich falsche Werte (z.b. negative Preise) aber auch einige Lücken.
 
-```{r, summary-before-clean, echo=FALSE}
-summary(quotes_raw[, setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))])
+```{r, summary-before-clean, echo=FALSE, message=FALSE}
+col_names <- setdiff(names(quotes_raw), c("Date", "Ticker", "Volume"))
+stats <- c("Min", "1. Quartil", "Median", "3. Quartil", "Max", "NA's")
+summary <- map(quotes_raw[,  col_names], function(x) {
+  list(
+    Min = min(x, na.rm = TRUE),
+    `1. Quartil` = quantile(x, 0.25, na.rm = TRUE),
+    Median = median(x, na.rm = TRUE),
+    `3. Quartil` = quantile(x, 0.75, na.rm = TRUE),
+    Max = max(x, na.rm = TRUE),
+    `NA's` = sum(is.na(x)) 
+  )
+}) %>% transpose() %>% 
+  as_tibble() %>% 
+  unnest(cols = stats) %>%
+  mutate(Preis = col_names) %>% 
+  select(c("Preis", stats))
+
+knitr::kable(summary, caption = "Datenübersicht vor Bereinigung", booktabs = TRUE, digits = 1) %>%
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
+
 ```
 
 Die Behebung dieser Mängel erfolgt in verschiedenen Schritten. Allen gemeinsam ist, dass die Bereinigung keinen Ausschluss der Daten zur Folge hat, sondern betroffene Werte als "Nicht verfügbar, (NA)" klassifiziert werden. Diese Unterscheidung ist insbesondere bei rollierender Betrachtung eines Zeitfensters der Vergangenheit von Bedeutung.
