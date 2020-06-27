@@ -1,1 +1,63 @@
 # Fazit und Ausblick {#summary_and_outlook}
+
+## Fazit
+Beinahe alle Analysen zeigen, dass mittels öffentlich verfügbarer historischer Kursdaten Strategien gefunden werden können, welche den Payoff der Referenzstategie übertreffen. Während die Referenzstrategie Preisfluktuationen innerhalb des Tages nicht ausnützt, können alternative Strategien davon profitieren. 
+
+Bereits mittels Festlegung der Preisschranken als symmetrische Auslenkungen vom aktuellen Eröffnungskurs lässt sich eine Überperformance von rund 8% erreichen. Es kann zudem gezeigt werden, dass die Volatilität der vergangenen 10 Tage einen erklärenden Einfluss auf die Volatilität des aktuellen Tages hat. Dies lässt sich dadurch erklären, dass Aktienpreise stark von neuen Informationen beeinflusst sind Da sich natürlicherweise Phasen mit mehr Informationen (beispielsweise Dividenden-Saison, Krisen) und ruhigere Phasen (beispielsweise Ferienzeit) abwechseln, widerspiegelt sich dies auch in Phasen höherer und tieferer Volaitilität im Markt. Berücksichtit man dies durch die Einteilung der Daten in eine Gruppe tieferer und höherer Volatilität, lässt sich der Überschusspayoff gar auf rund 9% steigern.
+
+Dass die Kursentwicklung der unmittelbaren Vergangenheit einen erklärenden Einfluss auf die Höhe der Bewegungen des nächsten Tages zu haben scheint, zeigt auch bei der Analyse mittels nächster Nachbarn. Es zeigt sich, dass mit dem Einbezug von immer mehr Vergleichskursen die Überschussperformance zunimmt. Dieser Effekt schwächt sich über die Zeit ab und resultiert in einer Überschussperformance vergleichbar derjenigen der Strategien mit symmetrischer Auslenkung. Erwähnenswert ist dabei, dass diejenigen Modelle deutlich besser ausfallen, welche nicht den Preis, sondern die Auslenkung vom aktuellen Eröffnungspreis prognostizieren. Auf der andern Seite scheinen weder die Anzahl verwendeter Nachbarn (5, 20 oder 50) noch das verwendete Distanzmass (euklidische oder Manhattan Distanz) einen grossen Einfluss auf die Performance der Modelle zu haben. Alle Parameterkombinationen führten zu ähnlichen Überschusskennzahlen.
+
+Die besten Ergebnisse lassen sich bei Prognosen mittels neuronaler Netze beobachten. Als einzige der untersuchten Methoden modelliert diese die zukünftige Preisentwicklung nicht als Punktprognosen, sondern zieht deren Wahrscheinlichkeitsverteilungen in die Suche optimaler Kaufs- und Verkaufsschranken mit ein. Breeits mit der Modellierung voneinander unabhängiger Tiefst-, Höchst- und Schlusskurse kann eine Überschussperformance erreicht werden, welche derjenigen der symmetrischen Auslenkung entspricht. Die Performance lässt sich etwas verbessern, wenn die Ordinalität der Preisbuckets im Modell explizit berücksichtigt wird. Das beste Ergebnis liefert allerdings das neuronale Netz, welches die Preise abhängig modelliert. Im vorliegenden Fall kann eine Performance erreicht werden, welche mehr als 15% über derjenigen der Referenzstrategie liegt.
+
+Eine Übersicht über die Performance aller untersuchten Modelle gibt Tabelle \@ref(tab:factor-overview).
+
+
+```{r, factor-overview}
+
+variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
+bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
+factor_sym_ungrouped <- max(bootstraped_variation_factor_open$original)
+
+payoff_factor_test_vol <- readRDS("data/optimizations/payoff_factor_sym_grouped.rds")
+
+factor_table_paths <- c("data/knn/eucl_table.feather", "data/knn/manh_table.feather")
+eucl_table <- read_feather(factor_table_paths[1])
+manh_table <- read_feather(factor_table_paths[2])
+
+factor_ind_max_prob <- readRDS("data/models/ind/categorical/2_dense_512/factor_ind_max_prob.rds")
+factor_ind_buy_sell_0_999_prob <- readRDS("data/models/ind/categorical/2_dense_512/factor_ind_buy_sell_0_999_prob.rds")
+
+factor_ind_bin_max_prob <- readRDS("data/models/ind/binary/2_dense_512/factor_ind_bin_max_prob.rds")
+factor_ind_bin_buy_sell_0_999_prob <- readRDS("data/models/ind/binary/2_dense_512/factor_ind_bin_buy_sell_0_999_prob.rds")
+factor_dep_max_prob <- readRDS("data/models/dep/categorical/2_dense_512/factor_dep_max_prob.rds")
+factor_dep_0_999_prob <- readRDS("data/models/dep/categorical/2_dense_512/factor_dep_0_999_prob.rds")
+
+factor_overview <- tribble(
+  ~Modell,                     ~Überschussperformance,             ~Bemerkungen,
+  "Einfache Optimierung",      factor_sym_ungrouped,               "Symmetrische Auslenkung, ohne Gruppierung",
+  "Einfache Optimierung",      payoff_factor_test_vol,             "Symmetrische Auslenkung, Gruppierung in Hoch- und Tiefvolatilitätsphasen",
+   
+  "Nearest Neigbors",          eucl_table$Mittelwert_Direkt[1],    "Bestes Modell Preisprognose euklidische Distanz (5 Nachbarn, Mittelwert)",
+  "Nearest Neigbors",          eucl_table$Mittelwert_Addon[2],     "Bestes Modell Abweichungsprognose eukidische Distanz (20 Nachbarn, Mittelwert)",
+  "Nearest Neigbors",          manh_table$Mittelwert_Direkt[1],    "Bestes Modell Preisprognose Manhatten Distanz (5 Nachbarn, Mittelwert)",
+  "Nearest Neigbors",          manh_table$Mittelwert_Addon[2],     "Bestes Modell Abweichungsprognose Manhattan Distanz (20 Nachbarn, Mittelwert)",
+
+  "Neuronale Netze",           factor_ind_max_prob,                "Unabhängige Preismodellierung ohne Ordinalität, Bucket höchster Wahrscheinlichkeit",
+  "Neuronale Netze",           factor_ind_buy_sell_0_999_prob,     "Unabhängige Preismodellierung ohne Ordinalität, 0.1% Buckets höchster Wahrscheinlichkeit",
+  "Neuronale Netze",           factor_ind_bin_max_prob,            "Unabhängige Preismodellierung mit Ordinalität, Bucket höchster Wahrscheinlichkeit",
+  "Neuronale Netze",           factor_ind_bin_buy_sell_0_999_prob, "Unabhängige Preismodellierung mit Ordinalität, 0.1% Buckets höchster Wahrscheinlichkeit",
+  "Neuronale Netze",           factor_dep_max_prob,                "Abhängige Preismodellierung, Bucket höchster Wahrscheinlichkeit",
+  "Neuronale Netze",           factor_dep_0_999_prob,              "Abhängige Preismodellierung, 0.1% Buckets höchster Wahrscheinlichkeit"
+)
+
+knitr::kable(factor_overview,  digits = 3, caption = "Übersicht Überschussfaktoren im Vergleich zur Referenzstrategie", booktabs = TRUE) %>%
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
+
+```
+
+
+## Ausblick
+Während mit vorliegenden Methoden und Analysen bereits Strategien befunden werden konnten, welche die Referenzstrategie deutlich übertreffen, ist es wahrscheinlich, dass mit andern Methoden und Vorgehensweisen noch bessere Resultate erzielt werden könnten. So zeigte sich bei der Analyse mittels nächster Nachbarn, dass es vorteilhaft scheint, nicht die absoluten Preise, sondern die Auslenkungen vom aktuellen Eröffnungskurs zu prognostizieren. Für weiterführende Analysen könnte es daher interessant sein, die Auslenkungen (sowie deren Wahrscheinlichkeitsverteilungen) auch mit Hilfe neuronaler Netze zu prognostizieren. 
+
+Ferner liesse sich die Analyse auf weitere Methoden ausweiten. Denkbar wären beispielsweise auch der Einsatz des Random Forrest Algorithmus oder die Verwendung autoregressiver Modelle wie GARCH.
+

@@ -202,6 +202,7 @@ payoff_test_low <- opt_payoff_sym(move = opt_move_low, data = data_variation_vol
 payoff_test_high <- opt_payoff_sym(move = opt_move_high, data = data_variation_vol[test_idx_high, ], both_first = both_first[test_idx_high], col = "Open")
 
 payoff_factor_test_vol <- (payoff_test_low + payoff_test_high) / scale_fct_test
+saveRDS(payoff_factor_test_vol, "data/optimizations/payoff_factor_sym_grouped.rds")
 
 ```
 

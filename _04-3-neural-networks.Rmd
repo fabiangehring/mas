@@ -237,6 +237,7 @@ if (file.exists(ind_buy_sell_max_prob_path)) {
 }
 
 factor_ind_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell_max_prob$buy, sell = ind_buy_sell_max_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+saveRDS(factor_ind_max_prob, "data/models/ind/categorical/2_dense_512/factor_ind_max_prob.rds")
 
 ```
 
@@ -269,7 +270,7 @@ if (file.exists(ind_buy_sell_0_999_prob_path)) {
 }
 
 factor_ind_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_buy_sell_0_999_prob$buy, sell = ind_buy_sell_0_999_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
-
+saveRDS(factor_ind_buy_sell_0_999_prob, "data/models/ind/categorical/2_dense_512/factor_ind_buy_sell_0_999_prob.rds")
 
 ```
 
@@ -402,6 +403,8 @@ if (file.exists(ind_bin_buy_sell_max_prob_path)) {
 }
 
 factor_ind_bin_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_bin_buy_sell_max_prob$buy, sell = ind_bin_buy_sell_max_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+saveRDS(factor_ind_bin_max_prob, "data/models/ind/binary/2_dense_512/factor_ind_bin_max_prob.rds")
+
 
 ```
 
@@ -422,6 +425,8 @@ if (file.exists(ind_bin_buy_sell_0_999_prob_path)) {
 }
 
 factor_ind_bin_buy_sell_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = ind_bin_buy_sell_0_999_prob$buy, sell = ind_bin_buy_sell_0_999_prob$sell, both_first = both_first[test_idx])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx]))
+saveRDS(factor_ind_bin_buy_sell_0_999_prob, "data/models/ind/binary/2_dense_512/factor_ind_bin_buy_sell_0_999_prob.rds")
+
 
 ```
 
@@ -505,6 +510,9 @@ if (file.exists(dep_buy_sell_max_prob_path)) {
 }
 
 factor_dep_max_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_max_prob$buy, sell = dep_buy_sell_max_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
+saveRDS(factor_dep_max_prob, "data/models/dep/categorical/2_dense_512/factor_dep_max_prob.rds")
+
+
 ```
 
 Für dieses lassen sich die gleichen Auswertungen wie zuvor durchführen. Wiederum lässt sich zum Vergleich mit den andern Modellen der Überschusspayoff im Vergleich mit der Referenzstrategie ermitteln. Bei Verwendung des Buckets mit höchster Eintretenswahrscheinlichkeit liegt dieser bei `r round((factor_dep_max_prob - 1) * 100, 1)`% und vermag vorherige Modelle zu überbieten. 
@@ -533,6 +541,8 @@ if (file.exists(dep_buy_sell_0_999_prob_path)) {
 
 
 factor_dep_0_999_prob <- sum(calc_payoff_const_gamma(data_test, buy = dep_buy_sell_0_999_prob$buy, sell = dep_buy_sell_0_999_prob$sell, both_first = both_first[test_idx[seq_len(n_eval)]])) / sum(calc_payoff_const_gamma(data_test, both_first = both_first[test_idx[seq_len(n_eval)]]))
+saveRDS(factor_dep_0_999_prob, "data/models/dep/categorical/2_dense_512/factor_dep_0_999_prob.rds")
+
 
 ```
 

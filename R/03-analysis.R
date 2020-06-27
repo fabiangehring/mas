@@ -1335,7 +1335,7 @@ plot_price_histogram <- function(data, title = NULL) {
 #' )
 #' neural_model <- list(discretization = discretization, pred = pred)
 #' plot_neural_sample_histogram(1, neural_model)
-plot_neural_sample_histogram <- function(eval_id, neural_model, title = "Histogramm prognostizierter Tiefst-, Höchst- und Schlusspreise") {
+plot_neural_sample_histogram <- function(eval_id, neural_model, title = "") {
   
   hist_data_low <- map_df(eval_id, function(curr_id) {
     eval_hist_data(

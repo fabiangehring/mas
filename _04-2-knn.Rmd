@@ -118,7 +118,7 @@ if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
 
 Sind die Nachbarn eines Eintrages ermittelt, lässt sich eine Prognose für den weiteren Kursverlauf des aktuellen Eintrages ableiten. Dazu wird aus den bekannten Kursverläufen der Nachbarn mittels geeigneter Metrik ein Prognosewert für den Folgetag abgeleitet. Abbildung \@ref(fig:example-nearest-neighbor-outlook) illustriert dieses Vorgehen anhand eines Beispiels. Die Grafiken zeigen die Kursverläufe des aktuellen Eintrages (rot) sowie diejenigen der nächsten 5 Nachbarn für den aktuellen zu prognostizierenden Tag (t) sowie die 3 jeweils vorangegangenen Handelstage (t-1, ... , t-3). Die gestrichelte rote Linie zeigt den auf Basis der Nachbarn prognostizierten Wert.
 
-``` {r, example-nearest-neighbor-outlook, fig.cap='Exemplarische Kursprognose auf Basis nächster Nachhbarn', fig.heigth=4, fig.pos = '!H',  echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, example-nearest-neighbor-outlook, fig.cap='Exemplarische Kursprognose auf Basis nächster Nachhbarn', fig.heigth=3, fig.pos = '!H',  echo=FALSE, message=FALSE, warning=FALSE}
 k <- 5
 curr_idx <- 432100
 
