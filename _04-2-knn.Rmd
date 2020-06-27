@@ -34,7 +34,7 @@ Die ökomische Theorie scheint keinen offensichtlichen Grund zu liefern, weshalb
 
 ### Distanzmasse
 
-Die Idee des Ansatzes dieses Kapitels besteht darin, nicht lediglich x vordefinierte Gruppen für symmetrische Abweichungen zu finden, viel mehr soll versucht werden, ähnliche Kursverläufe wie den aktuellen in der Vergangenheit zu finden und individuell darauf zu reagieren. Die zugrund liegende Hypothese ist dabei, dass bei ausreichender Historie in der Vergangenheit ähnliche Muster erkannt und daraus Rückschlüsse auf die Zukunft (genauer: die Kursentwicklung des aktuellen Tages) gemacht werden können. 
+Die Idee des Ansatzes dieses Kapitels besteht darin, nicht lediglich x vordefinierte Gruppen für symmetrische Abweichungen zu finden, viel mehr soll versucht werden, ähnliche Kursverläufe wie den aktuellen in der Vergangenheit zu finden und individuell darauf zu reagieren. Die zugrund liegende Hypothese ist dabei, dass bei ausreichender Historie in der Vergangenheit ähnliche Muster erkannt und daraus Rückschlüsse auf die Zukunft (genauer: die Kursentwicklung des aktuellen Tages) gemacht werden können. Dieses Vorgehen hat gegenüber klassischeren Regressionsansätzen dern Vorteil, dass keine Annahmen über Form der Abhängigkeit gemacht werden musst. [Vgl. @altman]
 
 Da es sehr unwahrscheinlich ist, die genau gleichen Kursverläufe in der Histore wiederzufinden, muss ein Distanzmass definiert werden, welches die Nähe der Kursverläufe quantifiziert. Um diese zu berechnen, formulieren wir für jeden Eintrag $i$ den bisherigen Kursverlauf als Vektor $hist$. 
 

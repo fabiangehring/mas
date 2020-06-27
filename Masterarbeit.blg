@@ -5,45 +5,45 @@ The style file: apalike.bst
 Database file #1: mas.bib
 Warning--empty booktitle in frank_hall
 Warning--empty publisher in osseiran_segonne
-You've used 10 entries,
+You've used 16 entries,
             1935 wiz_defined-function locations,
-            529 strings with 5259 characters,
-and the built_in function-call counts, 3528 in all, are:
-= -- 354
-> -- 101
-< -- 12
-+ -- 32
-- -- 30
-* -- 257
-:= -- 615
-add.period$ -- 31
-call.type$ -- 10
-change.case$ -- 63
-chr.to.int$ -- 10
-cite$ -- 12
-duplicate$ -- 151
-empty$ -- 262
-format.name$ -- 42
-if$ -- 710
+            558 strings with 6018 characters,
+and the built_in function-call counts, 5277 in all, are:
+= -- 534
+> -- 149
+< -- 18
++ -- 48
+- -- 44
+* -- 385
+:= -- 941
+add.period$ -- 49
+call.type$ -- 16
+change.case$ -- 100
+chr.to.int$ -- 16
+cite$ -- 18
+duplicate$ -- 219
+empty$ -- 384
+format.name$ -- 64
+if$ -- 1044
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 7
-newline$ -- 53
-num.names$ -- 32
-pop$ -- 50
+missing$ -- 9
+newline$ -- 83
+num.names$ -- 50
+pop$ -- 69
 preamble$ -- 1
-purify$ -- 63
+purify$ -- 100
 quote$ -- 0
-skip$ -- 127
+skip$ -- 185
 stack$ -- 0
-substring$ -- 256
-swap$ -- 26
+substring$ -- 378
+swap$ -- 28
 text.length$ -- 3
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 58
+type$ -- 94
 warning$ -- 2
-while$ -- 29
+while$ -- 43
 width$ -- 0
-write$ -- 128
+write$ -- 202
 (There were 2 warnings)
