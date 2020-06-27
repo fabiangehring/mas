@@ -37,7 +37,7 @@ if (file.exists(file_stocks_raw)) {
 }
 ```
 
-Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret sind es alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020.^[Das Startdatum dieser Arbeit.] Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks_raw)` Aktien, welche sich automatisiert auslesen lassen. Ferner stellt die Webseite des Emittenten weitere Attribute zur Verfügung. Diese lauten für das Beispiel Nesté wie folgt:
+Für die vorliegende Analyse werden die Aktienpreise grosser Unternehmen weltweit herangezogen. Konkret sind es alle Aktienkomponenten des "iShares MSCI World UCITS ETF" [vgl. @blackrock] per 28. Februar 2020.^[Das Startdatum dieser Arbeit.] Dieser Exchange Traded Fund (ETF) besteht zu diesem Zeitpunkt aus `r nrow(stocks_raw)` Aktien. Ferner stellt die Webseite des Emittenten weitere Attribute zur Verfügung. Diese lauten für das Beispiel Nesté wie folgt:
 
 ``` {r etf-data-nestle-stock, echo=FALSE}
 stock_nesn <- dplyr::filter(stocks_raw, Ticker == "NESN")
@@ -45,7 +45,7 @@ knitr::kable(tibble(Attribut = names(stock_nesn), Wert = t(stock_nesn)), caption
   kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
 ```
 
-Neben eindeutigen Kennzeichner wie "Ticker" und "ISIN" enthält der Datensatz auch Informationen zur "Asset Class". Für die vorliegende Analyse ist hierbei lediglich die Ausprägung "Equity" zulässig. Die Kennzahlen "Weight", "Market Value" und "Notional Value" geben Auskunft über die Grösse der betrachteten Unternehmung und eignen sich auch zum Vergleich ebendieser. Zu beachten gilt, dass im Falle von Aktien der "Notional Value" dem "Market Value" entspricht und sich dieser bis auf rundungsbedingte Differenzen auch aus der Anzahl ausgegebener Titel mal Tagesendkurs ("Shares" x "Price") ermitteln lässt. 
+Neben eindeutigen Kennzeichnern wie "Ticker" und "ISIN" enthält der Datensatz auch Informationen zur "Asset Class". Für die vorliegende Analyse ist hierbei lediglich die Ausprägung "Equity" zulässig. Die Kennzahlen "Weight", "Market Value" und "Notional Value" geben Auskunft über die Grösse der betrachteten Unternehmung und eignen sich auch zum Vergleich ebendieser. Zu beachten gilt, dass im Falle von Aktien der "Notional Value" dem "Market Value" entspricht und sich dieser bis auf rundungsbedingte Differenzen auch aus der Anzahl ausgegebener Titel mal Tagesendkurs ("Shares" x "Price") ermitteln lässt. 
 
 Als weitere Unterscheidungsmerkmale sind der Hauptbörsenplatz "Exchange" (`r length(unique(stocks_raw$Exchange))` unterschiedliche Ausprägungen), der Sitz "Location" (`r length(unique(stocks_raw$Location))` Ausprägungen) sowie die Währung "Market Currency" (`r length(unique(stocks_raw[["Market Currency"]]))` Ausprägungen) aufgeführt. Alle drei Attribute bilden stark verwandte Informationen ab. Geschlüsselt auf Kontinente ergeben sich für den Börsensitz folgende Anteile: 
 
@@ -80,7 +80,7 @@ if (file.exists(file_quotes_raw)) {
 }
 ```
 
-Für alle Titel werden in einem zweiten Schritt die historischen Aktienkurse zum Eröffnungs-, Höchst-, Tiefst- und Endkurs des jeweiligen Tages bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks_raw) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nesté per 14. Februar 2019. 
+Für alle Titel werden die historischen Eröffnungs-, Höchst-, Tiefst- und Schlusskurse des jeweiligen Tages bezogen. Diese Daten stehen via Yahoo Finance auf täglicher Basis zur freien Nutzung zur Verfügung [vgl. @yahoo_finance]. Zu beachten gilt es hierbei, dass die Yahoo Ticker für ausserhalb der USA gehandelte Titel einen Suffix je Börsenplatz verwenden. Für die Analyse kommen so `r formatC(nrow(quotes_raw), big.mark = "'")` tägliche Datenwerte für `r formatC(length(unique(quotes_raw$Ticker)), big.mark = "'")` Titel zusammen. Für `r formatC(nrow(stocks_raw) - length(unique(quotes_raw$Ticker)), big.mark = "'")` Aktien können keine Werte gefunden werden. Tabelle \@ref(tab:quote-data-nestle) zeigt einen Beispieleintrag für die Aktie von Nestlé per 14. Februar 2019. 
 
 
 ``` {r quote-data-nestle, echo=FALSE}
@@ -92,7 +92,7 @@ knitr::kable(tibble(Attribut = names(quote_nesn), Wert = t(quote_nesn)), caption
 
 Die Werte "Open", "Low", "High" und "Close" enthalten die erwähnten Eröffnungs-, Tiefst-, Höchst- und Schlusskurse des Titels. Mit "Volume" werden die Anzahl gehandelter Titel am jeweiligen Tag angegeben. Unter "Adjusted" ist der um Dividendenausschüttungen korrigierte Schlusskurs aufgeführt.^[Allfällige Aktiensplits sind in allen Werten bereits berücksichtigt.] 
 
-Die Werte in Tabelle \@ref(tab:quote-data-nestle) sind insofern speziell, als dass sie den letzten Tag vor dem Ex-Dividend Datum von Nestlé für 2019 betreffen. Das heisst, es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug in jenem Jahr CHF 2.45 [vgl. @nestle]. Diese Differenz widerspiegelt sich als Differenz des Close- und Adjusted-Preises. Da alle Werte (auch Open, Low, High und Close) am Folgetag ohne den Anspruch auf diese Dividende gehandelt werden, fallen diese typischerweise tiefer aus. Um eine Vergleichbarkeit der Renditen über die Zeit zu gewährleisten, ist daher eine Anpassung der Werte mit Hilfe des Adjustement-Faktors nötig. Dieser ergibt sich als Quotient von Adjusted und Close Preis und wird auf allen Einträgen angewendet.
+Die Werte in Tabelle \@ref(tab:quote-data-nestle) sind insofern speziell, als dass sie den letzten Tag vor dem Ex-Dividend Datum von Nestlé für 2019 betreffen. Das heisst, es sind die Kurse des letzten Tages, bevor die Aktie ohne die für das Jahr 2019 ausgeschüttete Dividende gahandelt wurde. Die Dividende betrug in jenem Jahr CHF 2.45 [vgl. @nestle]. Diese Differenz widerspiegelt sich als Differenz des Close- und Adjusted-Preises. Da die Titel am Folgetag ohne den Anspruch auf diese Dividende gehandelt werden, fallen diese typischerweise tiefer aus. Um eine Vergleichbarkeit der Renditen über die Zeit zu gewährleisten, ist daher eine Anpassung der Werte (Open, Low, High und Close) mit Hilfe des Adjustment-Faktors nötig. Dieser ergibt sich als Quotient von Adjusted und Close Preis und wird auf allen Einträgen angewendet.
 
 Weiter erwähnenswert ist, dass Yahoo den Adjusted Kurs des jeweils aktuellsten Tages - ausser eben am Tag vor Ex-Dividend - mit auf aktuellen Kurs festlegt. Im Laufe der Zeit und mit neuen Ausschüttungen verändert sich damit auch die Historie der Adjusted Werte. Dies lässt sich zeigen, wenn der Beispieleintrag von Nestlé per 12. April 2019 nach der nächsten Dividendenausschüttung (27. April 2020) noch einmal abgerufen wird [vgl. @nestle]. Während alle Preise ausser "Adjusted" identisch ausgewiesen sind, hat sich dieser neu auf 90.72 verändert [vgl. @yahoo_finance]. Mit der nächsten Dividendenausschüttung (voraussichtlich im April 2021) wird sich dieser Wert dann wieder ändern. Mit Hilfe der Adjustierung ist aber gewährleistet, dass die Werte vergleichbar bleiben.
 
@@ -143,7 +143,7 @@ if (!file.exists(file_quotes_clean)) {
 }
 ```
 1. **Entfernen von fehlerhaften Adjustierungsdaten**  
-Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte auf. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferner auf, dass komischerweise auch einige sehr sehr kleine (im Bereich $10^{-6}$) - wenn auch knapp postive Werte - gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
+Eine Eigenschaft von Aktienpreisen ist es, dass sie nicht negativ sein können. Der Datensatz weist aber vereinzelt negative Adjusted Werte auf. Dies lässt sich auch durch die Dividendenbereinigung nicht erklären. Bei diesen Einträgen scheinen daher Datenfehler vorzuliegen. Erschwerend kommt hinzu, dass sich Fehler bei der Adjustierung nicht auf den jeweiligen Eintrag beschränken. Aufgrund der Funktionsweise der Adjustierung (vgl. \@ref(preisinformationen)) ist ein vererben des Fehlers auf andere Einträge des jeweiligen Titels wahrscheinlich. Bei genauerer Betrachtung der Adjusted Werte fällt ferner auf, dass komischerweise auch einige sehr kleine (im Bereich $10^{-6}$) - wenn auch knapp postive Werte - gefunden werden können. Aus diesen Grund werden alle Ticker, welche in ihrer Historie einen Adjusted Preis von weniger als `r wrong_corporate_action_threshold` aufweisen, ausgeschlossen.
 
 ```{r, filter-data-measure-order, echo=FALSE}
 if (!file.exists(file_quotes_clean)) {
@@ -160,7 +160,7 @@ if (!file.exists(file_quotes_clean)) {
 }
 ```
 1. **Erkennen und Ausschluss von Tippfehlern**  
-Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, währenddem alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippehler identifizierten Kennzahl.
+Einzelne Einträge lassen sich als Tippfehler identifizieren. Der Titel "AV.L" weist per 09. August 2019 beispielsweise einen Low-Wert von 3.87 aus, während alle andern Werte des gleichen Tages wie auch der benachbarten Tage bei ca. 380 liegen. Es liegt auf der Hand, dass dieser Wert um einen Faktor 100 falsch erfasst wurde. Solchen Fehlern wird begegnet, indem alle paarweisen Verhältnisse von Open, Low, High und Close Preis kleiner als `r max_typo_ratio` sein müssen. Andernfalls erfolgt ein Ausschluss der als Tippfehler identifizierten Kennzahl.
 
 ```{r, filter-data-no-intraday-moves, echo=FALSE}
 if (!file.exists(file_quotes_clean)) {
@@ -191,7 +191,7 @@ if (!file.exists(file_quotes_clean)) {
 }
 ```
 1. **Aussergewöhnlich hohe Preisbewegungen**  
-Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen - wie sie in dieser Arbeit betrachtet werden - aber selten. Die Wahrscheinlichkeit, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) grösser ist als ein Faktor `r too_large_daily_change_ratio`, erachten wir als klein. Die Gefahr, dass es sich in solchen Fällen um einen Datenfehler handeln könnte, erachten wir als grösser. Entsprechende Einträge werden deshalb entfernt.
+Es liegt in der Natur der Sache, dass sich Aktienkurse verändern. Grosse Kurssprünge sind bei Aktien sehr grosser Unternehmen - wie sie in dieser Arbeit betrachtet werden - aber selten. Die Wahrscheinlichkeit, dass das Verhältnis zwischen adjustiertem Preis des Vortages und adjustiertem Preis des aktuellen Tages (und vice versa) richtigerweise grösser ist als ein Faktor `r too_large_daily_change_ratio`, erachten wir als klein. Entsprechende Einträge werden deshalb entfernt.
 
 ```{r, filter-data-extremes, echo=FALSE}
 if (!file.exists(file_quotes_clean)) {
@@ -211,7 +211,7 @@ if (!file.exists(file_quotes_clean)) {
 }
 ```
 1. **Ausschluss von Extremwerten**  
-Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht linear, sondern quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen eines "typischen" Börsentages zu machen. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereichs der Analyse. Aus diesem Grund werden nach obigen Bereinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preislevels der Aktien auf einem täglich auf den Schlusskurs des Vortages indexierten Wert.
+Die der vorliegenden Analyse zugrundliegende Payoff-Funktion ist abhängig von den Preisbewegungen einer Aktie innerhalb des Tages (vgl. \@ref(forschungsfrage)). Speziell dabei ist, dass die Höhe der Bewegung nicht linear, sondern quadratisch Niederschlag findet. Dies führt dazu, dass die Analyse sehr sensitiv auf Ausreisser reagiert. Hinzu kommt, dass es Ziel der Arbeit ist, Aussagen über Kursbewegungen eines "typischen" Börsentages zu machen. Eine Prognose von Werten an aussergewöhnlichen Tagen liegt ausserhalb des Geltungsbereichs der Analyse. Aus diesem Grund werden nach obigen Bereinigungen für jede der fünf Preiskennzahlen die jeweils 1% extremsten Werte nach oben wie auch unten ausgeschlossen. Der Ausschluss erfolgt aufgrund der unterschiedlichen Preisnieveaus der Aktien auf einem täglich auf den Schlusskurs des Vortages indexierten Wert.
 
 
 ```{r, knn-data-preparation, echo=FALSE}
@@ -240,7 +240,7 @@ if (!file.exists("data/steps/data_wide_10.feather")) {
 
 ```
 1. **Verfügbarkeit durchgängiger Historie**  
-Zur Prognose des zukünftigen Preisverlaufs könnte der direkt vorangegangene Verlauf von Bedeutung sein. Es werden daher alle Datensätze ausgeschlossen, für welche keine durchgängige Historie von 10 Börsentagen verfügbar ist. Zu beachten gilt es hierbei, dass nicht alle nachfolgenden Analyseansätze den ganzen Umfang dieser Historie tatsächlich auch verwenden. Um die Vergleichbarkeit der Analyseansätze zu gewährleisten, gilt dieser Ausschluss allerdings generell.
+Zur Prognose des zukünftigen Preisverlaufs könnte der direkt vorangegangene Verlauf von Bedeutung sein. Es werden daher alle Datensätze ausgeschlossen, für welche keine durchgängige Historie von 10 Börsentagen verfügbar ist.
 
 
 Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r format(nrow(quotes_raw), big.mark = "'")` Einträgen besteht. Davon weisen `r format(sum(rowSums(is.na(quotes_raw)) != 0), big.mark = "'")` Zeilen vor Bereinigung einen fehlenden Wert auf. Nach Bereinigung erhöht sich dieser Wert auf `r format(nrow(quotes_raw) - nrow(data_wide_10), big.mark = "'")`. Für die Analyse bleiben somit `r format(nrow(data_wide_10), big.mark = "'")` verwendbare Einträge.
@@ -248,9 +248,9 @@ Zusammenfassend lässt sich festhalten, dass der rohe Datensatz aus `r format(nr
 
 ### Normalisierung
 
-Eine weitere Herausforderung, welche sich beim Vergleich verschiedener Aktien ergibt, ist deren unterschiedliches Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich dadurch herstellen, wenn nicht absolute Preise, sondern relative Returns in der Analyse verwendet werden. Tatsächlich ist dies in der Payoff-Funktion grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis des adjustierten Vortagesendkurs auf ein Niveau von 100 (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
+Eine weitere Herausforderung, welche sich beim Vergleich verschiedener Aktien ergibt, ist deren unterschiedliches Preisniveau. Während eine Aktie bei USD 30 handelt, bewegt sich eine andere auf einem Niveau von USD 1000. Eine Vergleichbarkeit lässt sich herstellen, wenn nicht absolute Preise, sondern relative Returns in die Analyse einfliessen. Tatsächlich ist dies in der Payoff-Funktion grösstenteils sichergestellt. Das absolute Preisniveau fliesst allerdings auch in die Berechnung des Gamma Cash mit ein. Um auch hier eine Vergleichbarkeit der Werte sicherzustellen, wird bei allen nachfolgenden Analysen der Preis des adjustierten Vortagesendkurs auf ein Niveau von 100 (dies entspricht dem letzten Neutralisierungszeitpunkt des Deltas) standardisiert.
 
-Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits ausgeführt - quadratisch auf Preisveränderungen reagiert, lohnt sich an dieser Stelle eine Untersuchung der Daten auf einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert, könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass lernende Algorithmen zu stark an diesen Einträgen orientieren. Weniger einflussreiche aber häufiger realisierte Beobachtungen gingen dabei unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
+Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der Payoff - wie bereits ausgeführt - quadratisch auf Preisveränderungen reagiert, lohnt sich an dieser Stelle eine Untersuchung der Daten auf einflussreiche Beobachtungen. Ist der gesamte Payoff über alle Datensätze hinweg durch wenige Einträge dominiert, könnten nachfolgende Analysen verfälscht werden. In diesem Fall besteht die Gefahr, dass sich lernende Algorithmen zu stark an diesen Einträgen orientieren. Weniger einflussreiche aber häufiger realisierte Beobachtungen gingen dabei unter. Dies ist inbesondere unter dem Gesichtspunkt von Relevanz, als dass vorliegende Analysen auf eine Prognose "normaler" Marktsituationen abzielt. 
 
 Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs (bei Tagesend-Ausgleich) über alle in der Analyse berücksichtigten Werte. Dazu werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei genau gleichverteiltem Beitrag jedes einzelnen Eintrages zum Payoff würde eine Gerade mit Steigung 45° resultieren. Je stärker der Einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
 
@@ -278,54 +278,62 @@ ggplot(tibble(x = x, y = y), aes(x = x, y = y)) +
 ```
 
 
-Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituationen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein allzu extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve fast auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten für den vorliegenden Zweck erfolgreich war. Die Daten zeigen die gewünschte Variabilität, ohne dass dabei wenige Extremwerte das Ergebnis verfälschen würden.
+Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituationen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kauf- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein allzu extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve fast auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten für den vorliegenden Zweck erfolgreich war. Die Daten zeigen die gewünschte Variabilität, ohne dass dabei wenige Extremwerte das Ergebnis verfälschen würden.
 
 
-### Adjustierung unterschiedlicher Volatilitäten
+### Volatilitätsmass
 
-Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Aktien in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten. [Vgl. @asimas]
+Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Titel in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten [Vgl. @asimas].
 
-Die Adjustierungen der Preisbewegungungen auf eine vergleichbare Ausschlagshöhe / Volatilität könnte den nachfolgenden Algorithmen helfen, grundsätzlich ähnliche Verhaltensmuster zu erkennen. Diese Adjustierung kann auf verschiedene Arten erfolgen. Es stellen sich dabei verschiedene Fragen:
-
+Auch für die nachfolgenden Analysen ist die Volatilität ein wichtiges Mass. Es lohnt sich daher an dieser Stelle über folgende Fragen klar zu werden:
 - Welcher Volatiltätsschätzer soll verwendet werden?
 - Über welche Zeitdauer soll die Volatiltät geschätzt werden?
 - Soll ein gleichgewichteter Schätzer verwendet werden, oder ein gewichteter?
-- etc.
 
 Wir entscheiden uns für einen Volatiltätsindikator von @yang_zhang. Dieser ist in der Lage, nicht nur Close-to-Close Preise, sondern alle im Datensatz vorhandenen Preise - namentlich Open, High, Low und Close - zu berücksichtigen. Es handelt sich dabei um eine modifizierte Version des Garman und Klass Schätzers, der auch mit Opening Sprüngen umzugehen weiss.
 
-Als Zeitdauer wählen wir 10 Tage. Dies ist einerseits ein gebräuchliches Standardfenster, zudem erfolgte auch die Datenaufbereitung (vgl. \@ref(bereinigung)) auf der Bedingung, dass für jeden im Datensatz verbliebenen Eintrag dieses Fenster ohne Unterbruch vorhanden sein muss. Auf eine Gewichtung des Schätzers wird aus Gründen der Einfachheit verzichtet.
+Als Zeitdauer zur Volatiltätsmessung wählen wir 10 Tage. Dies ist einerseits ein gebräuchliches Standardfenster, zudem erfolgte auch die Datenaufbereitung (vgl. \@ref(bereinigung)) auf der Bedingung, dass für jeden im Datensatz verbliebenen Eintrag dieses Fenster ohne Unterbruch vorhanden sein muss. Auf eine Gewichtung des Schätzers wird aus Gründen der Einfachheit verzichtet.
 
 
-Bezeichne $vol_{i, 10}$ die beschriebene 10-Tages Volatilität jeden Eintrages, so erfolgt die Adjustierung aller Preisdaten mittels folgender Formel:
 
-$$P_{i, vol10} = (P_i - 100) / \sqrt{vol10_i} + 100$$
+<!-- Ist nachfolgend von Volatilität die Rede  -->
 
-Für ein zweites adjustiertes Datenset wählen wir ein längerfristiges Volatilitätsmass. Die offensichtlichste Variante, dazu das Berechungsfenster von 10 auf 250 oder mehr Tage zu erhöhen greift allerdings zu kurz, zumal im Datensatz sowohl bereinigte wie auch bereits von Beginn weg fehlende Werte vorkommen. Eine Möglichkeit bestünde darin, diese mittels Interpolationsverfahren zu füllen. Wir entscheiden uns aber dafür, als langfristiges Volatilitätsmass den Medianwert aller 10-Tages Volatilitäten des jeweiligen Ticker $j$ zu wählen. 
-
-$$P_{i, vol} = (P_i - 100) / median(\sqrt{vol10_i, j)} + 100 $$
+<!-- Die Adjustierungen der Preisbewegungungen auf eine vergleichbare Ausschlagshöhe / Volatilität könnte den nachfolgenden Algorithmen helfen, grundsätzlich ähnliche Verhaltensmuster zu erkennen. Diese Adjustierung kann auf verschiedene Arten erfolgen. Es stellen sich dabei verschiedene Fragen: -->
 
 
-Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltätsadjustierung durchgeführt und miteinander verglichen. Wo nicht anders vermerkt, erfolgt die Analyse ohne Adjustierung.
 
 
-```{r, echo=FALSE}
-
-path_data_wide_10_vol <- "data/steps/data_wide_10_vol.feather"
-if (!file.exists(path_data_wide_10_vol)) {
-  
-  data_wide_10_vol <- adjust_vol(data_wide_10)
-  write_feather(data_wide_10_vol, path_data_wide_10_vol)
-  data_wide_10_vol <- read_feather(path_data_wide_10_vol)
-  data_wide_10_vol_hash <- digest(data_wide_10_vol)
-  rm(data_wide_10_sorted, vol_10)
-  
-} else {
-  data_wide_10_vol <- read_feather(path_data_wide_10_vol)
-}
 
 
-```
+<!-- Bezeichne $vol_{i, 10}$ die beschriebene 10-Tages Volatilität jeden Eintrages, so erfolgt die Adjustierung aller Preisdaten mittels folgender Formel: -->
+
+<!-- $$P_{i, vol10} = (P_i - 100) / \sqrt{vol10_i} + 100$$ -->
+
+<!-- Für ein zweites adjustiertes Datenset wählen wir ein längerfristiges Volatilitätsmass. Die offensichtlichste Variante, dazu das Berechungsfenster von 10 auf 250 oder mehr Tage zu erhöhen greift allerdings zu kurz, zumal im Datensatz sowohl bereinigte wie auch bereits von Beginn weg fehlende Werte vorkommen. Eine Möglichkeit bestünde darin, diese mittels Interpolationsverfahren zu füllen. Wir entscheiden uns aber dafür, als langfristiges Volatilitätsmass den Medianwert aller 10-Tages Volatilitäten des jeweiligen Ticker $j$ zu wählen.  -->
+
+<!-- $$P_{i, vol} = (P_i - 100) / median(\sqrt{vol10_i, j)} + 100 $$ -->
+
+
+<!-- Nachfolgende Analysen werden teilweise mit und teilweise ohne diese Volatiltätsadjustierung durchgeführt und miteinander verglichen. Wo nicht anders vermerkt, erfolgt die Analyse ohne Adjustierung. -->
+
+
+<!-- ```{r, echo=FALSE} -->
+
+<!-- path_data_wide_10_vol <- "data/steps/data_wide_10_vol.feather" -->
+<!-- if (!file.exists(path_data_wide_10_vol)) { -->
+
+<!--   data_wide_10_vol <- adjust_vol(data_wide_10) -->
+<!--   write_feather(data_wide_10_vol, path_data_wide_10_vol) -->
+<!--   data_wide_10_vol <- read_feather(path_data_wide_10_vol) -->
+<!--   data_wide_10_vol_hash <- digest(data_wide_10_vol) -->
+<!--   rm(data_wide_10_sorted, vol_10) -->
+
+<!-- } else { -->
+<!--   data_wide_10_vol <- read_feather(path_data_wide_10_vol) -->
+<!-- } -->
+
+
+<!-- ``` -->
 
 
 ```{r, echo=FALSE, results='hide'}

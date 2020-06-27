@@ -28,15 +28,15 @@ Rcpp::sourceCpp('src/drop_late_nn_idx.cpp')
 ```
 
 
-Für die Analyse der Daten mit dem Ziel einen Kaufs- sowie einen Verkaufkurs zu prognostizieren, bei dem der Delta-Hedge nachgezogen werden soll, werden nachfolgend verschiedene Techniken eingesetzt. Diese sind:
+Nachfolgende Analyse hat das Ziel einen Kauf- sowie einen Verkaufskurs zu prognostizieren, bei dem der Delta-Hedge von Optionen mit maximalem Payoff erfolgen kann. Zu diesem Zweck werden verschiedene Methoden ausprobiert und miteinander verglichen. Diese sind:
 
 - Einfache Optimierungen
 - Nearest Neighbors (KNN)
-- Neuronale Netzwerke
+- Neuronale Netze
 
-Allen Analysen gemein ist, dass jeweils gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Aussage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel \@ref(forschungsfrage) ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.^[Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezügl. Payoff bessere Variante.] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Existenz ist aber bei der Interprätation der Ergebnisse interessant, da die Payoffs der gefundenen Strategien diesbezüglich als untere Grenzen des Payoffs betrachtet werden können.
+Allen Analysen gemein ist, dass gefundene Strategien mit der Referenzstrategie verglichen wird, welche keine innertägliche Anpassung des Deltas vorsieht. Eine weitere Gemeinsamkeit liegt darin, dass die verwendeten Daten keine Aussage über den Verlauf des Preises innerhalb des Tages zulassen. Inbesondere kann nicht ermittelt werden, ob zuerst eine obere oder eine untere Preisgrenze überschritten wurde. Da diese Reihenfolge aber wie in Kapitel \@ref(forschungsfrage) ausgeführt von Relevanz ist, wird für alle Analysen ein Ansatz verwendet, bei welchem zufällig bestimmt wird, ob am jeweiligen Tag zuerst eine Abwärts- oder eine Aufwärtsbewegung stattgefunden hat.^[Alternative denkbare Vorgehensweisen sind: Immer zuerst Aufwärtsbewegung, immer zuerst Abwärtsbewegung, immer die bezügl. Payoff schlechtere Reihenfolge oder immer die bezüglich Payoff bessere Variante.] Auch ein mehrmaliges Erreichen der Kaufs- und Verkaufsschwelle ist innerhalb des Tages bei sehr fluktierenden Preisen in Realität denkbar. Es wären bezüglich Optimierung des Payoffs sogar sehr wünschenswerte Ereignisse. Auf die Berücksichtigung solcher Fälle wird in der Analyse allerdings verzichtet. Das Bewusstsein über deren Existenz ist aber bei der Interprätation der Ergebnisse interessant, da die Payoffs der gefundenen Strategien diesbezüglich als untere Grenzen betrachtet werden können.
 
-Eine weitere Gemeinsamkeit aller Analysen ist, dass der bereinigte Datensatz in ein Trainings- (80%) und ein Testdatensatz (20%) aufgeteilt wird. Diese Aufteilung erfolgt zufällig und wird für alle Analysen zwecks Vergleichbarkeit der Ergebnisse beibehalten. 
+Eine weitere Gemeinsamkeit der Analysen ist, dass der analysierte Datensatz in einem ersten Schritt in ein Trainings- (80%) und ein Testdatensatz (20%) aufgeteilt wird. Diese Aufteilung erfolgt zufällig und zwecks Vergleichbarkeit für alle Methoden gleich. 
 
 
 ```{r child="_04-1-optimization.Rmd", echo=FALSE}
