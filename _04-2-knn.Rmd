@@ -118,7 +118,7 @@ if (!all(map_lgl(nn_3_manh_path, ~file.exists(.)))) {
 
 Sind die Nachbarn eines Eintrages ermittelt, lässt sich eine Prognose für den weiteren Kursverlauf des aktuellen Eintrages ableiten. Dazu wird aus den bekannten Kursverläufen der Nachbarn mittels geeigneter Metrik ein Prognosewert für den Folgetag abgeleitet. Abbildung \@ref(fig:example-nearest-neighbor-outlook) illustriert dieses Vorgehen anhand eines Beispiels. Die Grafiken zeigen die Kursverläufe des aktuellen Eintrages (rot) sowie diejenigen der nächsten 5 Nachbarn für den aktuellen zu prognostizierenden Tag (t) sowie die 3 jeweils vorangegangenen Handelstage (t-1, ... , t-3). Die gestrichelte rote Linie zeigt den auf Basis der Nachbarn prognostizierten Wert.
 
-``` {r, example-nearest-neighbor-outlook, fig.cap='Exemplarische Kursprognose auf Basis nächster Nachhbarn', fig.heigth=3, fig.pos = '!H',  echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, example-nearest-neighbor-outlook, fig.cap='Exemplarische Kursprognose auf Basis nächster Nachhbarn', fig.heigth=2,  echo=FALSE, message=FALSE, warning=FALSE}
 k <- 5
 curr_idx <- 432100
 
@@ -150,7 +150,7 @@ Werden die prognostizierten Werte für Höchst- und Tiefstpreise als Kaufs- resp
 
 Beide Eigenschaften decken sich mit der Intuition. Da zu Beginn der Datenreihe nur sehr wenige Vergleichsverläufe zur Verfügung stehen, reagiert die Kurve sehr sensitiv und schlägt entsprechend aus. Dies glättet sich im Laufe der Zeit mit dem Vorhandensein von mehr Vergleichsmöglichkeiten. Die zweite Eigenschaft des steigenden Faktors zeigt, dass der erhoffte Lerneffekt einzutreten scheint. Tatsächlich scheinen ähnliche Kursverläufe in der Vergangenheit zukünftige Entwicklungen teilweise erklären zu können. Dies deckt sich mit der Erkenntnis des vergangenen Kapitels. Anders als zuvor kann dieser Lernmechanismus hier aber sehr individuell und nicht beschränkt auf zwei Gruppen erfolgen. Die dritte Eigenschaft zeigt, dass dieser Lerneffekt  nach gewisser Zeit gesättigt scheint.
 
-``` {r, knn-learning-history, fig.cap='Entwicklung der Modellperformance über die Zeit', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+``` {r, knn-learning-history, fig.cap='Entwicklung der Modellperformance über die Zeit', fig.height=3, echo=FALSE, message=FALSE, warning=FALSE}
 data_train <- select(data_knn_3_incl_0, Date, Close_1, Open_0, Low_0, High_0, Close_0)[train_idx, ]
 
 hist_pred_train_path <- "data/knn/hist_pred_train.feather"
@@ -170,7 +170,7 @@ Während sich bisherige Ausführungen auf die Analyse der 5 Nachbarn mit minimal
 - **Anzahl Nachbarn:**  
 In der vorliegenden Arbeit werden die 50 nächsten Nachbarn jedes Eintrages ermittelt. Einmal ermittelt lassen sich davon auch weniger verwenden. Damit kann sehr einfach der Einfluss der Anzahl Nachbarn auf die Prognosequalität ermittelt werden. Denkbar sind dabei grundsätzlich unterschiedliche Ergebnisse. So lässt sich argumentieren, dass bei der Verwendung weniger Nachbarn auch diejenigen mit grösster Ähnlichkeit verwendet werden. Insbesondere bei Marktbewegungen die relativ selten sind, könnten fernere, weniger gut passende Nachbarn das Ergebnis hier nicht verzerren. Umgekehrt lässt sich argumentieren, dass bei häufigeren Marktsituationen die Berücksichtigung und Mittelung von mehr Nachbarn zu einem unverzerrteren Ergebnis führen könnte. Schliesslich könnte sich als drittes Ergebnis auch eine Konfiguration mit "mittlerer" Anzahl Nachbarn bewähren, wenn beide vorherigen Argumentationen verschmolzen werden. Aus diesem Grund analysiert und vergleicht die vorliegende Arbeit die Ergebnisse bei der Verwendung von 5, 20 und 50 Nachbarn.
 
-- **Metrik der Prognoseermittlung:**  
+- **Metrik der Prognoseermittlung:**  data_pred = hist_pred_train
 Eine erste Möglichkeit zur Prognose von Tiefst-, Höchst- und Schlusskurs besteht darin, den Mittelwert der jeweiligen Kursfortsetzungen der Nachbarn zu wählen. Alternativ zur einfachen Mittelwertbildung sind auch andere Verfahren denkbar. Beispielsweise wäre auch die Berücksichtigung der Distanz als Gewichtungsfaktor denkbar. Aus Gründen der Einfachheit verzichten wir an dieser Stelle allerdings darauf und verwenden neben dem gleichgewichteten Mittelwert den Median als zweites Prognosemass. Dieses reagiert weniger sensitiv auf Ausreisser innerhalb der Nachbarn.  
 
 Die zweite hier betrachtete Möglichkeit besteht darin, die Kaufs- und Verkaufspreise nicht direkt, sondern als Abweichung vom Eröffnungskurs zu modellieren. Hierzu wird für jeden Nachbarn die Differenz von Eröffnungs- und Tiefstpreis respektive Eröffnungs- und Höchstpreis berechnet. Die entsprechende Metrik (Mittelwert oder Median) wird dann auf diese Werte angewandt und auf den tatsächlichen Eröffnungspreis des zu analysierenden Titels appliziert. Dies hat den Vorteil, dass der bekannte Eröffnungspreis keiner Unsicherheit mehr unterliegt.

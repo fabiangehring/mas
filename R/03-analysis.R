@@ -730,7 +730,9 @@ plot_ratio_history <- function(quotes_line, data_pred, title = NULL, both_first 
     ggplot2::xlab("Zeit") +
     ggplot2::ylab("Payoffaktor zur Referenzstrategie") +
     ggplot2::ggtitle(title) + 
-    ggplot2::theme_bw()
+    ggplot2::theme_bw() + 
+    geom_hline(yintercept=1, linetype="dashed", color = "red", size = 0.5) + 
+    scale_y_continuous(breaks = c(0, 1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2))
   
 }
 
@@ -820,7 +822,9 @@ bootstrap_variation_factor <- function(data, both_first, move, R, col = "Open", 
 #'
 #' @examples
 #' plot_variation_factor(tibble(move = c(0.01, 0.02), original = c(1, 2), lower = c(0, 1.5), upper = c(3, 4.5)))
-plot_variation_factor <- function(data, title = "Payoffvergleich bei symmetrischer Abwechung vom Eröffnungspreis") {
+plot_variation_factor <- function(data, title = "") {
+  #vergleich bei symmetrischer Abwechung vom Eröffnungspre
+  
   p <- ggplot2::ggplot(data, aes(x = move)) +
     geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey70") +
     ggplot2::geom_line(aes(y = original)) +

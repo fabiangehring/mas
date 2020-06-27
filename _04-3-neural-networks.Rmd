@@ -172,7 +172,7 @@ Während des Trainings der Netze unabhängiger Preise zeigen sich die in Abbildu
 - Über den Traingsverlauf nimmt die Genauigkeit mit abnehmender Geschwindigkeit zu. Dies gilt sowohl für die Trainings- wie auch die Validierungsdaten. Ein Overfitting ist im vorliegenden Fall nicht auszumachen.
 
 
-```{r, ind-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE} 
+```{r, ind-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, echo=FALSE, message=FALSE, warning = FALSE} 
 train_history <- as_tibble(history_cat_low) %>% mutate(price = "low") %>%
   bind_rows(as_tibble(history_cat_high) %>% mutate(price = "high")) %>%
   bind_rows(as_tibble(history_cat_close) %>% mutate(price = "close")) %>%
@@ -196,7 +196,7 @@ train_history %>%
 
 Die trainierten Modelle lassen sich nun zur Prognose der Wahrscheinlichkeitsverteilungen der Daten im Testset heranziehen. Für einzelne Beobachtungen lassen sich diese einfach visualisieren. Abbildung \@ref(fig:plot-categorical-histogram) zeigt die prognostizierten Verteilungen zweier exemplarischen Einträge. Diese unterscheiden sich deutlich. Während für ersteren Eintrag ein wenig volatiler Kursverlauf prognostiziert wird, erwartet das Modell im zweiten Fall eine deutlich volatilere Entwicklung.
 
-```{r, plot-categorical-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise ohne explizite Modellierung der Ordinalität', fig.height=3, fig.pos = '!H',  echo=FALSE, message=FALSE, warning = FALSE}
+```{r, plot-categorical-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise ohne explizite Modellierung der Ordinalität', fig.height=3,  echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
 ind_categorical$pred <- list(low = pred_cat_low, high = pred_cat_high, close = pred_cat_close)
 plot_neural_sample_histogram(eval_idx, ind_categorical)
@@ -380,7 +380,7 @@ pred_bin_close <- predict_proba(model_ind_bin_close, x[test_idx, ], batch_size =
 ```
 
 
-```{r, plot-binary-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise mit expliziter Modellierung der Oridinalität', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE}
+```{r, plot-binary-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise mit expliziter Modellierung der Oridinalität', fig.height=3, echo=FALSE, message=FALSE, warning = FALSE}
 eval_idx <- c(52, 12)
 ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
 plot_neural_sample_histogram(eval_idx, ind_binary)
@@ -465,7 +465,7 @@ if (file.exists(model_dep_path) && file.exists(history_dep_path)) {
 
 
 
-```{r, dep-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, fig.pos = '!H', echo=FALSE, message=FALSE, warning = FALSE} 
+```{r, dep-train-progress, fig.cap='Trainingsfortschritte im Falle unabhängiger Modelle', fig.height=3, echo=FALSE, message=FALSE, warning = FALSE} 
 train_history <- as_tibble(history_dep) %>%
   mutate(data = do.call(recode, list(.x = data, validation = "Validierung", training = "Training")))
 

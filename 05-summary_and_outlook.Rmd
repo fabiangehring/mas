@@ -1,6 +1,4 @@
 # Fazit und Ausblick {#summary_and_outlook}
-
-## Fazit
 Beinahe alle Analysen zeigen, dass mittels öffentlich verfügbarer historischer Kursdaten Strategien gefunden werden können, welche den Payoff der Referenzstategie übertreffen. Während die Referenzstrategie Preisfluktuationen innerhalb des Tages nicht ausnützt, können alternative Strategien davon profitieren. 
 
 Bereits mittels Festlegung der Preisschranken als symmetrische Auslenkungen vom aktuellen Eröffnungskurs lässt sich eine Überperformance von rund 8% erreichen. Es kann zudem gezeigt werden, dass die Volatilität der vergangenen 10 Tage einen erklärenden Einfluss auf die Volatilität des aktuellen Tages hat. Dies lässt sich dadurch erklären, dass Aktienpreise stark von neuen Informationen beeinflusst sind Da sich natürlicherweise Phasen mit mehr Informationen (beispielsweise Dividenden-Saison, Krisen) und ruhigere Phasen (beispielsweise Ferienzeit) abwechseln, widerspiegelt sich dies auch in Phasen höherer und tieferer Volaitilität im Markt. Berücksichtit man dies durch die Einteilung der Daten in eine Gruppe tieferer und höherer Volatilität, lässt sich der Überschusspayoff gar auf rund 9% steigern.
@@ -9,10 +7,10 @@ Dass die Kursentwicklung der unmittelbaren Vergangenheit einen erklärenden Einf
 
 Die besten Ergebnisse lassen sich bei Prognosen mittels neuronaler Netze beobachten. Als einzige der untersuchten Methoden modelliert diese die zukünftige Preisentwicklung nicht als Punktprognosen, sondern zieht deren Wahrscheinlichkeitsverteilungen in die Suche optimaler Kaufs- und Verkaufsschranken mit ein. Breeits mit der Modellierung voneinander unabhängiger Tiefst-, Höchst- und Schlusskurse kann eine Überschussperformance erreicht werden, welche derjenigen der symmetrischen Auslenkung entspricht. Die Performance lässt sich etwas verbessern, wenn die Ordinalität der Preisbuckets im Modell explizit berücksichtigt wird. Das beste Ergebnis liefert allerdings das neuronale Netz, welches die Preise abhängig modelliert. Im vorliegenden Fall kann eine Performance erreicht werden, welche mehr als 15% über derjenigen der Referenzstrategie liegt.
 
-Eine Übersicht über die Performance aller untersuchten Modelle gibt Tabelle \@ref(tab:factor-overview).
+Eine Übersicht über die Performance aller untersuchten Modelle gibt Tabelle \@ref(tab:factor-overview), geordnet nach Höhe der erreichten (Über-) Performance.
 
 
-```{r, factor-overview}
+```{r, factor-overview, echo = FALSE}
 
 variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
 bootstraped_variation_factor_open <- arrow::read_feather(variation_factor_open_file_name)
@@ -33,7 +31,7 @@ factor_dep_max_prob <- readRDS("data/models/dep/categorical/2_dense_512/factor_d
 factor_dep_0_999_prob <- readRDS("data/models/dep/categorical/2_dense_512/factor_dep_0_999_prob.rds")
 
 factor_overview <- tribble(
-  ~Modell,                     ~Überschussperformance,             ~Bemerkungen,
+  ~Modell,                     ~Performance,                       ~Bemerkungen,
   "Einfache Optimierung",      factor_sym_ungrouped,               "Symmetrische Auslenkung, ohne Gruppierung",
   "Einfache Optimierung",      payoff_factor_test_vol,             "Symmetrische Auslenkung, Gruppierung in Hoch- und Tiefvolatilitätsphasen",
    
@@ -48,16 +46,16 @@ factor_overview <- tribble(
   "Neuronale Netze",           factor_ind_bin_buy_sell_0_999_prob, "Unabhängige Preismodellierung mit Ordinalität, 0.1% Buckets höchster Wahrscheinlichkeit",
   "Neuronale Netze",           factor_dep_max_prob,                "Abhängige Preismodellierung, Bucket höchster Wahrscheinlichkeit",
   "Neuronale Netze",           factor_dep_0_999_prob,              "Abhängige Preismodellierung, 0.1% Buckets höchster Wahrscheinlichkeit"
-)
+) %>% arrange(Performance)
 
 knitr::kable(factor_overview,  digits = 3, caption = "Übersicht Überschussfaktoren im Vergleich zur Referenzstrategie", booktabs = TRUE) %>%
-  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position"))
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position")) %>%
+  column_spec(3, width = "7cm")
 
 ```
 
 
-## Ausblick
 Während mit vorliegenden Methoden und Analysen bereits Strategien befunden werden konnten, welche die Referenzstrategie deutlich übertreffen, ist es wahrscheinlich, dass mit andern Methoden und Vorgehensweisen noch bessere Resultate erzielt werden könnten. So zeigte sich bei der Analyse mittels nächster Nachbarn, dass es vorteilhaft scheint, nicht die absoluten Preise, sondern die Auslenkungen vom aktuellen Eröffnungskurs zu prognostizieren. Für weiterführende Analysen könnte es daher interessant sein, die Auslenkungen (sowie deren Wahrscheinlichkeitsverteilungen) auch mit Hilfe neuronaler Netze zu prognostizieren. 
 
-Ferner liesse sich die Analyse auf weitere Methoden ausweiten. Denkbar wären beispielsweise auch der Einsatz des Random Forrest Algorithmus oder die Verwendung autoregressiver Modelle wie GARCH.
+Ferner liesse sich die Analyse auf weitere Methoden ausweiten. Denkbar wären beispielsweise auch der Einsatz des Random Forrest Algorithmus oder die Verwendung autoregressiver Modelle wie GARCH. Zweitere sind in der Finanzliteratur weit verbreitet, wenn es um die Modellierung von Volaitilität geht. [Vgl @osseiran_segonne]. Weiter könnte sich auch die Analyse mit Long short-term memory Modellen (LSTM) lohnen. Es kann der Gruppe der Recurrent Neural Networks (RNN) zugeordnet werden und eignet sich zur Prognose von Zeitreihen wie sie im vorliegenden Fall vorliegen. [Vgl. @hochreiter_schmidhuber]
 

@@ -4,45 +4,46 @@ The top-level auxiliary file: Masterarbeit.aux
 The style file: apalike.bst
 Database file #1: mas.bib
 Warning--empty booktitle in frank_hall
-You've used 8 entries,
+Warning--empty publisher in osseiran_segonne
+You've used 10 entries,
             1935 wiz_defined-function locations,
-            517 strings with 5009 characters,
-and the built_in function-call counts, 2946 in all, are:
-= -- 298
-> -- 93
-< -- 10
-+ -- 30
-- -- 28
-* -- 216
-:= -- 510
-add.period$ -- 25
-call.type$ -- 8
-change.case$ -- 52
-chr.to.int$ -- 8
-cite$ -- 9
-duplicate$ -- 123
-empty$ -- 211
-format.name$ -- 40
-if$ -- 595
+            529 strings with 5259 characters,
+and the built_in function-call counts, 3528 in all, are:
+= -- 354
+> -- 101
+< -- 12
++ -- 32
+- -- 30
+* -- 257
+:= -- 615
+add.period$ -- 31
+call.type$ -- 10
+change.case$ -- 63
+chr.to.int$ -- 10
+cite$ -- 12
+duplicate$ -- 151
+empty$ -- 262
+format.name$ -- 42
+if$ -- 710
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 4
-newline$ -- 43
-num.names$ -- 26
-pop$ -- 40
+missing$ -- 7
+newline$ -- 53
+num.names$ -- 32
+pop$ -- 50
 preamble$ -- 1
-purify$ -- 52
+purify$ -- 63
 quote$ -- 0
-skip$ -- 106
+skip$ -- 127
 stack$ -- 0
-substring$ -- 214
-swap$ -- 24
+substring$ -- 256
+swap$ -- 26
 text.length$ -- 3
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 48
-warning$ -- 1
-while$ -- 24
+type$ -- 58
+warning$ -- 2
+while$ -- 29
 width$ -- 0
-write$ -- 103
-(There was 1 warning)
+write$ -- 128
+(There were 2 warnings)

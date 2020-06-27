@@ -57,14 +57,14 @@ Als weitere Unterscheidungsmerkmale sind der Hauptbörsenplatz "Exchange" (`r le
 Als letztes Attribut enthält der Datensatz Angaben zum "Sector" in welchem das jeweilige Unternehmung tätigt ist. Bis auf die Kategorien "Energy" und "Other" ist jeder der `r length(unique(stocks_raw$Sector))` aufgeführten Sektoren mit mindestens 5% Anteil vorhanden. Die beiden Sektoren mit dem höchsten Anteil sind "Industrials" und "Financials".
 
 
-``` {r, fig.cap='Anzahl im Datensatz vorhandene Titel je Sektor', fig.asp=1, fig.pos = '!H', analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
-table(stocks_raw$Sector) %>%
-  sort(decreasing = FALSE) %>%
-  tibble(Sektor = factor(names(.), levels = unique(names(.))), Anteil = . / sum(.) ) %>%
-  ggplot2::ggplot(ggplot2::aes(x = Sektor, y = Anteil)) + 
-  ggplot2::geom_bar(stat = "identity") +
-  ggplot2::scale_y_continuous(labels=scales::percent) +
-  ggplot2::coord_flip()
+``` {r, fig.cap='Anzahl im Datensatz vorhandene Titel je Sektor', fig.heigt=3, analysis-etf-data, echo=FALSE, message=FALSE, warning=FALSE}
+# table(stocks_raw$Sector) %>%
+#   sort(decreasing = FALSE) %>%
+#   tibble(Sektor = factor(names(.), levels = unique(names(.))), Anteil = . / sum(.) ) %>%
+#   ggplot2::ggplot(ggplot2::aes(x = Sektor, y = Anteil)) + 
+#   ggplot2::geom_bar(stat = "identity") +
+#   ggplot2::scale_y_continuous(labels=scales::percent) +
+#   ggplot2::coord_flip()
 ```
 
 ### Preisinformationen
@@ -254,7 +254,7 @@ Sind all diese Schritte durchgeführt, lässt sich der Payoff berechnen. Da der 
 
 Zur Veranschaulichung einflussreicher Beobachtungen zeigt Abbildung \@ref(fig:lorenz-curve) die Lorenzkurve des Payoffs (bei Tagesend-Ausgleich) über alle in der Analyse berücksichtigten Werte. Dazu werden die Payoffs der einzelnen Einträge in aufsteigender Weise sortiert. Deren kumulativer Anteil (Y-Achse) wird dem kumulativen Anteil der Datenpunkte (X-Achse) gegenübergestellt. Bei genau gleichverteiltem Beitrag jedes einzelnen Eintrages zum Payoff würde eine Gerade mit Steigung 45° resultieren. Je stärker der Einfluss einzelner Beobachtungen, desto stärker konvex die Kurve. 
 
-```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, fig.pos = '!H', echo=FALSE}
+```{r lorenz-curve, fig.cap='Lorenzkurve des Payoffs', fig.asp=0.6, echo=FALSE}
 set.seed(123456)
 both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRUE)]
 payoff <- data_wide_10 %>%
@@ -278,12 +278,12 @@ ggplot(tibble(x = x, y = y), aes(x = x, y = y)) +
 ```
 
 
-Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituationen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein allzu extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve fast auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten für den vorliegenden Zweck erfolgreich war. Die Daten zeigen die gewünschte Variabilität, ohne dass dabei wenige Extremwerte das Ergebis verfälschen würden.
+Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal im Datensatz sowohl unterschiedliche Titel als auch ein langer Zeithorizont mit volatileren als auch ruhigeren Marktsituationen repräsentiert ist, überrascht dieses Ergebnis nicht. Eine gewisse Vielfalt der Daten ist im Hinblick auf die Vorhersage von unterschiedlichen Kaufs- und Verkaufspreisen gar erwünscht. Sollen nochfolgende Algorithmen ja gerade versuchen, die unterschiedlichen Preisschwankungen zu prognostizieren. Andererseits zeigt die Darstellung auch, dass kein allzu extremer Einfluss einzelner Einträge auszumachen ist. In diesen Fällen wäre die Kurve fast auf dem unteren und rechten Rand der Grafik zu liegen gekommen. Es lässt sich damit der Schluss ziehen, dass die Bereinigung der Daten für den vorliegenden Zweck erfolgreich war. Die Daten zeigen die gewünschte Variabilität, ohne dass dabei wenige Extremwerte das Ergebnis verfälschen würden.
 
 
 ### Adjustierung unterschiedlicher Volatilitäten
 
-Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Aktien in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten.
+Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Aktien in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten. [Vgl. @asimas]
 
 Die Adjustierungen der Preisbewegungungen auf eine vergleichbare Ausschlagshöhe / Volatilität könnte den nachfolgenden Algorithmen helfen, grundsätzlich ähnliche Verhaltensmuster zu erkennen. Diese Adjustierung kann auf verschiedene Arten erfolgen. Es stellen sich dabei verschiedene Fragen:
 

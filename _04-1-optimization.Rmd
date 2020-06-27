@@ -40,7 +40,7 @@ both_first <- c("buy", "sell")[sample(c(1, 2), nrow(data_wide_10), replace = TRU
 Eine erste Möglichkeit, optimale Kaufs- und Verkaufspreise zu finden, besteht darin, diese im Trainingsdatensatz mittels einfacher Optimierung zu ermitteln. In einer ersten sehr einfachen Evaluation sollen Kaufs- und Verkaufsmarken als prozentuale Abweichungen vom aktuellen Eröffnungspreis festgelegt werden. Die resultierenden Payoffs bei einer solchen Festlegung lassen sich dann ins Verhältnis zum Referenzpayoff mit Ausgleich per Tagesende stellen. Ein Payoff-Verhältnis über 1 kennzeichnet damit eine Strategie, welche der Referenzstrategie überlegen ist. Verhältnisse unter 1 kennzeichnen unterlegene Strategien. 
 
 
-``` {r symmetric-open-change, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+``` {r symmetric-open-change, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (ohne Berücksichtigung Marktvolatilität)', fig.asp=0.6, echo=FALSE, message=FALSE, warning=FALSE}
 
 variation_factor_open_file_name <- "data/optimizations/variation_factor_open.feather"
 data_variation <- select(data_wide_10, Close_1, Open = "Open_0", Low = "Low_0", High = "High_0", Close_0)
@@ -116,7 +116,7 @@ Um dies zu untersuchen werden alle Einträge des Datensatzes in zwei Gruppen auf
 Für beide Gruppen lassen sich danach im Trainingsset die bereits bekannten Payoffvergleiche zum Referenzszenario durchführen und graphisch darstellen (vgl. Abbildung \@ref(fig:symmetric-open-change-vol)).
 
 
-``` {r symmetric-open-change-vol, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)', fig.asp=0.6, fig.pos = '!H', echo=FALSE, message=FALSE, warning=FALSE}
+``` {r symmetric-open-change-vol, fig.cap='Payoffvergleich bei symmetrischer Abweichung vom Eröffnungspreis (mit Berücksichtigung Marktvolatilität)', fig.asp=0.6, echo=FALSE, message=FALSE, warning=FALSE}
 
 data_variation_vol_paths <- c(
   "data/steps/data_variation_vol.feather",
