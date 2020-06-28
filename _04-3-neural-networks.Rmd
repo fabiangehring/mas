@@ -548,7 +548,7 @@ saveRDS(factor_dep_0_999_prob, "data/models/dep/categorical/2_dense_512/factor_d
 
 ```
 
-Werden wiederum gar die Buckets mit höchsten 0.1% Eintretenswahrscheinlichkeiten beigezogen, resultiert gar ein Überschusspayoff von  `r round((factor_dep_max_prob - 1) * 100, 1)`%. Es handelt sich damit innerhalb der analysierten Modelle um dasjenige Modell mit der besten Performance.
+Werden wiederum gar die Buckets mit höchsten 0.1% Eintretenswahrscheinlichkeiten beigezogen, resultiert gar ein Überschusspayoff von  `r round((factor_dep_0_999_prob - 1) * 100, 1)`%. Es handelt sich damit innerhalb der analysierten Modelle um dasjenige Modell mit der besten Performance.
 
 ```{r, echo=FALSE, results='hide'}
 rm(list = ls())
