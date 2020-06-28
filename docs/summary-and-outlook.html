@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Kapitel 5 Fazit und Ausblick | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden</title>
+  <meta name="description" content="Kapitel 5 Fazit und Ausblick | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta name="generator" content="bookdown 0.18 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Kapitel 5 Fazit und Ausblick | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Kapitel 5 Fazit und Ausblick | Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden" />
+  
+  
+  
+
+<meta name="author" content="Fabian Gehring, Sattelbogenstrasse 31, 5610 Wohlen" />
+<meta name="author" content="Betreut durch Dr. Thomas Oskar Weinmann, ZHAW" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="analyse.html"/>
+
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
+
+
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Management Summary</a></li>
+<li class="chapter" data-level="1" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>1</b> Einleitung</a><ul>
+<li class="chapter" data-level="1.1" data-path="intro.html"><a href="intro.html#motivation"><i class="fa fa-check"></i><b>1.1</b> Motivation</a></li>
+<li class="chapter" data-level="1.2" data-path="intro.html"><a href="intro.html#forschungsfrage"><i class="fa fa-check"></i><b>1.2</b> Forschungsfrage</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="daten.html"><a href="daten.html"><i class="fa fa-check"></i><b>2</b> Daten</a><ul>
+<li class="chapter" data-level="2.1" data-path="daten.html"><a href="daten.html#bezug-und-umfang"><i class="fa fa-check"></i><b>2.1</b> Bezug und Umfang</a><ul>
+<li class="chapter" data-level="2.1.1" data-path="daten.html"><a href="daten.html#aktienuniversum"><i class="fa fa-check"></i><b>2.1.1</b> Aktienuniversum</a></li>
+<li class="chapter" data-level="2.1.2" data-path="daten.html"><a href="daten.html#preisinformationen"><i class="fa fa-check"></i><b>2.1.2</b> Preisinformationen</a></li>
+</ul></li>
+<li class="chapter" data-level="2.2" data-path="daten.html"><a href="daten.html#aufbereitung"><i class="fa fa-check"></i><b>2.2</b> Aufbereitung</a><ul>
+<li class="chapter" data-level="2.2.1" data-path="daten.html"><a href="daten.html#bereinigung"><i class="fa fa-check"></i><b>2.2.1</b> Bereinigung</a></li>
+<li class="chapter" data-level="2.2.2" data-path="daten.html"><a href="daten.html#normalisierung"><i class="fa fa-check"></i><b>2.2.2</b> Normalisierung</a></li>
+<li class="chapter" data-level="2.2.3" data-path="daten.html"><a href="daten.html#volatilitätsmass"><i class="fa fa-check"></i><b>2.2.3</b> Volatilitätsmass</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html"><i class="fa fa-check"></i><b>3</b> Infrastruktur und Tools</a><ul>
+<li class="chapter" data-level="3.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#cloud-setup"><i class="fa fa-check"></i><b>3.1</b> Cloud Setup</a><ul>
+<li class="chapter" data-level="3.1.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#microsoft-azure"><i class="fa fa-check"></i><b>3.1.1</b> Microsoft Azure</a></li>
+<li class="chapter" data-level="3.1.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#google-cloud"><i class="fa fa-check"></i><b>3.1.2</b> Google Cloud</a></li>
+<li class="chapter" data-level="3.1.3" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#amazon-web-services-aws"><i class="fa fa-check"></i><b>3.1.3</b> Amazon Web Services (AWS)</a></li>
+</ul></li>
+<li class="chapter" data-level="3.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#verwendete-software"><i class="fa fa-check"></i><b>3.2</b> Verwendete Software</a><ul>
+<li class="chapter" data-level="3.2.1" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#r-rstudio-server"><i class="fa fa-check"></i><b>3.2.1</b> R / RStudio Server</a></li>
+<li class="chapter" data-level="3.2.2" data-path="infrastruktur-und-tools.html"><a href="infrastruktur-und-tools.html#python-anaconda"><i class="fa fa-check"></i><b>3.2.2</b> Python / (Ana)conda</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="analyse.html"><a href="analyse.html"><i class="fa fa-check"></i><b>4</b> Analyse</a><ul>
+<li class="chapter" data-level="4.1" data-path="analyse.html"><a href="analyse.html#einfache-optimierungen"><i class="fa fa-check"></i><b>4.1</b> Einfache Optimierungen</a><ul>
+<li class="chapter" data-level="4.1.1" data-path="analyse.html"><a href="analyse.html#ohne-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.1</b> Ohne Berücksichtigung der Marktvolatilität</a></li>
+<li class="chapter" data-level="4.1.2" data-path="analyse.html"><a href="analyse.html#mit-berücksichtigung-der-marktvolatilität"><i class="fa fa-check"></i><b>4.1.2</b> Mit Berücksichtigung der Marktvolatilität</a></li>
+</ul></li>
+<li class="chapter" data-level="4.2" data-path="analyse.html"><a href="analyse.html#nearest-neighbor-ansätze"><i class="fa fa-check"></i><b>4.2</b> Nearest Neighbor Ansätze</a><ul>
+<li class="chapter" data-level="4.2.1" data-path="analyse.html"><a href="analyse.html#distanzmasse"><i class="fa fa-check"></i><b>4.2.1</b> Distanzmasse</a></li>
+<li class="chapter" data-level="4.2.2" data-path="analyse.html"><a href="analyse.html#setup-und-berechnungsdauer"><i class="fa fa-check"></i><b>4.2.2</b> Setup und Berechnungsdauer</a></li>
+<li class="chapter" data-level="4.2.3" data-path="analyse.html"><a href="analyse.html#bestimmung-kauf--und-verkaufspreise"><i class="fa fa-check"></i><b>4.2.3</b> Bestimmung Kauf- und Verkaufspreise</a></li>
+</ul></li>
+<li class="chapter" data-level="4.3" data-path="analyse.html"><a href="analyse.html#neuronale-netzwerke"><i class="fa fa-check"></i><b>4.3</b> Neuronale Netzwerke</a><ul>
+<li class="chapter" data-level="4.3.1" data-path="analyse.html"><a href="analyse.html#diskretisierung"><i class="fa fa-check"></i><b>4.3.1</b> Diskretisierung</a></li>
+<li class="chapter" data-level="4.3.2" data-path="analyse.html"><a href="analyse.html#architektur"><i class="fa fa-check"></i><b>4.3.2</b> Architektur</a></li>
+<li class="chapter" data-level="4.3.3" data-path="analyse.html"><a href="analyse.html#ergebnisse"><i class="fa fa-check"></i><b>4.3.3</b> Ergebnisse</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="5" data-path="summary-and-outlook.html"><a href="summary-and-outlook.html"><i class="fa fa-check"></i><b>5</b> Fazit und Ausblick</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="summary_and_outlook" class="section level1">
+<h1><span class="header-section-number">Kapitel 5</span> Fazit und Ausblick</h1>
+<p>Beinahe alle Analysen zeigen, dass mittels öffentlich verfügbarer historischer Kursdaten Strategien gefunden werden können, welche den Payoff der Referenzstrategie übertreffen. Während die Referenzstrategie Preisfluktuationen innerhalb des Tages nicht ausnützt, können alternative Strategien davon profitieren.</p>
+<p>Bereits mittels Festlegung der Preisschranken als symmetrische Auslenkungen vom aktuellen Eröffnungskurs lässt sich eine Überperformance von rund 8% erreichen. Es kann zudem gezeigt werden, dass die Volatilität der vergangenen 10 Tage einen erklärenden Einfluss auf die Volatilität des aktuellen Tages hat. Dies lässt sich dadurch erklären, dass Aktienpreise stark von neuen Informationen beeinflusst sind. Da sich natürlicherweise Phasen mit mehr Informationen (beispielsweise Dividenden-Saison, Krisen) und ruhigere Phasen (beispielsweise Ferienzeit) abwechseln, widerspiegelt sich dies auch in Phasen höherer und tieferer Volatilität im Markt. Berücksichtigt man dies durch die Einteilung der Daten in eine Gruppe tieferer und höherer Volatilität, lässt sich der Überschusspayoff auf rund 9% steigern.</p>
+<p>Dass die Kursentwicklung der unmittelbaren Vergangenheit einen erklärenden Einfluss auf die Höhe der Bewegungen des nächsten Tages zu haben scheint, zeigt auch bei der Analyse mittels nächster Nachbarn. Es zeigt sich, dass mit dem Einbezug von immer mehr Vergleichskursen die Überschussperformance zunimmt. Dieser Effekt schwächt sich über die Zeit ab und resultiert in einer Überschussperformance vergleichbar mit der Strategie symmetrischer Auslenkung. Erwähnenswert ist dabei, dass diejenigen Modelle deutlich besser ausfallen, welche nicht den Preis, sondern die Auslenkung vom aktuellen Eröffnungspreis prognostizieren. Auf der anderen Seite scheinen weder die Anzahl verwendeter Nachbarn (5, 20 oder 50) noch das verwendete Distanzmass (euklidische oder Manhattan Distanz) einen grossen Einfluss auf die Performance der Modelle zu haben. Alle Parameterkombinationen führten zu ähnlichen Überschusskennzahlen.</p>
+<p>Die besten Ergebnisse lassen sich bei Prognosen mittels neuronaler Netze beobachten. Als einzige der untersuchten Methoden modelliert diese die zukünftige Preisentwicklung nicht als Punktprognosen, sondern zieht deren Wahrscheinlichkeitsverteilungen in die Suche optimaler Kauf- und Verkaufsschranken mit ein. Bereits mit der Modellierung voneinander unabhängiger Tiefst-, Höchst- und Schlusskurse kann eine Überschussperformance erreicht werden, welche derjenigen der symmetrischen Auslenkung entspricht. Die Performance lässt sich etwas verbessern, wenn die Ordinalität der Preisbuckets im Modell explizit berücksichtigt wird. Das beste Ergebnis liefert allerdings das neuronale Netz, welches die Preise abhängig modelliert. Im vorliegenden Fall kann eine Performance erreicht werden, welche mehr als 15% über derjenigen der Referenzstrategie liegt.</p>
+<p>Eine Übersicht über die Performance aller untersuchten Modelle gibt Tabelle <a href="summary-and-outlook.html#tab:factor-overview">5.1</a>, geordnet nach Höhe der erreichten (Über-) Performance.</p>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:factor-overview">Tabelle 5.1: </span>Übersicht Überschussfaktoren im Vergleich zur Referenzstrategie
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Modell
+</th>
+<th style="text-align:right;">
+Performance
+</th>
+<th style="text-align:left;">
+Bemerkungen
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Nearest Neigbors
+</td>
+<td style="text-align:right;">
+1.014
+</td>
+<td style="text-align:left;width: 7cm; ">
+Bestes Modell Preisprognose euklidische Distanz (5 Nachbarn, Mittelwert)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nearest Neigbors
+</td>
+<td style="text-align:right;">
+1.015
+</td>
+<td style="text-align:left;width: 7cm; ">
+Bestes Modell Preisprognose Manhatten Distanz (5 Nachbarn, Mittelwert)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Einfache Optimierung
+</td>
+<td style="text-align:right;">
+1.083
+</td>
+<td style="text-align:left;width: 7cm; ">
+Symmetrische Auslenkung, ohne Gruppierung
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nearest Neigbors
+</td>
+<td style="text-align:right;">
+1.084
+</td>
+<td style="text-align:left;width: 7cm; ">
+Bestes Modell Abweichungsprognose eukidische Distanz (20 Nachbarn, Mittelwert)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nearest Neigbors
+</td>
+<td style="text-align:right;">
+1.085
+</td>
+<td style="text-align:left;width: 7cm; ">
+Bestes Modell Abweichungsprognose Manhattan Distanz (20 Nachbarn, Mittelwert)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Einfache Optimierung
+</td>
+<td style="text-align:right;">
+1.096
+</td>
+<td style="text-align:left;width: 7cm; ">
+Symmetrische Auslenkung, Gruppierung in Hoch- und Tiefvolatilitätsphasen
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.098
+</td>
+<td style="text-align:left;width: 7cm; ">
+Unabhängige Preismodellierung ohne Ordinalität, Bucket höchster Wahrscheinlichkeit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.104
+</td>
+<td style="text-align:left;width: 7cm; ">
+Unabhängige Preismodellierung mit Ordinalität, Bucket höchster Wahrscheinlichkeit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.116
+</td>
+<td style="text-align:left;width: 7cm; ">
+Abhängige Preismodellierung, Bucket höchster Wahrscheinlichkeit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.120
+</td>
+<td style="text-align:left;width: 7cm; ">
+Unabhängige Preismodellierung ohne Ordinalität, 0.1% Buckets höchster Wahrscheinlichkeit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.125
+</td>
+<td style="text-align:left;width: 7cm; ">
+Unabhängige Preismodellierung mit Ordinalität, 0.1% Buckets höchster Wahrscheinlichkeit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Neuronale Netze
+</td>
+<td style="text-align:right;">
+1.155
+</td>
+<td style="text-align:left;width: 7cm; ">
+Abhängige Preismodellierung, 0.1% Buckets höchster Wahrscheinlichkeit
+</td>
+</tr>
+</tbody>
+</table>
+<p>Während mit vorliegenden Methoden und Analysen bereits Strategien gefunden werden konnten, welche die Referenzstrategie deutlich übertreffen, ist es wahrscheinlich, dass mit andern Methoden und Vorgehensweisen noch bessere Resultate erzielt werden könnten. So zeigte sich bei der Analyse mittels nächster Nachbarn, dass es vorteilhaft scheint, nicht die absoluten Preise, sondern die Auslenkungen vom aktuellen Eröffnungskurs zu prognostizieren. Für weiterführende Analysen könnte es daher interessant sein, die Auslenkungen (sowie deren Wahrscheinlichkeitsverteilungen) auch mit Hilfe neuronaler Netze zu prognostizieren.</p>
+<p>Ferner liesse sich die Analyse auf weitere Methoden ausweiten. Denkbar wären beispielsweise auch der Einsatz des Random Forrest Algorithmus oder die Verwendung autoregressiver Modelle wie GARCH. Zweitere sind in der Finanzliteratur weit verbreitet, wenn es um die Modellierung von Volatilität geht <span class="citation">(vgl. Osseiran <a href="#ref-osseiran_segonne">2019</a>)</span>. Weiter könnte sich auch die Analyse mit Long short-term memory Modellen (LSTM) lohnen. Es kann der Gruppe der Recurrent Neural Networks (RNN) zugeordnet werden und eignet sich zur Prognose von Zeitreihen wie sie im vorliegenden Fall vorliegen <span class="citation">(vgl. Hochreiter and Schmidhuber <a href="#ref-hochreiter_schmidhuber">1997</a>)</span>.</p>
+
+<div id="refs" class="references">
+<div>
+<p>Altman, N.S. 1992. “An Introduction to Kernel and Nearest Neighbor Nonparametric Regression.” <em>The American Statistician</em> 46 (3): 175–85. <a href="https://doi.org/doi:10.1080/00031305.1992.10475879">https://doi.org/doi:10.1080/00031305.1992.10475879</a>.</p>
+</div>
+<div>
+<p>Amazon. 2020. “<em>Making an Amazon Ebs Volume Available for Use on Linux</em>.”</p>
+</div>
+<div>
+<p>Asimas, M.A.S. 2018. “Stock Market Betas for Cyclical and Defensive Sectors: A Practitioner’s Perspective.” <em>Philippine Management Review</em> 25: 99–114.</p>
+</div>
+<div>
+<p>Bentley, J.L. 1975. “Multidimensional Binary Search Trees Used for Associative Searching.” <em>Communications of the ACM</em> 18 (9): 509–17.</p>
+</div>
+<div>
+<p>Blackrock. 2020. “<em>IShares Msci World Ucits Etf: IWRD</em>.”</p>
+</div>
+<div>
+<p>Frank, M., E. und Hall. 2001. “A Simple Approach to Ordinal Classification.” In <em>Lecture Notes in Computer Science</em>, 2167:145–56. <a href="https://doi.org/10.1007/3-540-44795-4_13">https://doi.org/10.1007/3-540-44795-4_13</a>.</p>
+</div>
+<div>
+<p>Hochreiter, S., and J. Schmidhuber. 1997. “Long Short-Term Memory.” <em>Neural Computation</em> 9 (8): 1735–80. <a href="https://doi.org/10.1162/neco.1997.9.8.1735">https://doi.org/10.1162/neco.1997.9.8.1735</a>.</p>
+</div>
+<div>
+<p>Krizhevsky, Alex, Ilya Sutskever, and Geoffrey E Hinton. 2012. “ImageNet Classification with Deep Convolutional Neural Networks.” In <em>Advances in Neural Information Processing Systems 25</em>, edited by F. Pereira, C. J. C. Burges, L. Bottou, and K. Q. Weinberger, 1097–1105. Curran Associates, Inc. <a href="http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf">http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf</a>.</p>
+</div>
+<div>
+<p>Microsoft. 2020. “<em>Create a Managed Image of a Generalized Vm in Azure</em>.”</p>
+</div>
+<div>
+<p>Nestle. 2020. “<em>Dividendenzahlungen</em>.”</p>
+</div>
+<div>
+<p>Osseiran, F., A. und Segonne. 2019. <em>Unperturbed by Volatility: A Practicioner’s Guide to Risk</em>. First.</p>
+</div>
+<div>
+<p>RStudio. 2020. “<em>RStudio Server</em>.”</p>
+</div>
+<div>
+<p>SP-Finance. 2020. “<em>Delta Hedging, Gamma and Dollar Gamma</em>.”</p>
+</div>
+<div>
+<p>Tensorflow. 2020. “<em>GPU Support</em>.”</p>
+</div>
+<div>
+<p>Yahoo. 2020. “<em>Yahoo Finance</em>.”</p>
+</div>
+<div>
+<p>Yang, D., and Q. Zhang. 2000. “Drift-Independent Volatility Estimation Based on High, Low, Open, and Close Prices.” <em>The Journal of Business</em> 73 (3): 477–92.</p>
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+<h3>References</h3>
+<div id="refs" class="references">
+<div id="ref-hochreiter_schmidhuber">
+<p>Hochreiter, S., and J. Schmidhuber. 1997. “Long Short-Term Memory.” <em>Neural Computation</em> 9 (8): 1735–80. <a href="https://doi.org/10.1162/neco.1997.9.8.1735">https://doi.org/10.1162/neco.1997.9.8.1735</a>.</p>
+</div>
+<div id="ref-osseiran_segonne">
+<p>Osseiran, F., A. und Segonne. 2019. <em>Unperturbed by Volatility: A Practicioner’s Guide to Risk</em>. First.</p>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="analyse.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["Masterarbeit.pdf"],
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>

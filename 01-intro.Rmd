@@ -37,7 +37,7 @@ Den Zusammenhang zwischen Preis der Option und Preis des Underlyings ist in Abbi
 
 Wenn die zukünftigen Bewegungen des Preises grösser sind, als dies der Markt einpreist, kann die Verfolgung einer solchen Handelsstrategie allerdings lukrativ sein. Die Schwierigkeit liegt dabei in der Auswahl der richtigen Titel. Diese Strategie wird als Gamma-Scalping bezeichnet.
 
-Der Einfluss des Gammas ist aber nicht nur zu Spekulationszwecken interessant. Dessen Bewirtschaftung ist auch für die Steuerung des eingegangenen Risikos von Relevanz. Soll nämlich die Delta-Neutralität nach Preisbewegungen wieder hergestellt werden, müssen laufend neue Titel des Underlyings gekauft oder verkauft werden. Grafisch entspricht dies der Einnahme einer Aktienposition, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tieftpunkt zu kaufen und positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.
+Der Einfluss des Gammas ist aber nicht nur zu Spekulationszwecken interessant. Dessen Bewirtschaftung ist auch für die Steuerung des eingegangenen Risikos von Relevanz. Soll nämlich die Delta-Neutralität nach Preisbewegungen wieder hergestellt werden, müssen laufend neue Titel des Underlyings gekauft oder verkauft werden. Grafisch entspricht dies der Einnahme einer Aktienposition, welche wieder der Steigung der Tangente beim nun vorherrschenden Preis entspricht. Typischerweise ist es so, dass diese Anpassungen abends (zur Reduktion des Risikos über Nacht) oder je nach Entscheidung des Händlers auch untertags erfolgen. Der Händler wird dabei versuchen, den Ausgleich nach möglichst grosser Preisbewegung zu machen, d.h. negatives Delta am Tiefstpunkt zu kaufen und positives Delta am Höchstpunkt zu verkaufen. Verpasst er diesen Zeitpunkt und die Preise entwickeln sich wieder Richtung Ausgangspunkt, so entgehen ihm mögliche Gewinne.
 
 
 ## Forschungsfrage
@@ -90,22 +90,11 @@ wobei,
 \$\Gamma_i = \Gamma \times S_i^2 / 100
 \end{equation}
 
-Zu beachten gilt es insbesondere, dass der Payoff quadratisch auf Preisbewegungen reagiert. Dies führt dazu, dass es von Relevanz ist, ob zuerst die Kaufs- oder die Verkaufsschwelle erreicht wird. Die Ausführung zum jeweiligen Schwellenwert wird durch die Indikatorvariablen $I_{first}$ und $I_{second}$ modelliert. Damit es zu einer Ausfühung kommt, müssen dabei die folgenden beiden Kriterien kumulativ erfüllt sein:
+Zu beachten gilt es insbesondere, dass der Payoff quadratisch auf Preisbewegungen reagiert. Dies führt dazu, dass es von Relevanz ist, ob zuerst die Kaufs- oder die Verkaufsschwelle erreicht wird. Die Ausführung zum jeweiligen Schwellenwert wird durch die Indikatorvariablen $I_{first}$ und $I_{second}$ modelliert. Damit es zu einer Ausführung kommt, müssen dabei die folgenden beiden Kriterien kumulativ erfüllt sein:
 
 a) Der Schwellenwert wird erreicht.
 b) Die vorangegangene Transaktion hat bei einem höheren Preis für Aktion an unterer Schwelle, respektive tieferen Preis für eine Aktion an der oberen Schwelle stattgefunden.
 
 <!-- Können die Verteilungen des Kurses im Laufe des Tages prognostiziert werden, so könnten diejenigen Kauf- und Verkaufpreise gewählt werden, welche unter Berücksichtigung dessen Eintretenswahrscheinlichkeit die höchsten Gewinne ermöglicht. Dies soll in der vorliegenden Arbeit mit Hilfe von Machine Learning Algorithmen untersucht werden. -->
-
-
-## Daten
-Als Datengrundlage dienen historische Eröffnungs-, Tiefst-, Höchst und Schlusskurse von Aktien (nachfolgend auch Open, Low, High und Close genannt) groser Unternehmen. Diese sind öffentlich und können von Yahoo Finance bezogen werden. Die Verwendung öffentlicher Daten hat den Vorteil, dass diese problemlos auf Cloud-Infrastruktur (beispielsweise unabdingbar im Falle des Einsatzes von Neuronalen Netze / Deep Learning Techniken) prozessiert werden können, ohne dass dabei Lizenzvereinbarungen berücksichtigt werden müssen. 
-
-## Methoden
-Es werden nachfolgend verschiedene Methoden zur Optimierung des Payoffs ausprobiert und gegeneinander verglichen. Diese sind: 
-- Einfach Optimierungen
-- Nearest Neighbor Ansätze
-- Neuronale Netzwerke
-
 
 
