@@ -361,16 +361,6 @@ if (file.exists(model_ind_bin_close_path) && file.exists(history_ind_bin_close_p
 ```
 
 
-```{r, plot-binary-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise mit expliziter Modellierung der Oridinalität', fig.height=3, echo=FALSE, message=FALSE, warning = FALSE}
-eval_idx <- c(52, 12)
-ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
-plot_neural_sample_histogram(eval_idx, ind_binary)
-rm(list = c("pred_bin_low", "pred_bin_high", "pred_bin_close"))
-```
-
-
-Führt man die gleichen Analysen auch für das Modell durch, welches die Ordinalität der Klassen explizit modelliert, ergeben sich ähnliche Ergebnisse. Wie in Abbildung \@(fig:plot-binary-histogram) ersichtlich, weisen die beiden exemplarischen Einträge im Testdatensatz auch bei diesem Modell vergleichbare Preisverteilungen auf. Es scheint, als ob eine explizite Modellierung der Ordinalität nicht unbedingt nötig ist. Die Verteilung scheint auch ohne explizite Modellierung richtig gelernt worden zu sein.  
-
 ```{r, make-ind-binary-predictions}
 
 translate_cum_prob <- function(cum_prob) {
@@ -387,6 +377,16 @@ pred_bin_high <- predict_proba(model_ind_bin_high, x[test_idx, ], batch_size = 5
 pred_bin_close <- predict_proba(model_ind_bin_close, x[test_idx, ], batch_size = 512) %>% translate_cum_prob()
 
 ```
+
+```{r, plot-binary-histogram, fig.cap='Exemplarische Verteilung der vorausgesagten Preise mit expliziter Modellierung der Oridinalität', fig.height=3, echo=FALSE, message=FALSE, warning = FALSE}
+eval_idx <- c(52, 12)
+ind_binary$pred <- list(low = pred_bin_low, high = pred_bin_high, close = pred_bin_close)
+plot_neural_sample_histogram(eval_idx, ind_binary)
+rm(list = c("pred_bin_low", "pred_bin_high", "pred_bin_close"))
+```
+
+
+Führt man die gleichen Analysen auch für das Modell durch, welches die Ordinalität der Klassen explizit modelliert, ergeben sich ähnliche Ergebnisse. Wie in Abbildung \@ref(fig:plot-binary-histogram) ersichtlich, weisen die beiden exemplarischen Einträge im Testdatensatz auch bei diesem Modell vergleichbare Preisverteilungen auf. Es scheint, als ob eine explizite Modellierung der Ordinalität nicht unbedingt nötig ist. Die Verteilung scheint auch ohne explizite Modellierung richtig gelernt worden zu sein.  
 
 
 

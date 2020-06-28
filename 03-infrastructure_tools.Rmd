@@ -1,4 +1,4 @@
-# Infrastruktur und Tools {infrastruktur_und_tools}
+# Infrastruktur und Tools
 
 ## Cloud Setup
 Gewisse in dieser Arbeit durchgeführte Analysen sind sehr rechen- und speicherintensiv. Sie stellen damit erhöhte Anforderungen an die eingesetzte Infrastruktur. Für die vorliegenden Analysen stellte sich folgender Setup mit drei unterschiedlichen virtuellen Maschinentypen (VMs) als geeignet heraus:

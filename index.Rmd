@@ -1,6 +1,8 @@
 ---
 title: "Die Bestimmung optimaler Kauf- und Verkaufspreise von Basiswerten zur Wahrung der täglichen Delta-Neutralität beim Handel von Aktienoptionen mit Hilfe verschiedener Machine Learning Methoden"
-author: "Fabian Gehring, Zürcher Hochschule für Angewandte Wissenschaften"
+author: 
+  - Fabian Gehring, Sattelbogenstrasse 31, 5610 Wohlen
+  - Betreut durch Dr. Thomas Oskar Weinmann, ZHAW
 site: bookdown::bookdown_site
 documentclass: scrartcl
 bibliography: ["mas.bib"]

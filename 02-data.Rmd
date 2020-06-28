@@ -283,7 +283,7 @@ Im vorliegenden Fall weist die Lorenzkurve eine deutliche Konvexität auf. Zumal
 
 ### Volatilitätsmass
 
-Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Titel in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (Bsp. Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (Bsp. Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten [Vgl. @asimas].
+Vorliegende Analyse basiert auf einer Vielzahl ganz unterschiedlicher Aktien. Es ist bekannt, dass die Preise unterschiedlicher Titel in gleichen Marktsituationen mit unterschiedlich starken Ausschlägen reagieren. Beispielsweise reagieren Unternehmen, welche im Luxusgüterbereich (beispielsweise Richemont, Swatch) tätig sind stärker als Anbieter im Bereich der Grundversorgung (beispielsweise Nestle). Man spricht in diesem Zusammenhang auch von zyklischen und defensiven Werten [vgl. @asimas].
 
 Auch für die nachfolgenden Analysen ist die Volatilität ein wichtiges Mass. Es lohnt sich daher an dieser Stelle über folgende Fragen klar zu werden:
 - Welcher Volatiltätsschätzer soll verwendet werden?
