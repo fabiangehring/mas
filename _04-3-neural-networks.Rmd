@@ -31,11 +31,10 @@ Wie bereits ausgeführt, ist der Payoff abhängig von der Höhe der Preisbewegun
 
 
 ### Diskretisierung
-Zur Modellierung der Verteilung werden die Tiefst-, Höchst- und Schlusspreise in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit ermitteln. Zu beachten gilt es hierbei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall, bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Im vorliegenden Fall werden zwei Einteilungsverfahren verfolgt:
+Zur Modellierung der Verteilung werden die Tiefst-, Höchst- und Schlusspreise in einem ersten Schritt diskretisiert. Für jeden Preisbereich [Bucket] lässt sich mit dem Modell später eine Eintretenswahrscheinlichkeit ermitteln. Zu beachten gilt es hierbei, dass die einzelnen Buckets möglichst gleich viele Werte enthalten. Ist dies nicht der Fall, bestehen für den Algorithmus Anreize, ein Element dem grössten Bucket zuzuordnen. Es gibt verschiedene Oversampling und Undersampling Techniken, um mit solchen Ungleichgewichten umzugehen. Im vorliegenden Fall lassen sich die Buckets aber gut so wählen, dass sie in häufigen Datenbereichen enger sind als in Bereichen mit weniger Daten. Wir verwenden dazu zwei unterschiedliche Einteilungsverfahren:
 
 1. **Unabhängige Modellierung von Low, High und Close Preisen**  
 Eine erste Möglichkeit besteht darin, die Diskretisierung von Tiefst-, Höchst- und Schlusspreisen unabhängig voneinander zu gestalten. Dies hat den Nachteil, dass allenfalls wertvolle Information verloren geht. Dies zeigt sich insbesondere dadurch, dass Bucketkombinationen entstehen, welche in Realität nicht möglich sind. Beispielsweise sind dies Kombinationen, bei denen der Tiefstpreis höher ausfällt als der Höchstpreis. 
-
 Der Vorteil dieses Vorgehens liegt andererseits darin, dass die Ermittlung gleich grosser Buckets mittels Quantilbildung sehr einfach möglich ist. Zudem lässt sich das Problem bei Annahme von Unabhängigkeit in drei kleinere Klassifikationsprobleme aufteilen. Werden beispielsweise sowohl Tiefst-, Höchst- und Schlusspreise mit jeweils 30 Buckets modelliert, resultieren drei Klassifikationsprobleme à 30 Klassen. Kombiniert man diese, resultieren $27'000 \ (= 30^3)$ Preisszenarien, wobei sich die Wahrscheinlichkeit für jedes dieser Szenarien als Multiplikation der einzelnen Preiswahrscheinlichkeiten ergibt.
 
 2. **Abhängige Modellierung von Low, High und Close Preisen**  

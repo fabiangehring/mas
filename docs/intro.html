@@ -153,10 +153,10 @@ Abbildung 1.1: Zusammenhang zwischen Preis der Underlyings und Preis der Option.
 <p>Für die einfachere Referenzstrategie, welche die Delta-Neutraliät erst bei Tagesende wieder herstellt, lautet diese wie folgt:</p>
 <p><span class="math display">\[\begin{equation}
 \begin{aligned}
-Payoff ={} &amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2
+Payoff ={} &amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \left(\frac{close_t}{close_{t-1}}-1\right)^2
 \end{aligned}
 \end{equation}\]</span></p>
-<p>Für die Notation werden log-Returns verwendet. Diskrete Returns sind aber genauso möglich. Als <span class="math inline">\(close_i\)</span> wird der Tagesendkurs am Tag <span class="math inline">\(i\)</span> bezeichnet. Unter <span class="math inline">\(\$\Gamma_i\)</span> verstehen wir dabei das Gamma Cash (auch Dollar Cash). Die Herleitung dieses Payoffs ergibt sich aufgrund folgender Überlegungen <span class="citation">(vgl. SP-Finance <a href="#ref-sp_finance">2020</a>)</span>:</p>
+<p>Für die Notation werden diskrete-Returns verwendet. Stetige Returns sind aber genauso möglich. Als <span class="math inline">\(close_i\)</span> wird der Tagesendkurs am Tag <span class="math inline">\(i\)</span> bezeichnet. Unter <span class="math inline">\(\$\Gamma_i\)</span> verstehen wir dabei das Gamma Cash (auch Dollar Cash). Die Herleitung dieses Payoffs ergibt sich aufgrund folgender Überlegungen <span class="citation">(vgl. SP-Finance <a href="#ref-sp_finance">2020</a>)</span>:</p>
 <p>Bezeichne <span class="math inline">\(S_0\)</span> den Preis des Underlyings und <span class="math inline">\(P_0\)</span> den Preis der Option zu Beginn und <span class="math inline">\(S_1\)</span> sowie <span class="math inline">\(P_1\)</span> die jeweiligen Preise nach einer Preisbewegung des Underlyings um <span class="math inline">\(d_S\)</span>. <span class="math inline">\(\Delta_0\)</span> und <span class="math inline">\(\Gamma_0\)</span> bezeichnen die erste und zweite Ableitung des Optionspreises nach dem Underlyingpreis zum Ausgangszeitpunkt. Ferner sei als Delta Cash (<span class="math inline">\(\$\Delta = \Delta \times S\)</span>) der Wert des Hedge Portfolio bezeichnet und Gamma Cash (<span class="math inline">\(\$\Gamma = \Gamma \times S^2/100\)</span>) bezeichne die Veränderung des <span class="math inline">\(\$\Delta\)</span> bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich wie folgt herleiten: Verändert sich der Underlying-Preis um 1% <span class="math inline">\(S =&gt; S + S / 100\)</span>, verändert sich auch das Delta <span class="math inline">\(\Delta =&gt; \Delta + \Gamma \times S/100\)</span>. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash <span class="math inline">\(\$\Delta =&gt; \$\Delta + \Gamma \times S^2/100\)</span>.</p>
 <p>Mit Hilfe dieser Notation lässt sich der Gewinn einer zu Beginn delta-gehedgten Position herleiten:</p>
 <ol style="list-style-type: decimal">
@@ -169,14 +169,14 @@ Payoff ={} &amp; \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \
 </ol>
 <p>Auch im Falle der etwas komplexeren Strategie mit der Möglichkeit von Käufen und Verkäufen innerhalb des Tages lässt sich die gleiche Payoffstruktur wiederfinden:</p>
 <p><span class="math display">\[\begin{eqnarray}
-{Payoff} &amp; = &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{close_t}{first}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{second}{close_{t-1}}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{second} \times I_{first} \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{second}{first}\right)}^2  \times I_{first} \times I_{second} \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times I_{first} \ +\nonumber \\
-&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{close_t}{close_{t_1}}\right)}^2  \times (1 - I_{first}) \times (1 - I_{second})
+{Payoff} &amp; = &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{first}{close_{t-1}}-1\right)^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \left(\frac{close_t}{first}-1\right)^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{second}{close_{t-1}}-1\right)^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \left(\frac{close_t}{second}-1\right)^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{first}{close_{t-1}}-1\right)^2  \times I_{second} \times I_{first} \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \left(\frac{second}{first}-1\right)^2  \times I_{first} \times I_{second} \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \left(\frac{close_t}{second}-1\right)^2  \times I_{second} \times I_{first} \ +\nonumber \\
+&amp;  &amp; \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{close_t}{close_{t_1}}-1\right)^2  \times (1 - I_{first}) \times (1 - I_{second})
 \end{eqnarray}\]</span></p>
 <p>wobei,</p>
 <p><span class="math display">\[\begin{equation}
@@ -245,7 +245,7 @@ gitbook.start({
 "link": null,
 "text": null
 },
-"download": ["Masterarbeit.pdf"],
+"download": null,
 "toc": {
 "collapse": "subsection"
 }

@@ -43,6 +43,19 @@ suppressMessages({
 for (file in list.files(here("R"), full.names = TRUE)) source(file)
 ```
 
+\newpage
+\section*{Selbständigkeitserklärung}
+
+Mit der Abgabe dieser Arbeit versichert der/die Studierende, dass er/sie die Arbeit selbständig und ohne fremde Hilfe verfasst hat. (Bei Teamarbeiten gelten die Leistungen der übrigen Teammitglieder nicht als fremde Hilfe).
+
+Der/die unterzeichnende Studierende erklärt, dass alle zitierten Quellen (auch Internetseiten) im Text oder Anhang korrekt nachgewiesen sind, d.h. dass die vorliegende Arbeit keine Plagiate enthält, also keine Teile, die teilweise oder vollständig aus einem fremden Text oder einer fremden Arbeit unter Vorgabe der eigenen Urheberschaft bzw. ohne Quellenangabe übernommen worden sind.
+\vspace*{0.4cm}
+
+Wohlen, 29.06.2020  
+Fabian Gehring
+
+
+\newpage
 
 # Management Summary {-#summary}
 

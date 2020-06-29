@@ -53,11 +53,11 @@ Für die einfachere Referenzstrategie, welche die Delta-Neutraliät erst bei Tag
 
 \begin{equation}
 \begin{aligned}
-Payoff ={} & \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \ln{\left(\frac{close_t}{close_{t-1}}\right)}^2
+Payoff ={} & \frac{1}{2}  \times 100 \times \$\Gamma_{close_{t-1}}  \times \left(\frac{close_t}{close_{t-1}}-1\right)^2
 \end{aligned}
 \end{equation}
 
-Für die Notation werden log-Returns verwendet. Diskrete Returns sind aber genauso möglich. Als $close_i$ wird der Tagesendkurs am Tag $i$ bezeichnet. Unter  $\$\Gamma_i$ verstehen wir dabei das Gamma Cash (auch Dollar Cash). Die Herleitung dieses Payoffs ergibt sich aufgrund folgender Überlegungen [vgl. @sp_finance]:
+Für die Notation werden diskrete-Returns verwendet. Stetige Returns sind aber genauso möglich. Als $close_i$ wird der Tagesendkurs am Tag $i$ bezeichnet. Unter  $\$\Gamma_i$ verstehen wir dabei das Gamma Cash (auch Dollar Cash). Die Herleitung dieses Payoffs ergibt sich aufgrund folgender Überlegungen [vgl. @sp_finance]:
 
 Bezeichne $S_0$ den Preis des Underlyings und $P_0$ den Preis der Option zu Beginn und $S_1$ sowie $P_1$ die jeweiligen Preise nach einer Preisbewegung des Underlyings um $d_S$. $\Delta_0$ und $\Gamma_0$ bezeichnen die erste und zweite Ableitung des Optionspreises nach dem Underlyingpreis zum Ausgangszeitpunkt. Ferner sei als Delta Cash ($\$\Delta = \Delta \times S$) der Wert des Hedge Portfolio bezeichnet und Gamma Cash ($\$\Gamma = \Gamma \times S^2/100$) bezeichne die Veränderung des $\$\Delta$ bei einer 1-prozentigen Veränderung des Underlying-Preises. Dies lässt sich wie folgt herleiten: Verändert sich der Underlying-Preis um 1% $S => S + S / 100$, verändert sich auch das Delta $\Delta => \Delta + \Gamma \times S/100$. Das neue Delta Cash verändert sich damit in der Höhe von Gamma Cash $\$\Delta => \$\Delta + \Gamma \times S^2/100$.
 
@@ -74,14 +74,14 @@ Mit Hilfe dieser Notation lässt sich der Gewinn einer zu Beginn delta-gehedgten
 Auch im Falle der etwas komplexeren Strategie mit der Möglichkeit von Käufen und Verkäufen innerhalb des Tages lässt sich die gleiche Payoffstruktur wiederfinden:
 
 \begin{eqnarray}
-{Payoff} & = & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{close_t}{first}\right)}^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{second}{close_{t-1}}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{first}{close_{t-1}}\right)}^2  \times I_{second} \times I_{first} \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \ln{\left(\frac{second}{first}\right)}^2  \times I_{first} \times I_{second} \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \ln{\left(\frac{close_t}{second}\right)}^2  \times I_{second} \times I_{first} \ +\nonumber \\
-&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \ln{\left(\frac{close_t}{close_{t_1}}\right)}^2  \times (1 - I_{first}) \times (1 - I_{second})
+{Payoff} & = & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{first}{close_{t-1}}-1\right)^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \left(\frac{close_t}{first}-1\right)^2  \times I_{first} \times (1 - I_{second}) \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{second}{close_{t-1}}-1\right)^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \left(\frac{close_t}{second}-1\right)^2  \times I_{second} \times (1 - I_{first}) \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{first}{close_{t-1}}-1\right)^2  \times I_{second} \times I_{first} \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{first} \times \left(\frac{second}{first}-1\right)^2  \times I_{first} \times I_{second} \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{second} \times \left(\frac{close_t}{second}-1\right)^2  \times I_{second} \times I_{first} \ +\nonumber \\
+&  & \frac{1}{2} \times 100 \times \$\Gamma_{close_{t-1}} \times \left(\frac{close_t}{close_{t_1}}-1\right)^2  \times (1 - I_{first}) \times (1 - I_{second})
 \end{eqnarray}
 
 wobei, 
